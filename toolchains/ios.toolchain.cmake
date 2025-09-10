@@ -1,0 +1,34 @@
+set(CMAKE_SYSTEM_NAME iOS)
+set(CMAKE_SYSTEM_PROCESSOR arm64)
+
+if(NOT DEFINED PLATFORM)
+    set(PLATFORM OS64)
+endif()
+
+find_program(XCRUN_EXECUTABLE xcrun)
+if(NOT XCRUN_EXECUTABLE)
+    message(FATAL_ERROR "xcrun no encontrado")
+endif()
+
+if(PLATFORM STREQUAL "OS64")
+    set(IOS_SDK_NAME "iphoneos")
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+elseif(PLATFORM STREQUAL "SIMULATOR")
+    set(IOS_SDK_NAME "iphonesimulator")
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+else()
+    message(FATAL_ERROR "Plataforma inválida")
+endif()
+
+execute_process(
+    COMMAND ${XCRUN_EXECUTABLE} --sdk ${IOS_SDK_NAME} --show-sdk-path
+    OUTPUT_VARIABLE CMAKE_OSX_SYSROOT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Versión minima de despliegue")
+
+set(CMAKE_C_COMPILER_WORKS 1)
+set(CMAKE_CXX_COMPILER_WORKS 1)
+
+set(CMAKE_XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC "YES")

@@ -1,0 +1,5 @@
+build
+build-ios
+.cache
+.DS_Store
+.vscode
