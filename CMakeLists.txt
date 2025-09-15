@@ -8,14 +8,9 @@ set(APP_IDENTIFIER "com.scardivargames.ilen-test")
 set(APP_NAME "ILEN Test")
 set(APP_VERSION "0.0.1")
 set(APP_BUILD_NUMBER "1")
+set(APP_COPYRIGHT "Copyright (c) 2025 Scardivar's Games. All rights reserved.")
 
 file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp)
-
-#if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-#    add_library(${PROJECT_NAME} STATIC ${PROJECT_SOURCES})
-#else()
-#    add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
-#endif()
 
 if(NOT APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
@@ -44,6 +39,7 @@ if(APPLE)
             MACOSX_BUNDLE_NAME ${APP_NAME}
             MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
             MACOSX_BUNDLE_VERSION ${APP_BUILD_NUMBER}
+            MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
             )
         #iOS need also assets folder in the bundle
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -63,6 +59,8 @@ if(APPLE)
             MACOSX_BUNDLE_NAME ${APP_NAME}
             MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
             MACOSX_BUNDLE_VERSION ${APP_BUILD_NUMBER}
+            MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
+            MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME}
             )
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

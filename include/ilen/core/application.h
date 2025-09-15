@@ -14,6 +14,7 @@ namespace ilen::application{
         std::string applicationName = "";
         std::string applicationDeveloper = "";
         std::string applicationVersion = "";
+        int applicationFramerate = 120;
         #if !TARGET_OS_IOS //Plataforma móviles no necesitan el tamaño de la ventana
         int startWidth = 0, startHeight = 0;
         IlenWindowPropertiesFlags windowPropertiesFlags = 0; //Fullscreen
@@ -48,7 +49,7 @@ namespace ilen::application{
             //Pausa la app hasta el siguiente frame
             static void stopUntilNextFrame() {
                 auto wakeTime = ilen::time::Time::getWakeTime(s_framerateInMiliseconds);
-                std::chrono::duration<double, std::milli> margin(5);
+                std::chrono::duration<double, std::milli> margin(1);
                 std::this_thread::sleep_until(wakeTime - margin);
 
                 while(std::chrono::high_resolution_clock::now() < wakeTime) {} //Lopeamos la app, así gastamos una cantidad menor de recursos y obtenemos un framerate más perfecto
@@ -62,6 +63,7 @@ namespace ilen::application{
                 s_applicationName = metadata.applicationName;
                 s_applicationVersion = metadata.applicationVersion;
                 s_applicationDeveloper = metadata.applicationDeveloper;
+                setFrameRate(metadata.applicationFramerate);
             }
         private:
             inline static std::string s_applicationName;

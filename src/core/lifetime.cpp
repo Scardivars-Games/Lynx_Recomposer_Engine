@@ -58,12 +58,12 @@ namespace ilen{
 
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
-
         auto triangle = gCoordinator->createEntity();
         components::ScriptingBridgeComponent scripting{};
         scripting.bind<Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
         gCoordinator->addComponent(triangle, scripting);
 
+        //Presentation
         using namespace ilen::window;
         using namespace ilen::render;
         //Crear ventana
@@ -72,8 +72,10 @@ namespace ilen{
 
         Debug::Log("Creando la superficie para el dibujo", DEBUG_PREFIX);
         pGameRenderer = Renderer::create(pGameWindow->getSurface());
-
+        
+        //Inicializamos los scripts.
         scriptingSystem->init();
+        ilen::time::Time::setNewFrame();
     }
 
     void AppRuntime::update(){
@@ -88,6 +90,8 @@ namespace ilen{
             pGameRenderer->beginFrame();
             pGameRenderer->endFrame();
         }
+        application::Application::stopUntilNextFrame();
+        ilen::time::Time::setNewFrame();
     }
 
     void AppRuntime::shutdown(){

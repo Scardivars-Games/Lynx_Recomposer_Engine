@@ -153,7 +153,7 @@ namespace ilen::maths::vector{
     float32_t magnitude(const Vector<T, N>& v) {
         float32_t data = 0;
         for(size_t i = 0; i < N; i++){
-            data += powf32(v[i], 2);
+            data += pow(v[i], 2);
         }
         data = sqrt(data);
         return data;

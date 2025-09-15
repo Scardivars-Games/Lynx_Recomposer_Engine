@@ -2,10 +2,14 @@
 #include <ilen/headers/ecs.h>
 #include <ilen/headers/maths.h>
 
+namespace ilen::ecs::systems {
+    class TransformSystem;
+}
+
 //Componente que contiene los transforms de cierto objeto.
 //Estos datos, en su formato más básico son: posición (vector3), rotación (vector3) y escala (vector3)
+
 namespace ilen::ecs::components {
-    
     using namespace ilen::maths;
     
     class TransformComponent {
@@ -17,13 +21,13 @@ namespace ilen::ecs::components {
             vec3 localRotation = rotation;
             vec3 scale = vec3(1.0f); //La escala será 1:1 con la fuente
 
-            Entity parent = NULL;
+            Entity parent = NULL_ENTITY;
             std::vector<Entity> childrens;
 
             matrix::mat4 getWorldMatrix();
         private:
             matrix::mat4 localToWorldMatrix;
 
-        friend class TransformSystem;
+        friend class ilen::ecs::systems::TransformSystem;
     };
 }

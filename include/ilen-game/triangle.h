@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ilen/headers/gameobject.h>
+#include <ilen/headers/core.h>
 
 using namespace ilen::game;
 

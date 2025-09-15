@@ -100,10 +100,13 @@ void AssetsManager::loadManifiest(const std::string& manifestName) {
 #if ILEN_DESKTOP && ILEN_DEBUG //No se necesita este símbolo en un sistema que no sirva para programar
 void AssetsManager::indexNewModels(json& manifestData){
     Debug::Warning("Indexando nuevos objetos en modo Debug", "ASSETS_MANAGER");
+    
+    //Debug::Warning(nlohmann::to_string(manifestData));
 
     uint32_t maxID = manifestData.value(ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS, 0);
     std::set<std::string> existingPaths;
     bool folderReorganized = false;
+
 
     //Necesito una base de datos de extensiones soportadas y que tipo de asset es
     std::unordered_map<std::string, std::string> extensionToAssetType = {
@@ -116,10 +119,11 @@ void AssetsManager::indexNewModels(json& manifestData){
         {".jpg", "textures"},
         {".jpeg", "textures"},
         //Shaders
-        {".metal", "shaders"},
-        {".hlsl", "shaders"},
-        {".glsl", "shaders"},
-        {".spv", "shaders"},
+        {".metal", "shader-code"},
+        {".hlsl", "shader-code"},
+        {".glsl", "shader-code"},
+        {".spv", "shader-code"},
+        {".ilenshader", "shaders"},
         //Audio
         {".mp3", "audio"},
         {".wav", "audio"},
@@ -131,6 +135,7 @@ void AssetsManager::indexNewModels(json& manifestData){
         {"models", ILEN_ASSET_MANIFEST_MODEL},
         {"textures", ILEN_ASSET_MANIFEST_TEXTURES},
         {"shaders", ILEN_ASSET_MANIFEST_SHADERS},
+        {"shader-code", ILEN_ASSET_MANIFEST_SHADERS},
         {"audio", ILEN_ASSET_MANIFEST_AUDIO},
         {"materials", ILEN_ASSET_MANIFEST_MATERIALS},
     };

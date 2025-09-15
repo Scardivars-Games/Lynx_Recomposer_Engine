@@ -21,13 +21,14 @@ namespace ilen::time{
             }
             static float getDeltaTime(){
                 isTimeInitialized();
-                auto now = clock::now();
-                std::chrono::duration<float> delta = now - s_lastFrame;
-                return delta.count();
+                return s_deltaTime;
             }
             static void setNewFrame(){
                 isTimeInitialized();
-                s_lastFrame = clock::now();
+                auto now = clock::now();
+                std::chrono::duration<float> delta = now - s_lastFrame;
+                s_deltaTime = delta.count();
+                s_lastFrame = now;
             }
 
             static std::chrono::duration<float> getSleepTime(float targetFramerate) {
@@ -52,5 +53,6 @@ namespace ilen::time{
             static inline clock::time_point s_startTime;
             static inline clock::time_point s_lastFrame;
             static inline bool isInitialized = false;
+            static inline float s_deltaTime = 0.0f;
     };
 }

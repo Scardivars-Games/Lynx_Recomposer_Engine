@@ -24,5 +24,6 @@ void Triangle::Init() {
 }
 
 void Triangle::Update(){
-    Debug::Log("Triangle update");
+    
+    Debug::Log("Triangle update. Delta time: " + std::to_string(ilen::time::Time::getDeltaTime()));
 }

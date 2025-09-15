@@ -1,0 +1,7 @@
+{
+    "material-name" : "Básico",
+    "fragment-shader-id" : 0,
+    "fragment-shader-function" : "fragment",
+    "vertex-shader-id" : 0,
+    "vertex-shader-function" : "vertex"
+}
