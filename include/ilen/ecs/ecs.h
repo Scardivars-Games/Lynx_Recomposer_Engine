@@ -25,10 +25,11 @@ namespace ilen::ecs {
             }
 
             template<typename T>
-            void addComponent(Entity entity, T component){
-                componentManager->addComponent<T>(entity, component);
+            void addComponent(Entity entity, T&& component){
+                using DecayedType = typename std::decay<T>::type;
+                componentManager->addComponent<DecayedType>(entity, std::forward<T>(component));
                 auto signature = entityManager->getSignature(entity);
-                signature.set(componentManager->getComponentType<T>(), true);
+                signature.set(componentManager->getComponentType<DecayedType>(), true);
                 entityManager->setSignature(entity, signature);
                 systemManager->entitySignatureChanged(entity, signature);
             }
@@ -53,6 +54,15 @@ namespace ilen::ecs {
             void setSystemSignature(Signature signature){
                 systemManager->setSignature<T>(signature);
             } 
+
+            template<typename T>
+            void removeComponent(Entity entity){
+                componentManager->removeComponent<T>(entity);
+                auto signature = entityManager->getSignature(entity);
+                signature.set(componentManager->getComponentType<T>(), false);
+                entityManager->setSignature(entity, signature);
+                systemManager->entitySignatureChanged(entity, signature);
+            }
         
         private:
             std::unique_ptr<EntityManager> entityManager;

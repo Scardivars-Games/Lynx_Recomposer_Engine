@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <vector>
 #include <ilen/render/vertex-buffer.h>
+#include <future>   
 
 namespace ilen::ecs::components {
     
@@ -14,15 +15,34 @@ namespace ilen::ecs::components {
         uint32_t materialID;   
     };
 
+    //Indica que una entidad precisa de cargar sus datos a la VRAM. Debe eliminarse una vez se ha hecho la carga.
+    struct MeshData {
+        std::vector<render::buffers::VertexBuffer> vertexBufferData; //Array de los vertices del objeto a ser utilizados.
+        std::vector<uint32_t> indexBufferData;
+    };
+
     //Si una entidad recibe esta estructura, significa que debe cargar la mesh en la ruta indicada. Operación destinada a un JobSystem. Debe eliminarse una vez inyectado un componente con los datos.
     struct RequestMeshLoad {
         std::filesystem::path meshPath;
     };
 
-    //Indica que una entidad precisa de cargar sus datos a la VRAM. Debe eliminarse una vez se ha hecho la carga.
-    struct MeshData {
-        std::vector<render::buffers::VertexBuffer> vertexBufferData; //Array de los vertices del objeto a ser utilizados.
-        std::vector<uint32_t> indexBufferData;
+    //Se usa para indicar que se esta procesado la lectura y escritura de los datos.
+    struct WaitingForMeshLoad {
+        ilen::ecs::Entity entity;
+        std::future<MeshData> future;
+
+        // 1. Constructor por defecto explícito.
+        WaitingForMeshLoad() = default;
+
+        // 2. Constructor para inicializar con valores.
+        WaitingForMeshLoad(ilen::ecs::Entity e, std::future<MeshData>&& f)
+            : entity(e), future(std::move(f)) {}
+
+        // 3. Constructores de movimiento y eliminación de copia explícitos.
+        WaitingForMeshLoad(const WaitingForMeshLoad&) = delete;
+        WaitingForMeshLoad& operator=(const WaitingForMeshLoad&) = delete;
+        WaitingForMeshLoad(WaitingForMeshLoad&&) noexcept = default;
+        WaitingForMeshLoad& operator=(WaitingForMeshLoad&&) noexcept = default;
     };
 
     struct MeshGPULink {

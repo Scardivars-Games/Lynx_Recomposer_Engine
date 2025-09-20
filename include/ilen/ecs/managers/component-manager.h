@@ -22,13 +22,13 @@ namespace ilen::ecs {
     template<typename T>
     class ComponentArray : public IComponentArray {
         public:
-            void insertData(Entity entity, T component) {
+            void insertData(Entity entity, T&& component) {
                 assert(entityToIndexMap.count(entity) == 0 && "Ya existe el componente");
 
                 size_t newIndex = size;
                 entityToIndexMap[entity] = newIndex;
                 indexToEntityMap[newIndex] = entity;
-                componentArray[newIndex] = component;
+                componentArray[newIndex] = std::move(component);
                 size++;
             }
 
@@ -37,7 +37,7 @@ namespace ilen::ecs {
 
                 size_t indexOfRemoved = entityToIndexMap[entity];
                 size_t indexOfLast = size - 1;
-                componentArray[indexOfRemoved] = componentArray[indexOfLast];
+                componentArray[indexOfRemoved] = std::move(componentArray[indexOfLast]);
 
                 Entity entityOfLast = indexToEntityMap[indexOfLast];
                 entityToIndexMap[entityOfLast] = indexOfRemoved;
@@ -72,50 +72,54 @@ namespace ilen::ecs {
     class ComponentManager {
         public:
             template<typename T>
-            void registerComponent() {
-                //const char* typeName = typeid(T).name();
-                std::type_index typeIndex(typeid(T));
+            void registerComponent()
+            {
+                using DecayedType = typename std::decay<T>::type;
+                std::type_index typeIndex(typeid(DecayedType));
 
-                if(componentTypes.find(typeIndex) != componentTypes.end()){
+                if (componentTypes.find(typeIndex) != componentTypes.end()) {
                     return; //Componente ya registrado, ignorar.
                 }
                 componentTypes.emplace(typeIndex, nextComponentType);
-                componentArrays.emplace(typeIndex, std::make_shared<ComponentArray<T>>());
+                componentArrays.emplace(typeIndex, std::make_shared<ComponentArray<DecayedType>>());
                 nextComponentType++;
             }; //Registra un componente
 
             template<typename T>
             ComponentType getComponentType(){
-                std::type_index typeIndex(typeid(T));
+                using DecayedType = typename std::decay<T>::type;
+                std::type_index typeIndex(typeid(DecayedType));
                 if(componentTypes.find(typeIndex) == componentTypes.end()){
-                    registerComponent<T>(); //Registrar el componente porque no existe aún
+                    registerComponent<DecayedType>(); //Registrar el componente porque no existe aún
                 }
                 return componentTypes[typeIndex];
             }; //Regresa el ID del componente
 
             template<typename T>
-            void addComponent(Entity entity, T component){
-                registerComponent<T>();
-                auto arrayPtr = std::static_pointer_cast<ComponentArray<T>>(componentArrays[std::type_index(typeid(T))]);
-                arrayPtr->insertData(entity, component);
+            void addComponent(Entity entity, T&& component){
+                using DecayedType = typename std::decay<T>::type;
+                registerComponent<DecayedType>();
+                auto arrayPtr = std::static_pointer_cast<ComponentArray<DecayedType>>(componentArrays[std::type_index(typeid(DecayedType))]);
+                arrayPtr->insertData(entity, std::forward<T>(component));
             }; //Añade un componente a una entidad
 
             template<typename T>
             void removeComponent(Entity entity){
-                //std::static_pointer_cast<ComponentArray<T>>(componentArrays[std::type_index(typeid(T))]->removeData(entity));
-                auto arrayPointer = std::static_pointer_cast<ComponentArray<T>>(componentArrays[std::type_index(typeid(T))]);
+                using DecayedType = typename std::decay<T>::type;
+                auto arrayPointer = std::static_pointer_cast<ComponentArray<DecayedType>>(componentArrays[std::type_index(typeid(DecayedType))]);
                 arrayPointer->removeData(entity);
             }; //Elimina un componente a una enitdad
 
             template<typename T>
             T* getComponent(Entity entity){
-                std::type_index typeIndex(typeid(T));
+                using DecayedType = typename std::decay<T>::type;
+                std::type_index typeIndex(typeid(DecayedType));
                 if (componentArrays.find(typeIndex) == componentArrays.end()) {
                     // El tipo de componente no está registrado, por lo que ninguna entidad puede tenerlo.
                     return nullptr;
                 }
                 auto genericArrayPtr = componentArrays.at(typeIndex);
-                return std::static_pointer_cast<ComponentArray<T>>(genericArrayPtr)->getData(entity);
+                return std::static_pointer_cast<ComponentArray<DecayedType>>(genericArrayPtr)->getData(entity);
             }; //Regresa la referencia de un componente de una entidad.
 
             void entityDestroyed(Entity entity); //Notifica a todos los arrays de componentes que una entidad esta destruida

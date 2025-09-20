@@ -14,13 +14,13 @@ void Triangle::Init() {
     TransformComponent transform{};
     transform.position = {0.0f, 0.0f, 0.0f};
     transform.scale = {1.0f, 1.0f, 1.0f};
-    coordinator->addComponent(entity, transform);
+    coordinator->addComponent(entity, std::move(transform));
 
     RenderComponent render{};
     render.meshID = 1;
     render.mainTexID = 0;
     render.materialID = 6;
-    coordinator->addComponent(entity, render); 
+    coordinator->addComponent(entity, std::move(render)); 
 }
 
 void Triangle::Update(){

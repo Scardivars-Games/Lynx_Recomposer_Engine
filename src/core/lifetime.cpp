@@ -64,7 +64,7 @@ namespace ilen{
         auto triangle = gCoordinator->createEntity();
         components::ScriptingBridgeComponent scripting{};
         scripting.bind<Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
-        gCoordinator->addComponent(triangle, scripting);
+        gCoordinator->addComponent(triangle, std::move(scripting));
 
         //Presentation
         using namespace ilen::window;
