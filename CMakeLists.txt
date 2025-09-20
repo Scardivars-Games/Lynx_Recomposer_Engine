@@ -18,10 +18,12 @@ else()
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SOURCES})
 endif()
 
+add_subdirectory(external/assimp)
+
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
-
+target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
 if(APPLE)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         message("Configuration for iOS")
