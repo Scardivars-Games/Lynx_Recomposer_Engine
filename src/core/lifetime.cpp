@@ -2,6 +2,8 @@
 #include <ilen/core/lifetime.h>
 #include <ilen/core/assets-manager.h>
 #include <ilen/headers/ecs-systems.h>
+#include <ilen/job-system/job-system.h>
+
 
 //FOR NO-EDITOR GAME
 #include <ilen-game/triangle.h>
@@ -21,13 +23,15 @@ namespace ilen{
         #if defined (ILEN_DEBUG)
         core::Debug::Warning("App in Debug Mode");
         #endif
+        ilen::job_system::JobSystem::getInstance().Initializate();
+
         //Inicializando la presentiación del motor.
         application::Application::setApplicationData(metadata);
         //Inicializando el administrador de archivos del motor.
         FileManager::Init();
 
         //Inicializar assets. Es lo más importante antes del resto de sistemas
-        ilen::core::AssetsManager::getInstance().loadManifiest("assets.json");
+        ilen::core::AssetsManager::getInstance().loadManifiest("assets.ilenmanifest");
         
         //Inicializando elementos del motor.
         ilen::time::Time::Init();
@@ -35,22 +39,21 @@ namespace ilen{
         //Inicializando los sistemas del ECS
         gCoordinator = std::make_unique<ilen::ecs::ECSCoordinator>();
         gCoordinator->init();
-        //Registros componentes
-        gCoordinator->registerComponent<components::TransformComponent>();
-        gCoordinator->registerComponent<components::RenderComponent>();
-        gCoordinator->registerComponent<components::ScriptingBridgeComponent>();
+
         //Registro sistemas.
         //Transform system (space properties of an object)
         transformSystem = gCoordinator->registerSystem<systems::TransformSystem>();
         Signature transformSignature;
         transformSignature.set(gCoordinator->getComponentType<components::TransformComponent>());
         gCoordinator->setSystemSignature<systems::TransformSystem>(transformSignature);
+
         //Render System (render elements required to commit the command buffer in Platform Agnostic Renderer class)
         renderSystem = gCoordinator->registerSystem<systems::RenderSystem>();
         Signature renderSignature;
         renderSignature.set(gCoordinator->getComponentType<components::RenderComponent>());
         gCoordinator->setSystemSignature<systems::RenderSystem>(renderSignature);
-        //TODO: Init ScriptSystem for gameobjects if don't work GameObjects here inherited classes.
+
+        //Init ScriptSystem for gameobjects if don't work GameObjects here inherited classes.
         scriptingSystem = gCoordinator->registerSystem<systems::ScriptingSystem>();
         Signature scriptingSignature;
         scriptingSignature.set(gCoordinator->getComponentType<components::ScriptingBridgeComponent>());
@@ -75,10 +78,13 @@ namespace ilen{
         
         //Inicializamos los scripts.
         scriptingSystem->init();
+        //Se realiza la inicialización del renderizado.
+        renderSystem->Start();
         ilen::time::Time::setNewFrame();
     }
 
     void AppRuntime::update(){
+
         #if !ILEN_IOS
         pGameWindow->processEvents();
         #endif

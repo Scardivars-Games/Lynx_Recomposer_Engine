@@ -12,7 +12,8 @@ namespace ilen::ecs {
 
     //Es un ID único para cada tipo de componente
     using ComponentType = std::uint8_t;
-    const ComponentType MAX_COMPONENTS = 255;
+    const ComponentType MAX_COMPONENTS = 254;
+    const ComponentType NULL_COMPONENT = 255;
 
     //Un bit flag que representa que componentes tiene la entidad.
     using Signature = std::bitset<MAX_COMPONENTS>;

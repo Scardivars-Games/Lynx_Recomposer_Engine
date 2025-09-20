@@ -1,0 +1,7 @@
+{
+    "material-name" : "Error",
+    "fragment-shader-id" : 4,
+    "fragment-shader-function" : "basic_fragment",
+    "vertex-shader-id" : 4,
+    "vertex-shader-function" : "basic_vertex"
+}

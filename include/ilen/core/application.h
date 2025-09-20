@@ -52,7 +52,9 @@ namespace ilen::application{
                 std::chrono::duration<double, std::milli> margin(1);
                 std::this_thread::sleep_until(wakeTime - margin);
 
-                while(std::chrono::high_resolution_clock::now() < wakeTime) {} //Lopeamos la app, así gastamos una cantidad menor de recursos y obtenemos un framerate más perfecto
+                while(std::chrono::high_resolution_clock::now() < wakeTime) {
+                    std::this_thread::yield(); //Dejamos el thread disponible para otras apps.
+                } //Lopeamos la app, así gastamos una cantidad menor de recursos y obtenemos un framerate más perfecto
             }
             
             static void setApplicationData(ApplicationMetadata metadata){

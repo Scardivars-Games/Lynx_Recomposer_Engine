@@ -1,0 +1,146 @@
+{
+  "materials": [
+    {
+      "id": 3,
+      "name": "error",
+      "path": "materials/predefined/error.ilenmat"
+    },
+    {
+      "id": 6,
+      "name": "basic-materials",
+      "path": "materials/basic.ilenmat"
+    }
+  ],
+  "models": [
+    {
+      "id": 1,
+      "name": "triangle",
+      "path": "models/predefined/triangle.obj"
+    },
+    {
+      "id": 2,
+      "name": "quad",
+      "path": "models/predefined/quad.obj"
+    },
+    {
+      "id": 7,
+      "name": "character-employee-models",
+      "path": "models/character-employee.obj"
+    },
+    {
+      "id": 8,
+      "name": "cash-register-models",
+      "path": "models/cash-register.obj"
+    },
+    {
+      "id": 9,
+      "name": "shelf-bags-models",
+      "path": "models/shelf-bags.obj"
+    },
+    {
+      "id": 10,
+      "name": "display-bread-models",
+      "path": "models/display-bread.obj"
+    },
+    {
+      "id": 11,
+      "name": "fence-models",
+      "path": "models/fence.obj"
+    },
+    {
+      "id": 12,
+      "name": "shelf-end-models",
+      "path": "models/shelf-end.obj"
+    },
+    {
+      "id": 13,
+      "name": "bottle-return-models",
+      "path": "models/bottle-return.obj"
+    },
+    {
+      "id": 14,
+      "name": "freezer-models",
+      "path": "models/freezer.obj"
+    },
+    {
+      "id": 15,
+      "name": "freezers-standing-models",
+      "path": "models/freezers-standing.obj"
+    },
+    {
+      "id": 16,
+      "name": "wall-door-rotate-models",
+      "path": "models/wall-door-rotate.obj"
+    },
+    {
+      "id": 17,
+      "name": "display-fruit-models",
+      "path": "models/display-fruit.obj"
+    },
+    {
+      "id": 18,
+      "name": "wall-corner-models",
+      "path": "models/wall-corner.obj"
+    },
+    {
+      "id": 19,
+      "name": "column-models",
+      "path": "models/column.obj"
+    },
+    {
+      "id": 20,
+      "name": "fence-door-rotate-models",
+      "path": "models/fence-door-rotate.obj"
+    },
+    {
+      "id": 21,
+      "name": "floor-models",
+      "path": "models/floor.obj"
+    },
+    {
+      "id": 22,
+      "name": "wall-models",
+      "path": "models/wall.obj"
+    },
+    {
+      "id": 23,
+      "name": "shopping-basket-models",
+      "path": "models/shopping-basket.obj"
+    },
+    {
+      "id": 24,
+      "name": "shelf-boxes-models",
+      "path": "models/shelf-boxes.obj"
+    },
+    {
+      "id": 25,
+      "name": "wall-window-models",
+      "path": "models/wall-window.obj"
+    },
+    {
+      "id": 26,
+      "name": "shopping-cart-models",
+      "path": "models/shopping-cart.obj"
+    }
+  ],
+  "shaders": [
+    {
+      "id": 4,
+      "name": "error",
+      "path": "shaders/predefined/error.ilenshader"
+    },
+    {
+      "id": 27,
+      "name": "basic-shaders",
+      "path": "shaders/basic.ilenshader"
+    }
+  ],
+  "textures": [
+    {
+      "id": 5,
+      "name": "colormap-textures",
+      "path": "textures/colormap.png"
+    }
+  ],
+  "totalOfElements": 27
+}

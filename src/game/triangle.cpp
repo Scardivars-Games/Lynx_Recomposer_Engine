@@ -17,9 +17,9 @@ void Triangle::Init() {
     coordinator->addComponent(entity, transform);
 
     RenderComponent render{};
-    render.meshID = 0;
+    render.meshID = 1;
     render.mainTexID = 0;
-    render.materialID = 0;
+    render.materialID = 6;
     coordinator->addComponent(entity, render); 
 }
 

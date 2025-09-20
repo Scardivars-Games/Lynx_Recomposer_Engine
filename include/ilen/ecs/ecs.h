@@ -34,7 +34,7 @@ namespace ilen::ecs {
             }
 
             template<typename T>
-            T& getComponent(Entity entity){
+            T* getComponent(Entity entity){
                 return componentManager->getComponent<T>(entity);
             }
 

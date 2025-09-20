@@ -2,6 +2,7 @@
 
 #include <ilen/ecs/types.h>
 #include <memory>
+#include <typeindex>
 #include <unordered_map>
 #include <cassert>
 
@@ -22,7 +23,7 @@ namespace ilen::ecs {
     class ComponentArray : public IComponentArray {
         public:
             void insertData(Entity entity, T component) {
-                assert(entityToIndexMap.find(entity) == entityToIndexMap.end() && "Tratando de añadir el mismo componente a la misma entidad");
+                assert(entityToIndexMap.count(entity) == 0 && "Ya existe el componente");
 
                 size_t newIndex = size;
                 entityToIndexMap[entity] = newIndex;
@@ -47,9 +48,12 @@ namespace ilen::ecs {
                 size--;
             }
 
-            T& getData(Entity entity) {
-                assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Tratando de obtener un componente no existente");
-                return componentArray[entityToIndexMap[entity]];
+            T* getData(Entity entity) {
+                if (entityToIndexMap.find(entity) == entityToIndexMap.end()) {
+                    return nullptr;
+                }
+
+                return &componentArray.at(entityToIndexMap.at(entity));
             }
 
             void entityDestroyed(Entity entity) override {
@@ -62,51 +66,63 @@ namespace ilen::ecs {
             std::array<T, MAX_ENTITIES> componentArray;
             std::unordered_map<Entity, size_t> entityToIndexMap;
             std::unordered_map<size_t, Entity> indexToEntityMap;
-            size_t size;
+            size_t size = 0;
     };
 
     class ComponentManager {
         public:
             template<typename T>
             void registerComponent() {
-                const char* typeName = typeid(T).name();
-                assert(componentTypes.find(typeName) == componentTypes.end() && "Componente ya registrado");
+                //const char* typeName = typeid(T).name();
+                std::type_index typeIndex(typeid(T));
 
-                componentTypes.insert({typeName, nextComponentType});
-                componentArrays.insert({typeName, std::make_shared<ComponentArray<T>>()});
+                if(componentTypes.find(typeIndex) != componentTypes.end()){
+                    return; //Componente ya registrado, ignorar.
+                }
+                componentTypes.emplace(typeIndex, nextComponentType);
+                componentArrays.emplace(typeIndex, std::make_shared<ComponentArray<T>>());
                 nextComponentType++;
             }; //Registra un componente
 
             template<typename T>
             ComponentType getComponentType(){
-                const char* typeName = typeid(T).name();
-                assert(componentTypes.find(typeName) != componentTypes.end() && "Componente no se encuentra registrado y se esta usando");
-                return componentTypes[typeName];
+                std::type_index typeIndex(typeid(T));
+                if(componentTypes.find(typeIndex) == componentTypes.end()){
+                    registerComponent<T>(); //Registrar el componente porque no existe aún
+                }
+                return componentTypes[typeIndex];
             }; //Regresa el ID del componente
 
             template<typename T>
             void addComponent(Entity entity, T component){
-                auto generiArrayPtr = componentArrays[typeid(T).name()];
-                auto specificArrayPtr = std::static_pointer_cast<ComponentArray<T>>(generiArrayPtr);
-                specificArrayPtr->insertData(entity, component);
-                //std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeid(T).name()]->insertData(entity, component));
+                registerComponent<T>();
+                auto arrayPtr = std::static_pointer_cast<ComponentArray<T>>(componentArrays[std::type_index(typeid(T))]);
+                arrayPtr->insertData(entity, component);
             }; //Añade un componente a una entidad
 
             template<typename T>
             void removeComponent(Entity entity){
-                std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeid(T).name()]->removeData(entity));
+                //std::static_pointer_cast<ComponentArray<T>>(componentArrays[std::type_index(typeid(T))]->removeData(entity));
+                auto arrayPointer = std::static_pointer_cast<ComponentArray<T>>(componentArrays[std::type_index(typeid(T))]);
+                arrayPointer->removeData(entity);
             }; //Elimina un componente a una enitdad
 
             template<typename T>
-            T& getComponent(Entity entity){
-                return std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeid(T).name()])->getData(entity);
+            T* getComponent(Entity entity){
+                std::type_index typeIndex(typeid(T));
+                if (componentArrays.find(typeIndex) == componentArrays.end()) {
+                    // El tipo de componente no está registrado, por lo que ninguna entidad puede tenerlo.
+                    return nullptr;
+                }
+                auto genericArrayPtr = componentArrays.at(typeIndex);
+                return std::static_pointer_cast<ComponentArray<T>>(genericArrayPtr)->getData(entity);
             }; //Regresa la referencia de un componente de una entidad.
 
             void entityDestroyed(Entity entity); //Notifica a todos los arrays de componentes que una entidad esta destruida
 
         private:
-            std::unordered_map<const char*, ComponentType> componentTypes{};
-            std::unordered_map<const char*, std::shared_ptr<IComponentArray>> componentArrays{};
+            std::unordered_map<std::type_index, ComponentType> componentTypes{};
+            std::unordered_map<std::type_index, std::shared_ptr<IComponentArray>> componentArrays{};
             ComponentType nextComponentType{};
     };
 }

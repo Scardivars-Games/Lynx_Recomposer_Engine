@@ -1,0 +1,29 @@
+{
+    "models": [
+        {
+            "id": 1,
+            "name": "triangle",
+            "path": "models/predefined/triangle.obj"
+        },
+        {
+            "id": 2,
+            "name": "quad",
+            "path": "models/predefined/quad.obj"
+        }
+    ],
+    "materials" : [
+        {
+            "id": 3,
+            "name": "error",
+            "path": "materials/predefined/error.ilenmat"
+        }
+    ],
+    "shaders" : [
+        {
+            "id": 4,
+            "name": "error",
+            "path": "shaders/predefined/error.ilenshader"
+        }
+    ],
+    "totalOfElements": 4
+}

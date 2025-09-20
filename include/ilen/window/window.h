@@ -28,13 +28,4 @@ namespace ilen::window{
             static int s_width, s_height;
             static WindowNative* s_pNative;
     };
-
-    enum IlenWindowPropertiesBitFlags{
-        ILEN_WINDOW_FULLSCREEN = 0, //Si una pantalla esta en fullscreen, no necesita ninguna opción extra.
-        ILEN_WINDOW_RESIZABLE = 1 << 0,
-        ILEN_WINDOW_CLOSABLE = 1 << 1,
-        ILEN_WINDOW_MAXIMIZABLE = 1 << 2,
-        ILEN_WINDOW_BORDERLESS = 1 << 3,
-        ILEN_WINDOW_WINDOWED = 0 << 3,
-    };
 }

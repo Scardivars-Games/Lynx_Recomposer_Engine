@@ -1,24 +1,28 @@
 #include <ilen/core/filemanager.h>
 #include <ilen/core/logs.h>
+#include <ilen/job-system/job-system.h>
 
 
 using namespace ilen::core;
 
-std::filesystem::path getFilePath(FileCategory category){
+std::filesystem::path getFilePath(ILEN_FILE_TYPE category){
     std::string resourceSpecificFolder;
     switch (category)
     {
-    case ILEN_MODEL:
+    case ILEN_FILE_TYPE_MODEL:
         resourceSpecificFolder = "models";
         break;
-    case ILEN_SHADER:
-        resourceSpecificFolder = "shaders";
+    case ILEN_FILE_TYPE_NATIVE_SHADER:
+        resourceSpecificFolder = "shader-code";
         break;
-    case ILEN_TEXTURE:
+    case ILEN_FILE_TYPE_TEXTURE:
         resourceSpecificFolder = "textures";
         break;
-    case ILEN_ASSETS_MANIFEST:
+    case ILEN_FILE_TYPE_ASSETS_MANIFEST:
         resourceSpecificFolder = "manifests";
+        break;
+    case ILEN_FILE_TYPE_NONE:
+        resourceSpecificFolder = "";
         break;
     default:
         Debug::ExecuteError("Dada una categoría desconocida", "FileManager");
@@ -36,7 +40,7 @@ void FileManager::Init(){
 #endif
 
 
-std::string FileManager::readFile(const std::string& filename, FileCategory category) {
+std::string FileManager::readFile(const std::string& filename, ILEN_FILE_TYPE category) {
     auto finalFileRoute = getFilePath(category) / filename;
     
     if(!std::filesystem::exists(finalFileRoute)){
@@ -56,7 +60,7 @@ std::string FileManager::readFile(const std::string& filename, FileCategory cate
     return buffer.str();
 }
 
-std::filesystem::path FileManager::fileRoute(const std::string& filename, FileCategory category){
+std::filesystem::path FileManager::fileRoute(const std::string& filename, ILEN_FILE_TYPE category){
     auto finalFileRoute = getFilePath(category) / filename;
     return finalFileRoute;
 }

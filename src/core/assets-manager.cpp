@@ -1,8 +1,11 @@
+#include <fstream>
 #include <ilen/core/assets-manager.h>
+#include <ilen/graphics/material.h>
+#include <ilen/graphics/shader.h>
 #include <ilen/core/logs.h>
 #include <ilen/core/filemanager.h>
-
-
+#include <set>
+#include <vector>
 
 //CONSTANTE TIPOS TO AVOID TYPING ERRORS
 const std::string ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS = "totalOfElements";
@@ -15,6 +18,30 @@ const std::string ILEN_ASSET_MANIFEST_MATERIALS = "materials";
 const std::string ILEN_ASSET_MANIFEST_AUDIO = "audio";
 const std::string ILEN_ASSET_MANIFEST_SHADERS = "shaders";
 
+//Necesito una base de datos de extensiones soportadas y que tipo de asset es
+std::unordered_map<std::string, std::string> extensionToAssetType = {
+        //Models
+        {".obj", "models"},
+        {".glb", "models"},
+        {".mtl", "models"}, //Materials de un .obj
+        //Textures
+        {".png", "textures"},
+        {".jpg", "textures"},
+        {".jpeg", "textures"},
+        //Shaders
+        {".metal", "shader-code"},
+        {".hlsl", "shader-code"},
+        {".glsl", "shader-code"},
+        {".spv", "shader-code"},
+        {".ilenshader", "shaders"},
+        //Audio
+        {".mp3", "audio"},
+        {".wav", "audio"},
+        {".flac", "audio"},
+        //Materials
+        {".ilenmat", "materials"},
+        {".ilenmanifest", "manifests"}
+    };
 
 const std::vector<std::string> ILEN_ASSET_MANIFEST_ASSETS_TYPES = { ILEN_ASSET_MANIFEST_MODEL, ILEN_ASSET_MANIFEST_TEXTURES, ILEN_ASSET_MANIFEST_AUDIO, ILEN_ASSET_MANIFEST_MATERIALS, ILEN_ASSET_MANIFEST_SHADERS };
 
@@ -22,8 +49,11 @@ using namespace ilen::core;
 using json = nlohmann::json;
 
 std::string generateFriendlyName(const std::string& filename){
+
+    std::string extension = std::filesystem::path(filename).extension().string();
     std::string name = std::filesystem::path(filename).stem().string();
-    return name;
+
+    return name + "-" + extensionToAssetType.find(extension)->second; 
 }
 
 template<typename AssetType>
@@ -45,7 +75,7 @@ AssetsManager& AssetsManager::getInstance() {
 void AssetsManager::loadManifiest(const std::string& manifestName) {
     m_manifestFileName = manifestName;
 
-    auto manifestPath = FileManager::fileRoute(manifestName, ILEN_ASSETS_MANIFEST);
+    auto manifestPath = FileManager::fileRoute(manifestName, ILEN_FILE_TYPE_ASSETS_MANIFEST);
 
     std::ifstream file(manifestPath);
     json data;
@@ -55,12 +85,19 @@ void AssetsManager::loadManifiest(const std::string& manifestName) {
     } else {
         Debug::Log("No se pudo abrir el archivo del manifiesto, o no existe en la ruta: " + manifestPath.string(), "ASSETS_MANAGER");
         #ifdef ILEN_DEBUG
-        data[ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS] = 0;
-        data[ILEN_ASSET_MANIFEST_MODEL] = json::array(); //Inicializamos si estamos en Debug... No tiene sentido que se cree un nuevo indice en una build release
-        data[ILEN_ASSET_MANIFEST_TEXTURES] = json::array();
-        data[ILEN_ASSET_MANIFEST_MATERIALS] = json::array();
-        data[ILEN_ASSET_MANIFEST_AUDIO] = json::array();
-        data[ILEN_ASSET_MANIFEST_SHADERS] = json::array();
+        //Creamos una nueva lista
+        auto predefinedPath = FileManager::fileRoute("predefined.ilenmanifest", ILEN_FILE_TYPE_ASSETS_MANIFEST);
+        std::ifstream predefined(predefinedPath);
+        if(predefined.is_open()){
+            predefined >> data;
+        }else{
+            data[ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS] = 0;
+            data[ILEN_ASSET_MANIFEST_MODEL] = json::array(); //Inicializamos si estamos en Debug... No tiene sentido que se cree un nuevo indice en una build release
+            data[ILEN_ASSET_MANIFEST_TEXTURES] = json::array();
+            data[ILEN_ASSET_MANIFEST_MATERIALS] = json::array();
+            data[ILEN_ASSET_MANIFEST_AUDIO] = json::array();
+            data[ILEN_ASSET_MANIFEST_SHADERS] = json::array();
+        }
         #endif
     }
 
@@ -78,10 +115,7 @@ void AssetsManager::loadManifiest(const std::string& manifestName) {
         writeToMap(data[ILEN_ASSET_MANIFEST_TEXTURES], m_friendlyNameToID, m_idToTextureAsset);
     }
 
-    //Material loading
-    if(data.contains(ILEN_ASSET_MANIFEST_MATERIALS)){
-        writeToMap(data[ILEN_ASSET_MANIFEST_MATERIALS], m_friendlyNameToID, m_idToMaterialAsset);
-    }
+
      
     //Audio loading
     if(data.contains(ILEN_ASSET_MANIFEST_AUDIO)){
@@ -90,7 +124,24 @@ void AssetsManager::loadManifiest(const std::string& manifestName) {
 
     //Shader loading
     if(data.contains(ILEN_ASSET_MANIFEST_SHADERS)){
-        writeToMap(data[ILEN_ASSET_MANIFEST_SHADERS], m_friendlyNameToID, m_idToShaderAsset);
+        std::unordered_map<uint32_t, ShaderAsset> temporalShaderMap;
+        writeToMap(data[ILEN_ASSET_MANIFEST_SHADERS], m_friendlyNameToID, temporalShaderMap);
+
+        for(const auto& shaderMap: temporalShaderMap){
+            auto toStoreShader = ilen::graphics::IlenShaderUtils::generateIlenShaderFromAsset(shaderMap.second);
+            m_idToShaderAsset.emplace(shaderMap.first, std::make_shared<ilen::graphics::IlenShader>(std::move(toStoreShader))); //Hacer el segundo de ShaderAsset a IlenShader
+        }
+    }
+
+        //Material loading
+    if(data.contains(ILEN_ASSET_MANIFEST_MATERIALS)){
+        std::unordered_map<uint32_t, MaterialAsset> temporalMaterialMap;
+        writeToMap(data[ILEN_ASSET_MANIFEST_MATERIALS], m_friendlyNameToID, temporalMaterialMap);
+
+        for(const auto& materialMap: temporalMaterialMap){
+            auto toStoreMaterial = ilen::graphics::IlenMaterialHelper::generateIlenMaterialFromAsset(materialMap.second);
+            m_idToMaterialAsset.emplace(materialMap.first, std::make_shared<ilen::graphics::IlenMaterial>(std::move(toStoreMaterial))); //Hacer el segundo de ShaderAsset a IlenShader
+        }    
     }
 
     isManifestLoaded = true;
@@ -107,30 +158,6 @@ void AssetsManager::indexNewModels(json& manifestData){
     std::set<std::string> existingPaths;
     bool folderReorganized = false;
 
-
-    //Necesito una base de datos de extensiones soportadas y que tipo de asset es
-    std::unordered_map<std::string, std::string> extensionToAssetType = {
-        //Models
-        {".obj", "models"},
-        {".glb", "models"},
-        {".mtl", "models"}, //Materials de un .obj
-        //Textures
-        {".png", "textures"},
-        {".jpg", "textures"},
-        {".jpeg", "textures"},
-        //Shaders
-        {".metal", "shader-code"},
-        {".hlsl", "shader-code"},
-        {".glsl", "shader-code"},
-        {".spv", "shader-code"},
-        {".ilenshader", "shaders"},
-        //Audio
-        {".mp3", "audio"},
-        {".wav", "audio"},
-        {".flac", "audio"},
-        //Materials
-        {".ilenmat", "materials"}
-    };
     std::unordered_map<std::string, std::string> folderToManifestAssetGroup = {
         {"models", ILEN_ASSET_MANIFEST_MODEL},
         {"textures", ILEN_ASSET_MANIFEST_TEXTURES},
@@ -138,6 +165,10 @@ void AssetsManager::indexNewModels(json& manifestData){
         {"shader-code", ILEN_ASSET_MANIFEST_SHADERS},
         {"audio", ILEN_ASSET_MANIFEST_AUDIO},
         {"materials", ILEN_ASSET_MANIFEST_MATERIALS},
+    };
+    //Este vector son las extensiones que no deben de registrarse en el assets.json, ya que otras clases gestionaran su uso.
+    std::vector<std::string> extensionCantRegistrate = {
+        ".metal", ".hlsl", ".glsl", ".spv", ".ilenmanifest", ".mtl"
     };
     std::string unsupportedFolder = "unsupported";
 
@@ -213,8 +244,10 @@ void AssetsManager::indexNewModels(json& manifestData){
         std::string extension = relativeToAssets.extension().string();
         auto it = extensionToAssetType.find(extension);
 
-        //Guardar si la extensión existe y si esta en la carpeta correcta. Técnicamente no es necesario, pero no esta demás la comprobación, además de que esto solo esta en DEBUG.
-        if(it != extensionToAssetType.end() && relativeToAssets.begin()->string() == it->second){
+        //std::find(extensionCantRegistrate.begin(), extensionCantRegistrate.end(), it) == extensionCantRegistrate.end()
+
+        //Guardar si la extensión existe y si esta en la carpeta correcta. Técnicamente no es necesario, pero no esta demás la comprobación, además de que esto solo esta en DEBUG. No añado las extensiones prohibidas al manifiesto.
+        if(it != extensionToAssetType.end() && relativeToAssets.begin()->string() == it->second && std::find(extensionCantRegistrate.begin(), extensionCantRegistrate.end(), it->first) == extensionCantRegistrate.end()){
             needSaveNewManifest = true;
             
             uint32_t newID = ++maxID;

@@ -2,14 +2,12 @@
 #pragma once
 
 #include <cmath>
+#include <ilen/headers/enumerations.h>
 
 namespace ilen::maths::angles{
+    using namespace ilen::enumerations;
     //De momento solo se tiene degrees y radians, pero si se añaden más, se pueden usar estos enum para indicar a la hora de inicializar que tipo de ángulo es.
-    enum ILEN_ANGLES_TYPE {
-        ILEN_ANGLE_DEGREES,
-        ILEN_ANGLE_RADIANS
-    };
-
+    //Movido a headers/enumerations.h
 
     //Clase con las cosas comunes necesarias para las estructuras de Degrees y Radians, así como cualquier otro ángulo a futurl
     class Angles {
@@ -47,7 +45,7 @@ namespace ilen::maths::angles{
         
         template<typename T>
         explicit Radians(const T& value, const ILEN_ANGLES_TYPE& type) : Angles(0.0) {
-            if (type == ILEN_ANGLE_DEGREES) {
+            if (type == ILEN_ANGLE_TYPE_DEGREES) {
                 this->value = static_cast<Degrees>(value).getValue() * (M_PI / 180.0);
             } else {
                 this->value = static_cast<Degrees>(value).getValue();

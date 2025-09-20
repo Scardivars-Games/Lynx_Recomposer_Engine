@@ -4,7 +4,9 @@
 #if !TARGET_OS_IOS //Si esta app no es de iOS
 #include <ilen/headers/core.h>
 #include <ilen/headers/visual.h>
+#include <ilen/headers/enumerations.h>
 
+using namespace ilen::enumerations;
 using namespace ilen;
 using namespace ilen::window;
 int main() {
@@ -14,7 +16,7 @@ int main() {
     metadata.applicationVersion = "0.0.1";
     metadata.startHeight = 600;
     metadata.startWidth = 800;
-    metadata.windowPropertiesFlags = ILEN_WINDOW_CLOSABLE | ILEN_WINDOW_RESIZABLE | ILEN_WINDOW_MAXIMIZABLE | ILEN_WINDOW_WINDOWED;
+    metadata.windowPropertiesFlags = ILEN_WINDOW_PROPERTY_CLOSABLE | ILEN_WINDOW_PROPERTY_RESIZABLE | ILEN_WINDOW_PROPERTY_MAXIMIZABLE | ILEN_WINDOW_PROPERTY_WINDOWED;
     metadata.applicationFramerate = 30;
 
     AppRuntime app;

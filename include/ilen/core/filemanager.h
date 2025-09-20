@@ -4,20 +4,16 @@
 #include <filesystem>
 #include <sstream>
 #include <cassert>
+#include <ilen/headers/enumerations.h>
 
-enum FileCategory{
-    ILEN_SHADER,
-    ILEN_TEXTURE,
-    ILEN_MODEL,
-    ILEN_ASSETS_MANIFEST
-};
+using namespace ilen::enumerations;
 
 namespace ilen::core{
     class FileManager {
         public:
             static void Init();
-            static std::string readFile(const std::string& filename, FileCategory category);
-            static std::filesystem::path fileRoute(const std::string& filename, FileCategory category);
+            static std::string readFile(const std::string& filename, ILEN_FILE_TYPE category);
+            static std::filesystem::path fileRoute(const std::string& filename, ILEN_FILE_TYPE category);
             static std::filesystem::path getApplicationWrittablePath() {                 
                 checkIfInited();
                 return s_applicationWrittablePath; 
@@ -33,7 +29,7 @@ namespace ilen::core{
         private:
             const static inline std::string DEBUG_PREFIX = "FILEMANAGER";
             static inline bool isInited = false;
-            static std::string filePreRoute(FileCategory category);
+            static std::string filePreRoute(ILEN_FILE_TYPE category);
             static std::filesystem::path s_applicationWrittablePath;
             static std::filesystem::path s_applicationResourcesPath;
     };

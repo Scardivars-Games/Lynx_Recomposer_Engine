@@ -1,4 +1,5 @@
 #include <ilen/window/window.h>
+#include <ilen/headers/enumerations.h>
 
 #if defined (__APPLE__)
 #include <TargetConditionals.h>
@@ -8,6 +9,7 @@
 #import <MetalKit/MetalKit.h>
 
 using namespace ilen::window;
+using namespace ilen::enumerations;
 
 class WindowNativeMacOS;
 
@@ -49,11 +51,11 @@ public:
             //Creación de la ventana
             NSRect frame = NSMakeRect(0, 0, width, height);
             NSUInteger styleMask = NSWindowStyleMaskTitled;
-            if(windowProperties & ILEN_WINDOW_CLOSABLE)
+            if(windowProperties & ILEN_WINDOW_PROPERTY_CLOSABLE)
                 styleMask |= NSWindowStyleMaskClosable;
-            if(windowProperties & ILEN_WINDOW_RESIZABLE)
+            if(windowProperties & ILEN_WINDOW_PROPERTY_RESIZABLE)
                 styleMask |= NSWindowStyleMaskResizable;
-            if(windowProperties & ILEN_WINDOW_BORDERLESS)
+            if(windowProperties & ILEN_WINDOW_PROPERTY_BORDERLESS)
                 styleMask |= NSWindowStyleMaskBorderless;
             //TODO: Añadir el resto de macros de opcion de las ventanas
             nativeWindow = [[NSWindow alloc] initWithContentRect:frame styleMask:styleMask backing:NSBackingStoreBuffered defer:NO];
