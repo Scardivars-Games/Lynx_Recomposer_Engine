@@ -1,5 +1,7 @@
 build
 build-ios
+build_macOS
+build-macOS
 .cache
 .DS_Store
 .vscode

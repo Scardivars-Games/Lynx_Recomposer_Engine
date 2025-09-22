@@ -2,6 +2,7 @@
 //Este código es uniforme para todas las plataformas de Apple (macOS y iOS de momento)
 #include <ilen/render/renderer.h>
 #include <ilen/core/logs.h>
+#include <memory>
 
 #include <TargetConditionals.h>
 
@@ -9,6 +10,26 @@
 #import <Metal/Metal.h>
 
 namespace ilen::render {
+    class MetalBuffer : public IGPUBuffer {
+        public:
+            MetalBuffer(id<MTLBuffer> buffer, const IlenBufferDescriptor& descriptor) : _buffer(buffer), _descriptor(descriptor) {};
+        
+            ~MetalBuffer() override {
+                _buffer = nil;
+            }
+            
+            const IlenBufferDescriptor& getDescriptor() const override {
+                return _descriptor;
+            }
+        
+            void* getNativeHandle() const override {
+                return (__bridge void*)_buffer;
+            }
+        private:
+            id<MTLBuffer> _buffer;
+            IlenBufferDescriptor _descriptor;
+    };
+
     class MetalRender : public Renderer {
         public:
             id<MTLDevice> device;
@@ -50,12 +71,25 @@ namespace ilen::render {
             void endFrame() override {
                 //No necesario en METAL
             }
+        
+            std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data = nullptr) override {
+                MTLResourceOptions options = descriptor.cpuVisible ? MTLResourceStorageModeShared : MTLResourceStorageModePrivate;
+                
+                id<MTLBuffer> buffer;
+                
+                if(data == nullptr){
+                    buffer = [device newBufferWithLength:descriptor.bufferSize options:options];
+                }else{
+                     buffer = [device newBufferWithBytes:data length:descriptor.bufferSize options: options];
+                }
+                
+                return std::make_shared<MetalBuffer>(buffer, descriptor);
+            }
     };
-
 
     Renderer* Renderer::create(void* native_surface){
         return new MetalRender(native_surface);
     }
 }
 
-#endif //__APPLE__
+#endif // defined (__APPLE__)

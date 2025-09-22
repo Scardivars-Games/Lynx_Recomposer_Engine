@@ -5,7 +5,8 @@
 #include <filesystem>
 #include <vector>
 #include <ilen/render/vertex-buffer.h>
-#include <future>   
+#include <future> 
+#include <ilen/render/renderer.h>
 
 namespace ilen::ecs::components {
     
@@ -17,7 +18,7 @@ namespace ilen::ecs::components {
 
     //Indica que una entidad precisa de cargar sus datos a la VRAM. Debe eliminarse una vez se ha hecho la carga.
     struct MeshData {
-        std::vector<render::buffers::VertexBuffer> vertexBufferData; //Array de los vertices del objeto a ser utilizados.
+        std::vector<render::buffers::VertexBufferData> vertexBufferData; //Array de los vertices del objeto a ser utilizados.
         std::vector<uint32_t> indexBufferData;
     };
 
@@ -45,7 +46,11 @@ namespace ilen::ecs::components {
         WaitingForMeshLoad& operator=(WaitingForMeshLoad&&) noexcept = default;
     };
 
+    //Almacena los datos necesarios para las llamadas a la GPU.
     struct MeshGPULink {
-
+        uint32_t drawIndex = 0; //Indices de dibujo para subirlo a la GPU.
+        std::shared_ptr<render::IGPUBuffer> vertexBuffer;
+        std::shared_ptr<render::IGPUBuffer> indexBuffer;
+        std::shared_ptr<render::IGPUBuffer> uniformBuffer;
     };
 }

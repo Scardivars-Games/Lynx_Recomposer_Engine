@@ -44,6 +44,11 @@ namespace ilen::ecs {
                 return componentManager->getComponentType<T>();
             }
 
+            template<typename T>
+            bool hasComponent(Entity entity){
+                return componentManager->entityHasComponent<T>(entity);
+            }
+
             //Sistema
             template<typename T>
             std::shared_ptr<T> registerSystem() {

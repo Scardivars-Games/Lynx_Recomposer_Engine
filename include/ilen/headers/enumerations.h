@@ -32,4 +32,11 @@ namespace ilen::enumerations {
         ILEN_WINDOW_PROPERTY_BORDERLESS = 1 << 3,
         ILEN_WINDOW_PROPERTY_WINDOWED = 0 << 3,
     };
+
+    //Tipos de Buffers para la GPU
+    enum ILEN_RENDER_GPU_BUFFER_TYPE {
+        ILEN_RENDER_GPU_BUFFER_VERTEX,
+        ILEN_RENDER_GPU_BUFFER_INDEX,
+        ILEN_RENDER_GPU_BUFFER_UNIFORM
+    };
 }

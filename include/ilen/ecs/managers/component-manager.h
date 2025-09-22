@@ -122,6 +122,22 @@ namespace ilen::ecs {
                 return std::static_pointer_cast<ComponentArray<DecayedType>>(genericArrayPtr)->getData(entity);
             }; //Regresa la referencia de un componente de una entidad.
 
+            template<typename T>
+            bool entityHasComponent(Entity entity){
+                using DecayedType = typename std::decay<T>::type;
+                std::type_index typeIndex(typeid(DecayedType));
+                if (componentArrays.find(typeIndex) == componentArrays.end()) {
+                    // El tipo de componente no está registrado, por lo que ninguna entidad puede tenerlo.
+                    return false;
+                }
+                auto genericArrayPtr = componentArrays.at(typeIndex);
+                auto result = std::static_pointer_cast<ComponentArray<DecayedType>>(genericArrayPtr)->getData(entity);
+                if(result == nullptr)
+                    return false; //No encontró ningun puntero valido a ese componente en la entidad.
+                else
+                    return true; //Se encontró un puntero válido, por tanto, existe el componente en la entidad.
+            }
+
             void entityDestroyed(Entity entity); //Notifica a todos los arrays de componentes que una entidad esta destruida
 
         private:

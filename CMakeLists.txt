@@ -18,6 +18,22 @@ else()
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SOURCES})
 endif()
 
+
+# Desactivar la compilación de herramientas, tests y ejemplos
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+set(ASSIMP_BUILD_TESTS OFF)
+set(ASSIMP_BUILD_SAMPLES OFF)
+set(ASSIMP_NO_EXPORT ON)
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+set(ASSIMP_BUILD_STATIC_LIB ON)
+
+# Desactivar formatos de importación específicos (opcional)
+set(ASSIMP_BUILD_OBJ_IMPORTER ON)
+set(ASSIMP_BUILD_FBX_IMPORTER OFF)
+set(ASSIMP_BUILD_GLTF_IMPORTER OFF)
+
+
+
 add_subdirectory(external/assimp)
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)

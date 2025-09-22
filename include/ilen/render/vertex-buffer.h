@@ -3,9 +3,9 @@
 
 namespace ilen::render::buffers {
     //Estructurá básica que el motor usa para almacenar los datos del VertexBuffer una vez cargado los datos de un modelo.
-    struct VertexBuffer {
+    struct VertexBufferData {
         float4 vertexPosition;
-        float4 vertexColor;
+        ilen::graphics::Color vertexColor;
         float2 UV;
     };
 }

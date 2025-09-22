@@ -1,0 +1,5 @@
+MacOS X
+xcrun actool --output-format human-readable-text --platform macosx --compile . AppIcon.icon --app-icon AppIcon --minimum-deployment-target 14.0 --output-partial-info-plist Info.plist
+Genera tanto el assets.car (macOS 26.0) y el .icsn para versiones antiguas. Requiere un Info.plist aunque sus datos no son útiles de momento.
+
+iOS

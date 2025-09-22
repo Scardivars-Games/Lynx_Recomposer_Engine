@@ -17,6 +17,11 @@ std::shared_ptr<ilen::ecs::systems::TransformSystem> transformSystem;
 std::shared_ptr<ilen::ecs::systems::ScriptingSystem> scriptingSystem;
 
 namespace ilen{
+    AppRuntime& AppRuntime::getInstance(){
+        static AppRuntime runtime;
+        return runtime;
+    }
+
     //Inicializa todo de la aplicación!!!
     void AppRuntime::init(application::ApplicationMetadata metadata){
         using namespace ilen::ecs;
@@ -71,10 +76,11 @@ namespace ilen{
         using namespace ilen::render;
         //Crear ventana
         Debug::Log("Creando la ventana", DEBUG_PREFIX);
-        pGameWindow = new GameWindow(&metadata);
+        //pGameWindow = new GameWindow(&metadata);
+        pGameWindow = std::make_unique<GameWindow>(&metadata);
 
         Debug::Log("Creando la superficie para el dibujo", DEBUG_PREFIX);
-        pGameRenderer = Renderer::create(pGameWindow->getSurface());
+        pGameRenderer = std::unique_ptr<Renderer>(Renderer::create(pGameWindow->getSurface()));
         
         //Inicializamos los scripts.
         scriptingSystem->init();
@@ -92,6 +98,8 @@ namespace ilen{
         scriptingSystem->update();
         scriptingSystem->lateUpdate();
 
+        renderSystem->Update();
+
         if(pGameRenderer){
             pGameRenderer->beginFrame();
             pGameRenderer->endFrame();
@@ -104,7 +112,7 @@ namespace ilen{
         //TODO
     }
 
-    bool AppRuntime::isRunning() const {
+    bool AppRuntime::isRunning() {
         if(!pGameWindow) return false;
         return !pGameWindow -> shouldClose();
     }
