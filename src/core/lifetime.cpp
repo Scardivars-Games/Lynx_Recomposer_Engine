@@ -28,6 +28,8 @@ namespace ilen{
         #if defined (ILEN_DEBUG)
         core::Debug::Warning("App in Debug Mode");
         #endif
+                //Inicializando elementos del motor.
+        ilen::time::Time::Init();
         ilen::job_system::JobSystem::getInstance().Initializate();
 
         //Inicializando la presentiación del motor.
@@ -36,10 +38,7 @@ namespace ilen{
         FileManager::Init();
 
         //Inicializar assets. Es lo más importante antes del resto de sistemas
-        ilen::core::AssetsManager::getInstance().loadManifiest("assets.ilenmanifest");
-        
-        //Inicializando elementos del motor.
-        ilen::time::Time::Init();
+        ilen::core::AssetsManager::getInstance().loadManifiest();
 
         //Inicializando los sistemas del ECS
         gCoordinator = std::make_unique<ilen::ecs::ECSCoordinator>();

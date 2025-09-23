@@ -1,6 +1,8 @@
 #include <ilen/core/logs.h>
 
 namespace ilen::core{
+    std::mutex Debug::logMutex;
+
     std::string preparatePrefix(std::string prefijo){
         if(prefijo != ""){
             return " (" + prefijo + ")";
@@ -10,14 +12,17 @@ namespace ilen::core{
     }
 
     void Debug::Log(std::string content, std::string prefijo){
+        std::lock_guard<std::mutex> lock(logMutex);
         std::cout << "\033[32m[DEBUG"<< preparatePrefix(prefijo) << ":] \033[0m" << content << std::endl;
     }
 
     void Debug::Warning(std::string content, std::string prefijo) {
+        std::lock_guard<std::mutex> lock(logMutex);
         std::clog << "\033[33m[WARNING"<< preparatePrefix(prefijo) << "] \033[0m" << content << std::endl;
     }
 
     void Debug::Error(std::string content, std::string prefijo) {
+        std::lock_guard<std::mutex> lock(logMutex);
         std::cerr << "\033[31m[ERROR"<< preparatePrefix(prefijo) << ":] \033[0m" << content << std::endl;
     }
 
@@ -26,6 +31,7 @@ namespace ilen::core{
     }
 
     void Debug::FatalError(const char* content, const char* prefijo){
+        std::lock_guard<std::mutex> lock(logMutex);
         std::cerr << "\033[31m [FATAL_ERROR"<< preparatePrefix(std::string(prefijo)) << "] \033[0m" << content << std::endl;
     }
 }

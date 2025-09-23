@@ -18,24 +18,6 @@ else()
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SOURCES})
 endif()
 
-
-# Desactivar la compilación de herramientas, tests y ejemplos
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
-set(ASSIMP_BUILD_TESTS OFF)
-set(ASSIMP_BUILD_SAMPLES OFF)
-set(ASSIMP_NO_EXPORT ON)
-set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
-set(ASSIMP_BUILD_STATIC_LIB ON)
-
-# Desactivar formatos de importación específicos (opcional)
-set(ASSIMP_BUILD_OBJ_IMPORTER ON)
-set(ASSIMP_BUILD_FBX_IMPORTER OFF)
-set(ASSIMP_BUILD_GLTF_IMPORTER OFF)
-
-
-
-add_subdirectory(external/assimp)
-
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
@@ -75,10 +57,26 @@ if(APPLE)
             )
         #iOS need also assets folder in the bundle
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
         )
     else()
         message("Configuration for macOS")
+
+        # Desactivar la compilación de herramientas, tests y ejemplos
+        set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
+        set(ASSIMP_BUILD_TESTS OFF)
+        set(ASSIMP_BUILD_SAMPLES OFF)
+        set(ASSIMP_NO_EXPORT ON)
+        set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
+        set(ASSIMP_BUILD_STATIC_LIB ON)
+
+        # Desactivar formatos de importación específicos (opcional)
+        set(ASSIMP_BUILD_OBJ_IMPORTER ON)
+        set(ASSIMP_BUILD_FBX_IMPORTER OFF)
+        set(ASSIMP_BUILD_GLTF_IMPORTER OFF)
+
+        add_subdirectory(external/assimp)
+
         file(GLOB_RECURSE NATIVE_SOURCES src/native/macOS/*.mm src/native/apple/*.mm)
         target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
         target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa")
@@ -95,8 +93,14 @@ if(APPLE)
             MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME}
             )
 
+        if(NOT EXISTS ${CMAKE_SOURCE_DIR}/.ilen-bin-data)
+            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data"
+            )
+        endif()
+
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/native/macOS/icon" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
         )
     endif()

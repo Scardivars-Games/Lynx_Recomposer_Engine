@@ -85,10 +85,10 @@ namespace ilen::ecs::systems {
                                 }
 
                                 if(mesh->HasVertexColors(0)){
-                                    vertex.vertexColor.r = mesh->mColors[i]->r;
-                                    vertex.vertexColor.g = mesh->mColors[i]->g;
-                                    vertex.vertexColor.b = mesh->mColors[i]->b;
-                                    vertex.vertexColor.a = mesh->mColors[i]->a;
+                                    vertex.vertexColor.r = mesh->mColors[0][i].r;
+                                    vertex.vertexColor.g = mesh->mColors[0][i].g;
+                                    vertex.vertexColor.b = mesh->mColors[0][i].b;
+                                    vertex.vertexColor.a = mesh->mColors[0][i].a;
                                 }else{
                                     vertex.vertexColor = ilen::graphics::color::White;
                                 }

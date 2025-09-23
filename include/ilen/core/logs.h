@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <ilen/core/exceptions.h>
+#include <mutex>
 
 namespace ilen::core{
     class Debug {
@@ -15,5 +16,6 @@ namespace ilen::core{
             Debug() = delete;
             Debug(const Debug&) = delete;
             Debug& operator=(const Debug&) = delete;
+            static std::mutex logMutex;
     };
 }

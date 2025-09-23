@@ -5,3 +5,4 @@ build-macOS
 .cache
 .DS_Store
 .vscode
+.ilen-bin-data

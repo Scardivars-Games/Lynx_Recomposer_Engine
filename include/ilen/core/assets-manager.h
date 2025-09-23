@@ -4,6 +4,7 @@
 #include <memory>
 #include <external/json/json.hpp>
 #include <ilen/core/logs.h>
+#include <ilen/render/render-component.h>
 #include <ilen/headers/enumerations.h>
 
 namespace ilen::graphics {
@@ -84,7 +85,7 @@ namespace ilen::core {
                 return getAssetElement<T>(id);
             };
 
-            void loadManifiest(const std::string& manifestName);
+            void loadManifiest();
 
             void manifestIsLoaded(){
                 assert(isManifestLoaded == false && "Tratando de usar métodos del AssetsManager sin haber cargado el manifiesto.");
@@ -97,7 +98,10 @@ namespace ilen::core {
 
             #if ILEN_DEBUG
             //Este método se ejecuta en modo Debug, e indexa los nuevos datos.
-            void indexNewModels(nlohmann::json& manifestData);
+            void indexNewModels();
+            void generateBinaryRepresentation(nlohmann::json& manifestData);
+            ilen::ecs::components::MeshData loadModelData(std::filesystem::path modelPath);
+            std::mutex fileWrite;
             #endif
 
             bool isManifestLoaded = false;
@@ -108,5 +112,14 @@ namespace ilen::core {
             std::unordered_map<uint32_t, std::shared_ptr<ilen::graphics::IlenShader>> m_idToShaderAsset;
             std::unordered_map<uint32_t, std::shared_ptr<ilen::graphics::IlenMaterial>> m_idToMaterialAsset;
             std::string m_manifestFileName;
+    };
+}
+
+namespace ilen::binary::headers {
+    struct IlenMeshHeader {
+        std::string magicNumber; // ILEN_MESH -> HSEM_NELI
+        uint32_t version;
+        uint32_t vertexCount;
+        uint32_t indexCount;
     };
 }
