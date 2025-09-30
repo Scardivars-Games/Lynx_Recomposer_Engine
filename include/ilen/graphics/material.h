@@ -48,5 +48,8 @@ namespace ilen::graphics {
     class IlenMaterialHelper {
         public:
             static IlenMaterial generateIlenMaterialFromAsset(const ilen::core::MaterialAsset& asset);
+
+        private:
+            static const inline char* DEBUG_PREFIX = "MATERIAL_HELPER";
     };
 }

@@ -5,7 +5,7 @@ using namespace ilen::core;
 using namespace ilen::ecs::components;
 
 void Triangle::Init() {
-    Debug::Log("Inicializado triángulo de prueba");
+    ILEN_LOG_P("TRIANGLE", "Inicializado triángulo de prueba");
     
     //Inicializar los sistemas (En el motor normal, al leer los datos de la escena, ahí los iniciaría en vez de esta forma)
     //coordinator->registerComponent<TransformComponent>();
@@ -24,6 +24,5 @@ void Triangle::Init() {
 }
 
 void Triangle::Update(){
-    
-    Debug::Log("Triangle update. Delta time: " + std::to_string(ilen::time::Time::getDeltaTime()));
+    ILEN_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", ilen::time::Time::getDeltaTime());
 }

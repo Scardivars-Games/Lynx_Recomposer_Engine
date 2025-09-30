@@ -11,11 +11,6 @@
 
 using namespace ilen::core;
 
-std::unique_ptr<ilen::ecs::ECSCoordinator> gCoordinator;
-std::shared_ptr<ilen::ecs::systems::RenderSystem> renderSystem;
-std::shared_ptr<ilen::ecs::systems::TransformSystem> transformSystem;
-std::shared_ptr<ilen::ecs::systems::ScriptingSystem> scriptingSystem;
-
 namespace ilen{
     AppRuntime& AppRuntime::getInstance(){
         static AppRuntime runtime;
@@ -24,13 +19,16 @@ namespace ilen{
 
     //Inicializa todo de la aplicación!!!
     void AppRuntime::init(application::ApplicationMetadata metadata){
+        engineContext = std::make_unique<EngineContext>();
+
         using namespace ilen::ecs;
         #if defined (ILEN_DEBUG)
-        core::Debug::Warning("App in Debug Mode");
+        ILEN_WARNING_P(DEBUG_PREFIX, "App in Debug Mode");
         #endif
-                //Inicializando elementos del motor.
+        //Inicializando elementos del motor.
         ilen::time::Time::Init();
-        ilen::job_system::JobSystem::getInstance().Initializate();
+        engineContext->p_jobSystem = std::make_unique<ilen::job_system::JobSystem>();
+        engineContext->p_jobSystem->Initializate();
 
         //Inicializando la presentiación del motor.
         application::Application::setApplicationData(metadata);
@@ -38,70 +36,72 @@ namespace ilen{
         FileManager::Init();
 
         //Inicializar assets. Es lo más importante antes del resto de sistemas
-        ilen::core::AssetsManager::getInstance().loadManifiest();
+        engineContext->p_assetsManager = std::make_unique<ilen::core::AssetsManager>();
+        engineContext->p_assetsManager->loadManifiest(engineContext.get());
 
         //Inicializando los sistemas del ECS
-        gCoordinator = std::make_unique<ilen::ecs::ECSCoordinator>();
-        gCoordinator->init();
+        engineContext->p_coordinator = std::make_unique<ilen::ecs::ECSCoordinator>();
+        engineContext->p_coordinator->init();
 
         //Registro sistemas.
         //Transform system (space properties of an object)
-        transformSystem = gCoordinator->registerSystem<systems::TransformSystem>();
+        engineContext->p_transformSystem = engineContext->p_coordinator->registerSystem<systems::TransformSystem>();
         Signature transformSignature;
-        transformSignature.set(gCoordinator->getComponentType<components::TransformComponent>());
-        gCoordinator->setSystemSignature<systems::TransformSystem>(transformSignature);
+        transformSignature.set(engineContext->p_coordinator->getComponentType<components::TransformComponent>());
+        engineContext->p_coordinator->setSystemSignature<systems::TransformSystem>(transformSignature);
 
         //Render System (render elements required to commit the command buffer in Platform Agnostic Renderer class)
-        renderSystem = gCoordinator->registerSystem<systems::RenderSystem>();
+        engineContext->p_renderSystem = engineContext->p_coordinator->registerSystem<systems::RenderSystem>();
         Signature renderSignature;
-        renderSignature.set(gCoordinator->getComponentType<components::RenderComponent>());
-        gCoordinator->setSystemSignature<systems::RenderSystem>(renderSignature);
+        renderSignature.set(engineContext->p_coordinator->getComponentType<components::RenderComponent>());
+        engineContext->p_coordinator->setSystemSignature<systems::RenderSystem>(renderSignature);
 
         //Init ScriptSystem for gameobjects if don't work GameObjects here inherited classes.
-        scriptingSystem = gCoordinator->registerSystem<systems::ScriptingSystem>();
+        engineContext->p_scriptingSystem = engineContext->p_coordinator->registerSystem<systems::ScriptingSystem>();
         Signature scriptingSignature;
-        scriptingSignature.set(gCoordinator->getComponentType<components::ScriptingBridgeComponent>());
-        gCoordinator->setSystemSignature<systems::ScriptingSystem>(scriptingSignature);
+        scriptingSignature.set(engineContext->p_coordinator->getComponentType<components::ScriptingBridgeComponent>());
+        engineContext->p_coordinator->setSystemSignature<systems::ScriptingSystem>(scriptingSignature);
 
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
-        auto triangle = gCoordinator->createEntity();
+        auto triangle = engineContext->p_coordinator->createEntity();
         components::ScriptingBridgeComponent scripting{};
         scripting.bind<Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
-        gCoordinator->addComponent(triangle, std::move(scripting));
+        engineContext->p_coordinator->addComponent(triangle, std::move(scripting));
 
         //Presentation
         using namespace ilen::window;
         using namespace ilen::render;
         //Crear ventana
-        Debug::Log("Creando la ventana", DEBUG_PREFIX);
+        ILEN_LOG_P(DEBUG_PREFIX, "Creando la ventana");
         //pGameWindow = new GameWindow(&metadata);
-        pGameWindow = std::make_unique<GameWindow>(&metadata);
+        engineContext->p_gameWindow = std::make_unique<GameWindow>(&metadata);
 
-        Debug::Log("Creando la superficie para el dibujo", DEBUG_PREFIX);
-        pGameRenderer = std::unique_ptr<Renderer>(Renderer::create(pGameWindow->getSurface()));
+        ILEN_LOG_P(DEBUG_PREFIX, "Creando la superficie para el dibujo");
+        engineContext->p_gameRenderer = std::unique_ptr<Renderer>(Renderer::create(engineContext->p_gameWindow->getSurface()));
         
+        engineContext->p_transformSystem->Init(engineContext.get());
         //Inicializamos los scripts.
-        scriptingSystem->init();
+        engineContext->p_scriptingSystem->init(engineContext.get());
         //Se realiza la inicialización del renderizado.
-        renderSystem->Start();
+        engineContext->p_renderSystem->Start(engineContext.get());
         ilen::time::Time::setNewFrame();
     }
 
     void AppRuntime::update(){
 
         #if !ILEN_IOS
-        pGameWindow->processEvents();
+        engineContext->p_gameWindow->processEvents();
         #endif
 
-        scriptingSystem->update();
-        scriptingSystem->lateUpdate();
+        engineContext->p_scriptingSystem->update();
+        engineContext ->p_scriptingSystem->lateUpdate();
 
-        renderSystem->Update();
+        engineContext-> p_renderSystem ->Update();
 
-        if(pGameRenderer){
-            pGameRenderer->beginFrame();
-            pGameRenderer->endFrame();
+        if(engineContext->p_gameRenderer){
+            engineContext->p_gameRenderer->beginFrame();
+            engineContext->p_gameRenderer->endFrame();
         }
         application::Application::stopUntilNextFrame();
         ilen::time::Time::setNewFrame();
@@ -112,7 +112,7 @@ namespace ilen{
     }
 
     bool AppRuntime::isRunning() {
-        if(!pGameWindow) return false;
-        return !pGameWindow -> shouldClose();
+        if(!engineContext->p_gameWindow) return false;
+        return !engineContext->p_gameWindow -> shouldClose();
     }
 }

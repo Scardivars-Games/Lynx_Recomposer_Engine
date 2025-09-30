@@ -4,13 +4,13 @@
 #include <ilen/core/exceptions.h>
 #include <mutex>
 
-namespace ilen::core{
+namespace ilen::internal{
     class Debug {
         public:
-            static void Log(std::string content, std::string prefijo = "");
-            static void Warning(std::string content, std::string prefijo = "");
-            static void Error(std::string content, std::string prefijo = "");
-            static void ExecuteError(std::string content, std::string prefijo = "");
+            static void Log(const char* content, const char* prefijo = "", ...);
+            static void Warning(const char* content, const char* prefijo = "", ...);
+            static void Error(const char* content, const char* prefijo = "", ...);
+            static void ExecuteError(const char* content, const char* prefijo = "", ...);
             static void FatalError(const char* content, const char* prefijo = "");
         private:
             Debug() = delete;

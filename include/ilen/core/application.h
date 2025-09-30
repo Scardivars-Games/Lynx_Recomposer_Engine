@@ -8,6 +8,7 @@
 #include <ilen/core/time.h>
 #include <ilen/window/window.h>
 #include <thread>
+#include <memory>
 
 namespace ilen::application{
     struct ApplicationMetadata {

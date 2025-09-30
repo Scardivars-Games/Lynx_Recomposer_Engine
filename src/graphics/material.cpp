@@ -73,7 +73,7 @@ namespace ilen::graphics {
         if(file.is_open()){
             file >> data;
         } else {
-            Debug::Error("No se pudo abrir el archivo de material en la ruta: " + materialPath.string(), "MATERIAL_LOADING");
+            ILEN_ERROR_P(DEBUG_PREFIX, "No se pudo abrir el archivo de material en la ruta: %s", materialPath.c_str());
             return {};
         }
 

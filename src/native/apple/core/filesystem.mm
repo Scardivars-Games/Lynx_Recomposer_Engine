@@ -1,7 +1,7 @@
 #if defined (__APPLE__)
 #include <ilen/core/filemanager.h>
 #include <ilen/core/application.h>
-#include <ilen/core/logs.h>
+#include <ilen/headers/ilen-logs.h>
 #import <Foundation/Foundation.h>
 using namespace ilen::core;
 
@@ -26,8 +26,9 @@ void FileManager::Init(){
         s_applicationWrittablePath = [saveDir UTF8String];
     }
 
-    Debug::Log("Resources path: " + s_applicationResourcesPath.string(), DEBUG_PREFIX);
-    Debug::Log("Writtable path: " + s_applicationWrittablePath.string(), DEBUG_PREFIX);
+    ILEN_LOG_P(DEBUG_PREFIX, "Resources path: %s.", s_applicationResourcesPath.string().c_str());
+    ILEN_LOG_P(DEBUG_PREFIX, "Writtable path: %s.", s_applicationWrittablePath.string().c_str());
+
 
     isInited = true;
 }

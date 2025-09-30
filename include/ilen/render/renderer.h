@@ -4,7 +4,6 @@
 #include <ilen/headers/enumerations.h>
 
 namespace ilen::render {
-    const std::string DEBUG_PREFIX = "RENDER";
 
     enum class GraphicsAPI {
         Metal,
@@ -41,5 +40,7 @@ namespace ilen::render {
             virtual std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data = nullptr) = 0;
 
             static Renderer* create(void* native_surface);
+        protected:
+            static inline const char* DEBUG_PREFIX = "RENDER";
     };
 }

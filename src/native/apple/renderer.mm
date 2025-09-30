@@ -1,7 +1,7 @@
 #if defined (__APPLE__)
 //Este código es uniforme para todas las plataformas de Apple (macOS y iOS de momento)
 #include <ilen/render/renderer.h>
-#include <ilen/core/logs.h>
+#include <ilen/headers/ilen-logs.h>
 #include <memory>
 
 #include <TargetConditionals.h>
@@ -41,7 +41,7 @@ namespace ilen::render {
                 device = MTLCreateSystemDefaultDevice();
                 if(!device){
                     //Es imposible crear el dispositivo de Metal!!! (Fallback a OpenGL)
-                    core::Debug::ExecuteError("No se logro crear el contexto de Metal. Dispositivo inválido", DEBUG_PREFIX);
+                    ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se logro crear el contexto de Metal. Dispositivo inválido");
                 }
                 metalView.device = device;
                 commandQueue = [device newCommandQueue];

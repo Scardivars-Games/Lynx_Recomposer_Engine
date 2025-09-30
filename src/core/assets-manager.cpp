@@ -2,7 +2,6 @@
 #include <ilen/core/assets-manager.h>
 #include <ilen/graphics/material.h>
 #include <ilen/graphics/shader.h>
-#include <ilen/core/logs.h>
 #include <ilen/core/filemanager.h>
 #include <set>
 #include <vector>
@@ -11,7 +10,6 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <ilen/core/time.h>
-#include <ilen/job-system/job-system.h>
 #endif
 
 //CONSTANTE TIPOS TO AVOID TYPING ERRORS
@@ -62,15 +60,9 @@ std::unordered_map<std::string, std::string> folderToManifestAssetGroup = {
 const std::vector<std::string> ILEN_ASSET_MANIFEST_ASSETS_TYPES = { ILEN_ASSET_MANIFEST_MODEL, ILEN_ASSET_MANIFEST_TEXTURES, ILEN_ASSET_MANIFEST_AUDIO, ILEN_ASSET_MANIFEST_MATERIALS, ILEN_ASSET_MANIFEST_SHADERS };
 
 using namespace ilen::core;
+
+#if ILEN_DEBUG && ILEN_DESKTOP
 using json = nlohmann::json;
-
-std::string generateFriendlyName(const std::string& filename){
-
-    std::string extension = std::filesystem::path(filename).extension().string();
-    std::string name = std::filesystem::path(filename).stem().string();
-
-    return name + "-" + extensionToAssetType.find(extension)->second; 
-}
 
 template<typename AssetType>
 void writeToMap(const json& data, std::unordered_map<std::string, uint32_t>& nameToIndexMap, std::unordered_map<uint32_t, AssetType>& idToAssetMap){
@@ -82,23 +74,88 @@ void writeToMap(const json& data, std::unordered_map<std::string, uint32_t>& nam
         idToAssetMap.emplace(id, AssetType(id, path));
     }
 }
+#endif
 
-AssetsManager& AssetsManager::getInstance() {
-    static AssetsManager instance;
-    return instance;
+std::string generateFriendlyName(const std::string& filename){
+
+    std::string extension = std::filesystem::path(filename).extension().string();
+    std::string name = std::filesystem::path(filename).stem().string();
+
+    return name + "-" + extensionToAssetType.find(extension)->second; 
 }
 
-void AssetsManager::loadManifiest() {
+void AssetsManager::loadManifiest(EngineContext* engineContext) {
     #if ILEN_DEBUG && ILEN_DESKTOP //En dispositivod móviles o consolas esto no tiene sentido. Realiza el trabajo usando los archivos fuente
+    jobSystem = engineContext->p_jobSystem.get();
     indexNewModels(); //Actualizamos el manifiesto con nuevos archivos y generamos sus respectivas representaciones binarias.
     #endif
 
-    m_manifestFileName = "assets.bin.ilenmanifests";
+    m_manifestFileName = "assets.bin.ilenmanifest";
 
     auto manifestPath = FileManager::fileRoute(m_manifestFileName, ILEN_FILE_TYPE_ASSETS_MANIFEST);
 
-    std::ifstream file(manifestPath);
-    json data;
+    std::ifstream file(manifestPath, std::ios::binary);
+
+    if(!file.is_open()){
+        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se pudo abrir el manifiesto principal de assets del juego");
+    }
+
+    ilen::binary::headers::IlenManifestHeader header{};
+
+    file.read(reinterpret_cast<char*>(&header),sizeof(header));
+
+    if(std::string(header.magicNumber) != "TSEFINAM_NELI"){
+        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Header of Manifest file is not compatible by magic number");
+    }
+
+    m_friendlyNameToID.reserve(header.totalOfNamesToID);
+    for(int i = 0; i < header.totalOfNamesToID; i++){
+        uint32_t ID;
+        uint32_t friendNameLength;
+
+        file.read(reinterpret_cast<char*>(&ID), sizeof(ID));
+        file.read(reinterpret_cast<char*>(&friendNameLength), sizeof(friendNameLength));
+
+        std::string friendName(friendNameLength, '\0');
+        file.read(&friendName[0], friendNameLength);
+        
+        m_friendlyNameToID.emplace(friendName, ID);
+    }
+
+    //Models
+    m_idToModelAsset.reserve(header.totalOfModels);
+    for(int i = 0; i < header.totalOfModels; i++){
+        uint32_t ID;
+        uint32_t pathNameLenght;
+
+        file.read(reinterpret_cast<char*>(&ID), sizeof(ID));
+        file.read(reinterpret_cast<char*>(&pathNameLenght), sizeof(pathNameLenght));
+
+        std::string path(pathNameLenght, '\0');
+        file.read(&path[0], pathNameLenght);
+
+        m_idToModelAsset.emplace(ID, ModelAsset(ID, std::filesystem::path(path)));
+    }
+
+    //Textures
+    m_idToTextureAsset.reserve(header.totalOfTextures);
+    for(int i = 0; i < header.totalOfModels; i++){
+        uint32_t ID;
+        uint32_t pathNameLenght;
+
+        file.read(reinterpret_cast<char*>(&ID), sizeof(ID));
+        file.read(reinterpret_cast<char*>(&pathNameLenght), sizeof(pathNameLenght));
+
+        std::string path(pathNameLenght, '\0');
+        file.read(&path[0], pathNameLenght);
+
+        m_idToTextureAsset.emplace(ID, TextureAsset(ID, std::filesystem::path(path)));
+    }
+
+
+    isManifestLoaded = true;
+    ILEN_LOG_P(DEBUG_PREFIX, "MANIFIESTO CARGADO EXITOSAMENTE. Total de items cargados: %zu", m_friendlyNameToID.size());
+    /*json data;
 
     if(file.is_open()){
         file >> data;
@@ -143,10 +200,7 @@ void AssetsManager::loadManifiest() {
             auto toStoreMaterial = ilen::graphics::IlenMaterialHelper::generateIlenMaterialFromAsset(materialMap.second);
             m_idToMaterialAsset.emplace(materialMap.first, std::make_shared<ilen::graphics::IlenMaterial>(std::move(toStoreMaterial))); //Hacer el segundo de ShaderAsset a IlenShader
         }    
-    }
-
-    isManifestLoaded = true;
-    Debug::Log("MANIFIESTO CARGADO EXITOSAMENTE. Total de items cargados: " + std::to_string(m_friendlyNameToID.size()), "ASSETS_MANAGER");
+    }*/
 }
 
 #if ILEN_DESKTOP && ILEN_DEBUG //No se necesita este símbolo en un sistema que no sirva para programar
@@ -164,7 +218,7 @@ void AssetsManager::indexNewModels(){
     if(file.is_open()){
         file >> data;
     } else {
-        Debug::Log("No se pudo abrir el archivo del manifiesto, o no existe en la ruta: " + manifestPath.string(), "ASSETS_MANAGER");
+        ILEN_LOG_P(DEBUG_PREFIX, "No se pudo abrir el archivo del manifiesto, o no existe en la ruta: %s", manifestPath.string().c_str());
         #ifdef ILEN_DEBUG
         //Creamos una nueva lista
         auto predefinedPath = sourceAssetFolders / "manifests" / "predefined.ilenmanifest";
@@ -182,8 +236,8 @@ void AssetsManager::indexNewModels(){
         #endif
     }
 
-    Debug::Warning("Indexando nuevos objetos en modo Debug", "ASSETS_MANAGER");
-    
+    ILEN_WARNING_P(DEBUG_PREFIX, "Indexando nuevos objetos en modo Debug");
+
     //Debug::Warning(nlohmann::to_string(manifestData));
 
     uint32_t maxID = data.value(ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS, 0);
@@ -302,12 +356,12 @@ void AssetsManager::indexNewModels(){
     assert(needSaveNewManifest == false && "Se escribió un nuevo manifiesto. Vuelve a iniciar la app para que ahora si funcione de forma correcta.");
 
 
-    Debug::Warning("Indexación de nuevos elementos completada. Generando binarios.", "ASSETS_MANAGER");
+    ILEN_WARNING_P(DEBUG_PREFIX, "Indexación de nuevos elementos completada. Generando binarios.");
     generateBinaryRepresentation(data);
 }
 
     void AssetsManager::generateBinaryRepresentation(json& manifestData) {
-        Debug::Warning("Start of binarization: " + std::to_string(ilen::time::Time::getTotalTime()), "ASSET_BINARIZATION");
+        ILEN_WARNING_P(DEBUG_PREFIX, "Start of binarization: %.4f", ilen::time::Time::getTotalTime());
         //Los archivos binarios que usará el motor van a estar en una carpeta llamada /.ilen-gen-assets
         
         //1- Leer datos del manifiesto para saber que archivos hay que hacer binario.
@@ -348,18 +402,17 @@ void AssetsManager::indexNewModels(){
 
             std::vector<std::future<void>> futures;
 
-            //writeToMap(data[ILEN_ASSET_MANIFEST_MODEL], m_friendlyNameToID, m_idToModelAsset);
             for(const json& assetData : manifestData[ILEN_ASSET_MANIFEST_MODEL]){
                 std::string filePath = assetData[ILEN_ASSET_MANIFEST_ASSET_PATH];
                 futures.push_back(
-                    ilen::job_system::JobSystem::getInstance().SubmitJob([=, this, &sourceAssetFolders, &engineSourceFolder, &binaryModelFolder, &idToModelAsset, &friendlyNameToID, &assetData]() {
+                    jobSystem->SubmitJob([=, this, &sourceAssetFolders, &engineSourceFolder, &binaryModelFolder, &idToModelAsset, &friendlyNameToID, &assetData]() {
                         auto modelPath = sourceAssetFolders / filePath;
                         ilen::ecs::components::MeshData toBinarize = loadModelData(modelPath);
                         auto savePath = binaryModelFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / targetFolder);
                         savePath.replace_extension(".ilenmesh");
                         //Header del binario
                         ilen::binary::headers::IlenMeshHeader header{};
-                        header.magicNumber = "HSEM_NELI";
+                        strncpy(header.magicNumber, "HSEM_NELI", sizeof(header.magicNumber) - 1);
                         header.version = 1;
                         header.vertexCount = toBinarize.vertexBufferData.size();
                         header.indexCount = toBinarize.indexBufferData.size();
@@ -426,9 +479,61 @@ void AssetsManager::indexNewModels(){
         }*/
         
         //3 - Generar un manifiesto para los binarios.
+        //No necesito un manifiesto en JSON, mejor volcar los mapas de memoria en un archivo, así no tenemos que volver a cargar y configurar estos, sino que sea solo una lectura.
+        
         //4 - Guardar ese manifiesto
+        std::filesystem::path manifiestPath = binaryDataFolder / "manifests" / "assets.bin.ilenmanifest";
+        if(!std::filesystem::exists(manifiestPath.parent_path())){
+            std::filesystem::create_directories(manifiestPath.parent_path());
+        }
 
-        Debug::Warning("End of binarization: " + std::to_string(ilen::time::Time::getTotalTime()), "ASSET_BINARIZATION");
+        ilen::binary::headers::IlenManifestHeader manifestHeader{};
+        strncpy(manifestHeader.magicNumber, "TSEFINAM_NELI", sizeof(manifestHeader.magicNumber) - 1);
+        manifestHeader.version = 1;
+        manifestHeader.totalOfNamesToID = friendlyNameToID.size();
+        manifestHeader.totalOfModels = idToModelAsset.size();
+        manifestHeader.totalOfTextures = idToTextureAsset.size();
+
+        std::ofstream binaryFile(manifiestPath, std::ios::binary);
+        binaryFile.write(reinterpret_cast<const char*>(&manifestHeader), sizeof(ilen::binary::headers::IlenManifestHeader));
+        //Escribimos el Array de friend Name to ID
+        for(auto& pair: friendlyNameToID){
+            //Orden -> ID, SizeOfName, Name
+            uint32_t ID = pair.second;
+            std::string friendName = pair.first;
+            uint32_t friendNameSize = friendName.length();
+
+            binaryFile.write(reinterpret_cast<const char*>(&ID), sizeof(ID));
+            binaryFile.write(reinterpret_cast<const char*>(&friendNameSize), sizeof(friendNameSize));
+            binaryFile.write(friendName.c_str(), friendNameSize);
+        }
+        
+        //Array ID to Model
+        for(auto& pair: idToModelAsset){
+            //Orden -> ID, SizeOfPath, Path
+            uint32_t ID = pair.first;
+            std::string path = pair.second.assetPath.string();
+            uint32_t pathSize = path.length();
+
+            binaryFile.write(reinterpret_cast<const char*>(&ID), sizeof(ID));
+            binaryFile.write(reinterpret_cast<const char*>(&pathSize), sizeof(pathSize));
+            binaryFile.write(path.c_str(),pathSize);
+        }
+        //Array ID to Texture
+        for(auto& pair: idToTextureAsset){
+            //Orden -> ID, SizeOfPath, Path
+            uint32_t ID = pair.first;
+            std::string path = pair.second.assetPath.string();
+            uint32_t pathSize = path.length();
+
+            binaryFile.write(reinterpret_cast<const char*>(&ID), sizeof(ID));
+            binaryFile.write(reinterpret_cast<const char*>(&pathSize), sizeof(pathSize));
+            binaryFile.write(path.c_str(),pathSize);
+        }
+
+
+        binaryFile.close();
+        ILEN_WARNING_P(DEBUG_PREFIX, "End of binarization: %.4f", ilen::time::Time::getTotalTime());
     }
 
     ilen::ecs::components::MeshData AssetsManager::loadModelData(std::filesystem::path modelPath){
@@ -437,7 +542,7 @@ void AssetsManager::indexNewModels(){
         
         const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
         if(!scene || !scene->HasMeshes()){
-            Debug::Warning("El objeto en la ruta " + modelPath.string() + " no contenía ningún dato del tipo Mesh o ocurrió un error. Favor de revisar la información del archivo. Error: " + importer.GetErrorString(), "MESH_LOADING_IN_RENDER_SYSTEM");
+            ILEN_WARNING_P(DEBUG_PREFIX, "El objeto en la ruta %s no contenía ningún dato del tipo Mesh o ocurrió un error. Favor de revisar la información del archivo. Error: %s", modelPath.string().c_str(), importer.GetErrorString());
             return ilen::ecs::components::MeshData{};
         }
 
@@ -493,7 +598,7 @@ void AssetsManager::indexNewModels(){
 uint32_t AssetsManager::getAssetID(const std::string& friendlyName) const {
     auto element = m_friendlyNameToID.find(friendlyName);
     if(element == m_friendlyNameToID.end()){
-        Debug::ExecuteError("El asset con nombre " + friendlyName + " no existe en los registros. Revisar el nombre.", "ASSETS_MANAGER");
+        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "El asset con nombre %s no existe en los registros. Revisar el nombre.", friendlyName.c_str());
     }
     return element->second; //Regresa el id :)
 }

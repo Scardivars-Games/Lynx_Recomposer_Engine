@@ -29,7 +29,7 @@ int main() {
 
         app.shutdown();
     }catch(const core::BasicException& e){
-        core::Debug::FatalError(e.what(), e.prefix());
+        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
     }
 
     return 0;

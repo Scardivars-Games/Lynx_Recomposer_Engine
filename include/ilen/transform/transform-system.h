@@ -4,20 +4,27 @@
 #include <ilen/ecs/ecs.h>
 #include <ilen/headers/ecs-components.h>
 #include <ilen/headers/maths.h>
-
-extern std::unique_ptr<ilen::ecs::ECSCoordinator> gCoordinator;
+#include <ilen/core/lifetime.h>
 
 using namespace ilen::maths;
+
+namespace ilen {
+    struct EngineContext;
+}
 
 namespace ilen::ecs::systems {
     using namespace ilen::ecs::components;
 
     class TransformSystem : public ilen::ecs::System {
         public:
+            void Init(ilen::EngineContext* engineContext){
+                m_Coordinator = engineContext->p_coordinator.get();
+            }
+
             void Update() {
                 //Este sistema se encargara de las jerarquías de los objetos, convirtiendo la posición local en posición global. Luego calculará la matriz del modelo (modelToViewMatrix)
                 for(auto const& entity : entities){
-                    auto transform = gCoordinator->getComponent<TransformComponent>(entity);
+                    auto transform = m_Coordinator->getComponent<TransformComponent>(entity);
 
                     //Si el objeto no tiene padre, empezamos a calcular las matrices. Luego, el padre, manda a calcular la de los hijos recursivamente.
                     if(transform){
@@ -29,8 +36,10 @@ namespace ilen::ecs::systems {
             }
 
         private:
+            ilen::ecs::ECSCoordinator* m_Coordinator;
+
             void calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix){
-                    auto transform = gCoordinator->getComponent<TransformComponent>(entity);
+                    auto transform = m_Coordinator->getComponent<TransformComponent>(entity);
 
                     matrix::mat4 modelMatrix = matrix::mat4::identity();
                     //Orden es SRT (Scale-Rotation-Traslation)

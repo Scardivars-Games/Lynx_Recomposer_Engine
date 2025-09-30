@@ -17,11 +17,6 @@ namespace ilen::job_system {
 
     class JobSystem {
         public:
-            static JobSystem& getInstance(){
-                static JobSystem instance;
-                return instance;
-            }
-
             //Inicializa el job system.
             void Initializate() {
                 const int num_threads = std::thread::hardware_concurrency() - 1;
@@ -70,11 +65,6 @@ namespace ilen::job_system {
                 return res;
             }
         private:
-            JobSystem() = default;
-            ~JobSystem() = default;
-            JobSystem(const JobSystem&) = delete;
-            JobSystem& operator=(const JobSystem&) = delete;
-
             std::vector<std::thread> workThreads; //Lista de todos los hilos de trabajo creados por el motor.
             std::queue<Job> jobQueue; //Queue con todos los trabajos de la app.
             std::mutex queueMutex; //Mutex del queue para que pueda ser administrado de forma segura por diferentes hilos.

@@ -27,7 +27,7 @@ namespace ilen::core{
             };
 
         private:
-            const static inline std::string DEBUG_PREFIX = "FILEMANAGER";
+            const static inline char* DEBUG_PREFIX = "FILEMANAGER";
             static inline bool isInited = false;
             static std::string filePreRoute(ILEN_FILE_TYPE category);
             static std::filesystem::path s_applicationWrittablePath;

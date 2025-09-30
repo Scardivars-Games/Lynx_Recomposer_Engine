@@ -31,6 +31,8 @@ namespace ilen::graphics {
     class IlenShaderUtils {
         public:
             static IlenShader generateIlenShaderFromAsset(const ilen::core::ShaderAsset& asset);
+        private:
+            static inline const char* DEBUG_PREFIX = "SHADER_HELPER";
     };
 
     static const IlenShader ErrorShader{"error", "predefined/error-shader", ""};

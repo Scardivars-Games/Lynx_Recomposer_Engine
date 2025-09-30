@@ -46,11 +46,8 @@ namespace ilen::ecs::components {
         WaitingForMeshLoad& operator=(WaitingForMeshLoad&&) noexcept = default;
     };
 
-    //Almacena los datos necesarios para las llamadas a la GPU.
-    struct MeshGPULink {
-        uint32_t drawIndex = 0; //Indices de dibujo para subirlo a la GPU.
-        std::shared_ptr<render::IGPUBuffer> vertexBuffer;
-        std::shared_ptr<render::IGPUBuffer> indexBuffer;
+    struct VariableRenderingData {
         std::shared_ptr<render::IGPUBuffer> uniformBuffer;
+        uint32_t drawIndex = 0; //Indices de dibujo para subirlo a la GPU.
     };
-}
+} 

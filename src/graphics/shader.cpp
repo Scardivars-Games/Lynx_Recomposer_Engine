@@ -17,7 +17,7 @@ namespace ilen::graphics {
         if(file.is_open()){
             file >> data;
         }else{
-            Debug::Error("Tratando de leer shader en la ruta " + asset.assetPath.string() + " y no se encontró, o logro abrir", "SHADER_LOADING");
+            ILEN_ERROR_P(DEBUG_PREFIX, "Tratando de leer shader en la ruta %s y no se encontró, o logro abrir", asset.assetPath.c_str());
             return ErrorShader; //Enviando shader predefinido de error
         }
 
