@@ -5,13 +5,13 @@
 #include <ilen/headers/enumerations.h>
 #include <ilen/core/filemanager.h>
 #include <external/json/json.hpp>
-#include <ilen/core/assets-manager.h>
+#include <ilen/resources/assets-manager.h>
 #include <ilen/maths/vector.h>
 #include <ilen/graphics/color.h>
 #include <unordered_map>
 #include <variant>
 
-namespace ilen::core {
+namespace ilen::resources {
     using namespace ilen::enumerations;
 
     template <ILEN_ASSET_TYPE T>
@@ -47,7 +47,7 @@ namespace ilen::graphics {
 
     class IlenMaterialHelper {
         public:
-            static IlenMaterial generateIlenMaterialFromAsset(const ilen::core::MaterialAsset& asset);
+            static IlenMaterial generateIlenMaterialFromAsset(const ilen::resources::MaterialAsset& asset);
 
         private:
             static const inline char* DEBUG_PREFIX = "MATERIAL_HELPER";

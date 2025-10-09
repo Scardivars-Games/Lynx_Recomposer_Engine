@@ -10,6 +10,7 @@
 #if ILEN_DEBUG && ILEN_DESKTOP
 #include <ilen/job-system/job-system.h>
 #include <external/json/json.hpp>
+#include <ilen/resources/mesh-manager.h>
 #endif
 
 namespace ilen {
@@ -23,8 +24,12 @@ namespace ilen::graphics {
     class IlenMaterialHelper;
 }
 
+namespace ilen::resources::mesh {
+    struct MeshData;
+}
+
 //Administra una base de datos, en formato JSON, con cada objeto y elemento que administre el motor. Su comportamiento será el de un Singleton.
-namespace ilen::core {
+namespace ilen::resources {
     using namespace ilen::enumerations;
     template<ILEN_ASSET_TYPE T>
     struct AssetElement {
@@ -99,11 +104,11 @@ namespace ilen::core {
             };
         private:
 
-            #if ILEN_DEBUG
+            #if ILEN_DEBUG && ILEN_DESKTOP
             //Este método se ejecuta en modo Debug, e indexa los nuevos datos.
             void indexNewModels();
             void generateBinaryRepresentation(nlohmann::json& manifestData);
-            ilen::ecs::components::MeshData loadModelData(std::filesystem::path modelPath);
+            ilen::resources::mesh::MeshData loadModelData(std::filesystem::path modelPath);
             std::mutex fileWrite;
             ilen::job_system::JobSystem* jobSystem;
             #endif

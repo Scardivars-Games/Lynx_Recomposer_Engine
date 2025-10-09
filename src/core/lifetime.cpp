@@ -1,6 +1,6 @@
 #include <ilen/core/filemanager.h>
 #include <ilen/core/lifetime.h>
-#include <ilen/core/assets-manager.h>
+#include <ilen/resources/assets-manager.h>
 #include <ilen/headers/ecs-systems.h>
 #include <ilen/job-system/job-system.h>
 
@@ -36,12 +36,27 @@ namespace ilen{
         FileManager::Init();
 
         //Inicializar assets. Es lo más importante antes del resto de sistemas
-        engineContext->p_assetsManager = std::make_unique<ilen::core::AssetsManager>();
+        engineContext->p_assetsManager = std::make_unique<ilen::resources::AssetsManager>();
         engineContext->p_assetsManager->loadManifiest(engineContext.get());
 
         //Inicializando los sistemas del ECS
         engineContext->p_coordinator = std::make_unique<ilen::ecs::ECSCoordinator>();
         engineContext->p_coordinator->init();
+
+        //Presentation
+        using namespace ilen::window;
+        using namespace ilen::render;
+        //Crear ventana
+        ILEN_LOG_P(DEBUG_PREFIX, "Creando la ventana");
+        //pGameWindow = new GameWindow(&metadata);
+        engineContext->p_gameWindow = std::make_unique<GameWindow>(&metadata);
+
+        ILEN_LOG_P(DEBUG_PREFIX, "Creando la superficie para el dibujo");
+        engineContext->p_gameRenderer = std::unique_ptr<Renderer>(Renderer::create(engineContext->p_gameWindow->getSurface()));
+
+
+        //Inicializar cada Resource Manager (se precisa del render para ciertas funciones con la GPU)
+        engineContext->p_meshManager = std::make_unique<ilen::resources::mesh::MeshManager>(engineContext.get());
 
         //Registro sistemas.
         //Transform system (space properties of an object)
@@ -69,16 +84,6 @@ namespace ilen{
         scripting.bind<Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
         engineContext->p_coordinator->addComponent(triangle, std::move(scripting));
 
-        //Presentation
-        using namespace ilen::window;
-        using namespace ilen::render;
-        //Crear ventana
-        ILEN_LOG_P(DEBUG_PREFIX, "Creando la ventana");
-        //pGameWindow = new GameWindow(&metadata);
-        engineContext->p_gameWindow = std::make_unique<GameWindow>(&metadata);
-
-        ILEN_LOG_P(DEBUG_PREFIX, "Creando la superficie para el dibujo");
-        engineContext->p_gameRenderer = std::unique_ptr<Renderer>(Renderer::create(engineContext->p_gameWindow->getSurface()));
         
         engineContext->p_transformSystem->Init(engineContext.get());
         //Inicializamos los scripts.
@@ -109,6 +114,7 @@ namespace ilen{
 
     void AppRuntime::shutdown(){
         //TODO
+        engineContext->p_jobSystem->StopJobSystem();
     }
 
     bool AppRuntime::isRunning() {

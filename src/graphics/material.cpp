@@ -63,7 +63,7 @@ void processVectorProperties(const nlohmann::json& jsonData, const std::string& 
 }
 
 namespace ilen::graphics {
-    IlenMaterial IlenMaterialHelper::generateIlenMaterialFromAsset(const ilen::core::MaterialAsset& asset){
+    IlenMaterial IlenMaterialHelper::generateIlenMaterialFromAsset(const ilen::resources::MaterialAsset& asset){
         using json = nlohmann::json;
         auto materialPath = FileManager::fileRoute(asset.assetPath, ILEN_FILE_TYPE_NONE);
 

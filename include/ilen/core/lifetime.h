@@ -3,7 +3,6 @@
 #include <ilen/headers/visual.h>
 #include <ilen/headers/core.h>
 #include <ilen/job-system/job-system.h>
-#include <ilen/resources/mesh-manager.h>
 #include <memory>
 
 namespace ilen::ecs::systems {
@@ -12,8 +11,12 @@ namespace ilen::ecs::systems {
     class ScriptingSystem;
 }
 
-namespace ilen::core {
+namespace ilen::resources {
     class AssetsManager;
+}
+
+namespace ilen::resources::mesh {
+    class MeshManager;
 }
 
 namespace ilen {
@@ -24,7 +27,7 @@ namespace ilen {
         std::unique_ptr<render::Renderer> p_gameRenderer;
         std::unique_ptr<ilen::ecs::ECSCoordinator> p_coordinator;
         std::unique_ptr<ilen::resources::mesh::MeshManager> p_meshManager;
-        std::unique_ptr<ilen::core::AssetsManager> p_assetsManager;
+        std::unique_ptr<ilen::resources::AssetsManager> p_assetsManager;
 
         //ECS Systems (shared ptrs)
         std::shared_ptr<ilen::ecs::systems::RenderSystem> p_renderSystem;

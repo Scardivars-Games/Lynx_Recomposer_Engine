@@ -7,7 +7,7 @@ const std::string ILEN_SHADER_DIRECTORY = "shader-dir";
 const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";
 
 namespace ilen::graphics {
-    IlenShader IlenShaderUtils::generateIlenShaderFromAsset(const ilen::core::ShaderAsset& asset){
+    IlenShader IlenShaderUtils::generateIlenShaderFromAsset(const ilen::resources::ShaderAsset& asset){
         using json = nlohmann::json;
         auto shaderPath = FileManager::fileRoute(asset.assetPath, ILEN_FILE_TYPE_NONE);
 

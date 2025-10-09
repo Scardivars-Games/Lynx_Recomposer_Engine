@@ -20,8 +20,9 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
+add_subdirectory(external/ilen-modules)
+
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
-target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
 if(APPLE)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         message("Configuration for iOS")
@@ -55,6 +56,14 @@ if(APPLE)
             XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_ASSET_PATHS "${ASSET_FOLDER}"
             XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
             )
+
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND $<TARGET_FILE:ILEN_SHADER_COMPILER>
+            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} -sdk "iphoneos"
+            COMMENT "Compilando shader de metal para ser usados en iOS"
+            VERBATIM
+        )
+
         #iOS need also assets folder in the bundle
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
@@ -77,6 +86,8 @@ if(APPLE)
 
         add_subdirectory(external/assimp)
 
+        target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
+
         file(GLOB_RECURSE NATIVE_SOURCES src/native/macOS/*.mm src/native/apple/*.mm)
         target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
         target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa")
@@ -98,6 +109,13 @@ if(APPLE)
                 COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data"
             )
         endif()
+
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND $<TARGET_FILE:ILEN_SHADER_COMPILER>
+            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk macosx
+            COMMENT "Compilando shader de metal para ser usados en MacOS"
+            VERBATIM
+        )
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"

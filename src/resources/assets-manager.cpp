@@ -1,5 +1,5 @@
 #include <fstream>
-#include <ilen/core/assets-manager.h>
+#include <ilen/resources/assets-manager.h>
 #include <ilen/graphics/material.h>
 #include <ilen/graphics/shader.h>
 #include <ilen/core/filemanager.h>
@@ -59,6 +59,7 @@ std::unordered_map<std::string, std::string> folderToManifestAssetGroup = {
 
 const std::vector<std::string> ILEN_ASSET_MANIFEST_ASSETS_TYPES = { ILEN_ASSET_MANIFEST_MODEL, ILEN_ASSET_MANIFEST_TEXTURES, ILEN_ASSET_MANIFEST_AUDIO, ILEN_ASSET_MANIFEST_MATERIALS, ILEN_ASSET_MANIFEST_SHADERS };
 
+using namespace ilen::resources;
 using namespace ilen::core;
 
 #if ILEN_DEBUG && ILEN_DESKTOP
@@ -407,7 +408,7 @@ void AssetsManager::indexNewModels(){
                 futures.push_back(
                     jobSystem->SubmitJob([=, this, &sourceAssetFolders, &engineSourceFolder, &binaryModelFolder, &idToModelAsset, &friendlyNameToID, &assetData]() {
                         auto modelPath = sourceAssetFolders / filePath;
-                        ilen::ecs::components::MeshData toBinarize = loadModelData(modelPath);
+                        ilen::resources::mesh::MeshData toBinarize = loadModelData(modelPath);
                         auto savePath = binaryModelFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / targetFolder);
                         savePath.replace_extension(".ilenmesh");
                         //Header del binario
@@ -536,14 +537,14 @@ void AssetsManager::indexNewModels(){
         ILEN_WARNING_P(DEBUG_PREFIX, "End of binarization: %.4f", ilen::time::Time::getTotalTime());
     }
 
-    ilen::ecs::components::MeshData AssetsManager::loadModelData(std::filesystem::path modelPath){
+    ilen::resources::mesh::MeshData AssetsManager::loadModelData(std::filesystem::path modelPath){
         //std::filesystem::path meshFilePath = core::FileManager::fileRoute(meshPath, ILEN_FILE_TYPE_NONE);
         Assimp::Importer importer;
         
         const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
         if(!scene || !scene->HasMeshes()){
             ILEN_WARNING_P(DEBUG_PREFIX, "El objeto en la ruta %s no contenía ningún dato del tipo Mesh o ocurrió un error. Favor de revisar la información del archivo. Error: %s", modelPath.string().c_str(), importer.GetErrorString());
-            return ilen::ecs::components::MeshData{};
+            return ilen::resources::mesh::MeshData{};
         }
 
         //De momento soporte a un mesh por archivo. A futuro se debe de cambiar.
@@ -587,7 +588,7 @@ void AssetsManager::indexNewModels(){
             }
         }
 
-        ilen::ecs::components::MeshData meshData{};
+        ilen::resources::mesh::MeshData meshData{};
         meshData.indexBufferData = indexData;
         meshData.vertexBufferData = vertexData;
 

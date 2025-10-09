@@ -122,6 +122,14 @@ public:
         self.nativeWindow -> closeRequested = true;
     }
 }
+
+
+- (NSApplicationTerminateReply)applicationShouldTerminate: (NSApplication *)sender {
+    if(self.nativeWindow){
+        self.nativeWindow -> closeRequested = true;
+    }
+    return NSTerminateCancel; //Le decimos a Cocoa que no mate el proceso, sino que nosotros lo terminamos con gracias sin crasheos.
+}
 @end
 
 GameWindow::GameWindow(void* metadata){

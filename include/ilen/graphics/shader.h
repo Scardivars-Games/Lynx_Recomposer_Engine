@@ -5,9 +5,9 @@
 #include <ilen/headers/enumerations.h>
 #include <ilen/core/filemanager.h>
 #include <external/json/json.hpp>
-#include <ilen/core/assets-manager.h>
+#include <ilen/resources/assets-manager.h>
 
-namespace ilen::core {
+namespace ilen::resources {
     using namespace ilen::enumerations;
 
     template<ILEN_ASSET_TYPE T>
@@ -30,7 +30,7 @@ namespace ilen::graphics {
     //TODO: Añadir métodos para desde el editor, crear y gestionar shaders en esta capa de abstracción.
     class IlenShaderUtils {
         public:
-            static IlenShader generateIlenShaderFromAsset(const ilen::core::ShaderAsset& asset);
+            static IlenShader generateIlenShaderFromAsset(const ilen::resources::ShaderAsset& asset);
         private:
             static inline const char* DEBUG_PREFIX = "SHADER_HELPER";
     };

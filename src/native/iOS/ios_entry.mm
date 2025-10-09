@@ -33,7 +33,7 @@
         return;
     }
     
-    self.app = new ilen::AppRuntime();
+    self.app = &ilen::AppRuntime::getInstance();
     
     UIWindowScene *windowScene = (UIWindowScene *)scene;
     self.window = [[UIWindow alloc] initWithWindowScene:windowScene];
