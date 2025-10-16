@@ -140,5 +140,6 @@ namespace ilen::binary::headers {
         uint32_t totalOfNamesToID;
         uint32_t totalOfModels;
         uint32_t totalOfTextures;
+        uint32_t totalOfShaders;
     };
 }

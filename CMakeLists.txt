@@ -4,6 +4,13 @@ project(ilen-engine LANGUAGES CXX OBJCXX VERSION 0.0.1)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(ExternalProject)
+
+set(ILEN_MODULES_BUILD_DIR ${CMAKE_BINARY_DIR}/ILEN_MODULES)
+set(ILEN_MODULES_EXECUTABLE_FOLDER ${ILEN_MODULES_BUILD_DIR}/executable)
+
+set(NATIVE_TOOL_BYPRODUCT ${ILEN_MODULES_EXECUTABLE_FOLDER})
+
 set(APP_IDENTIFIER "com.scardivargames.ilen-test")
 set(APP_NAME "ILEN Test")
 set(APP_VERSION "0.0.1")
@@ -20,7 +27,32 @@ endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE include)
 
-add_subdirectory(external/ilen-modules)
+ExternalProject_Add(
+    ilen-modules
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/ilen-modules
+    BINARY_DIR ${ILEN_MODULES_BUILD_DIR}/build
+
+    CMAKE_CACHE_ARGS
+        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}
+        -DCMAKE_INSTALL_PREFIX:PATH=${ILEN_MODULES_BUILD_DIR}
+        -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+        -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_SOURCE_DIR}/toolchains/macos.toolchain.cmake
+
+    BUILD_BYPRODUCTS ${NATIVE_TOOL_BYPRODUCT}
+    #BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
+    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
+
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    LOG_INSTALL 1
+)
+
+add_executable(ILEN_METAL_COMPILER IMPORTED GLOBAL)
+set_property(
+    TARGET ILEN_METAL_COMPILER PROPERTY IMPORTED_LOCATION ${NATIVE_TOOL_BYPRODUCT}/ILEN_METAL_COMPILER
+)
+
+add_dependencies(ILEN_METAL_COMPILER ilen-modules)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 if(APPLE)
@@ -58,8 +90,8 @@ if(APPLE)
             )
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND $<TARGET_FILE:ILEN_SHADER_COMPILER>
-            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} -sdk "iphoneos"
+            COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
+            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk iphoneos
             COMMENT "Compilando shader de metal para ser usados en iOS"
             VERBATIM
         )
@@ -111,7 +143,7 @@ if(APPLE)
         endif()
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND $<TARGET_FILE:ILEN_SHADER_COMPILER>
+            COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
             ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk macosx
             COMMENT "Compilando shader de metal para ser usados en MacOS"
             VERBATIM
@@ -128,6 +160,8 @@ if(APPLE)
         "-framework Metal"
     )
 endif()
+
+add_dependencies(${PROJECT_NAME} ILEN_METAL_COMPILER)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:ILEN_DEBUG>)
 

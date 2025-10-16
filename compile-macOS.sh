@@ -1,3 +1,3 @@
 mkdir build-macOS
 cd build-macOS
-cmake .. -G Xcode
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../toolchains/macos.toolchain.cmake -G Xcode

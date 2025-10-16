@@ -49,7 +49,7 @@ namespace ilen::ecs::systems {
 
                             if(solitudeResult.lock() == nullptr){
                                 continue; //Salta a la siguiente entidad, esta no puede hacer nada.
-                            }else{
+                            }else{  
                                 //Guardamos el puntero
                                 StaticRenderingData data{};
                                 data.staticBuffers = solitudeResult;
@@ -62,7 +62,6 @@ namespace ilen::ecs::systems {
                                 m_Coordinator->removeComponent<StaticRenderingData>(entity);
                                 continue;
                             }
-
                             //Puntero es válido a datos de la GPU.
                         }
                     }

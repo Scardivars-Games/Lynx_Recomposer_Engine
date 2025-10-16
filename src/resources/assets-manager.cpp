@@ -153,6 +153,12 @@ void AssetsManager::loadManifiest(EngineContext* engineContext) {
         m_idToTextureAsset.emplace(ID, TextureAsset(ID, std::filesystem::path(path)));
     }
 
+    //Shaders
+    m_idToShaderAsset.reserve(header.totalOfShaders);
+    for(int i = 0; i < header.totalOfShaders; i++){
+        
+    }
+
 
     isManifestLoaded = true;
     ILEN_LOG_P(DEBUG_PREFIX, "MANIFIESTO CARGADO EXITOSAMENTE. Total de items cargados: %zu", m_friendlyNameToID.size());

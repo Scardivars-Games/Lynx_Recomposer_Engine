@@ -2,7 +2,7 @@
 #pragma once
 
 #include <ilen/job-system/job-system.h>
-#include <ilen/render/renderer.h>
+#include <ilen/render/gpu-interfaces/buffers.h>
 #include <ilen/resources/assets-manager.h>
 #include <ilen/core/filemanager.h>
 #include <ilen/core/lifetime.h>

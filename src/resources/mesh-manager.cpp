@@ -23,12 +23,13 @@ namespace ilen::resources::mesh {
             return {}; //Se esta cargando, regresamos una estructura sin datos para que falle al lockearla desde el cliente
         }
 
-        std::filesystem::path meshPath = assetsManager->getAssetElement<ModelAsset>(id).assetPath;
+        //std::filesystem::path meshPath = assetsManager->getAssetElement<ModelAsset>(id).assetPath;
+        auto meshObject = assetsManager->getAssetElement<ModelAsset>(id);
 
         //Cargando los datos a la GPU.
-        std::future<MeshGPULink> future = jobSystem->SubmitJob([this, meshPath]() -> MeshGPULink {
+        std::future<MeshGPULink> future = jobSystem->SubmitJob([this, meshObject]() -> MeshGPULink {
                 //TODO: Load binary data of mesh
-                auto loadPath = ilen::core::FileManager::fileRoute(meshPath, ILEN_FILE_TYPE_MODEL);
+                auto loadPath = ilen::core::FileManager::fileRoute(meshObject.assetPath, ILEN_FILE_TYPE_MODEL);
                 //ILEN_LOG_P(DEBUG_PREFIX, "Mesh localizado en %s.", loadPath.c_str());
                 
                 std::ifstream readMesh(loadPath, std::ios::binary);
@@ -55,7 +56,8 @@ namespace ilen::resources::mesh {
                 ilen::render::IlenBufferDescriptor vertexDescriptor{};
                 vertexDescriptor.bufferType = ILEN_RENDER_GPU_BUFFER_VERTEX;
                 vertexDescriptor.bufferSize = mesh.vertexBufferData.size() * sizeof(ilen::render::buffers::VertexBufferData);
-                vertexDescriptor.cpuVisible = false;
+                //vertexDescriptor.cpuVisible = false;
+                vertexDescriptor.bufferLabelName = "Vertex Buffer for mesh ID " + std::to_string(meshObject.assetID);
                 vertexDescriptor.count = mesh.vertexBufferData.size();
 
                 link.vertexBuffer = renderer->createBuffer(vertexDescriptor, mesh.vertexBufferData.data());
@@ -63,7 +65,7 @@ namespace ilen::resources::mesh {
                 ilen::render::IlenBufferDescriptor indexDescriptor{};
                 indexDescriptor.bufferType = ILEN_RENDER_GPU_BUFFER_INDEX;
                 indexDescriptor.bufferSize = mesh.indexBufferData.size() * sizeof(uint32_t);
-                indexDescriptor.cpuVisible = false;
+                vertexDescriptor.bufferLabelName = "Index Buffer for mesh ID " + std::to_string(meshObject.assetID);
                 indexDescriptor.count = mesh.indexBufferData.size();
 
                 link.indexBuffer = renderer->createBuffer(indexDescriptor, mesh.indexBufferData.data());
