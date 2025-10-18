@@ -13,6 +13,7 @@ namespace ilen::enumerations {
 
     enum ILEN_FILE_TYPE{
         ILEN_FILE_TYPE_NATIVE_SHADER,
+        ILEN_FILE_TYPE_ENGINE_SHADER,
         ILEN_FILE_TYPE_TEXTURE,
         ILEN_FILE_TYPE_MODEL,
         ILEN_FILE_TYPE_ASSETS_MANIFEST,

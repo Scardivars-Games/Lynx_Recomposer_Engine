@@ -25,7 +25,13 @@ else()
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SOURCES})
 endif()
 
-target_include_directories(${PROJECT_NAME} PRIVATE include)
+#target_include_directories(${PROJECT_NAME} PRIVATE include)
+add_library(ilen_global_includes INTERFACE)
+target_include_directories(ilen_global_includes INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ilen_global_includes)
+
+list(APPEND SHARED_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 ExternalProject_Add(
     ilen-modules
@@ -33,6 +39,7 @@ ExternalProject_Add(
     BINARY_DIR ${ILEN_MODULES_BUILD_DIR}/build
 
     CMAKE_CACHE_ARGS
+        -DPARENT_INCLUDE_DIR:STRING=${SHARED_INCLUDE_DIR}
         -DCMAKE_RUNTIME_OUTPUT_DIRECTORY:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}
         -DCMAKE_INSTALL_PREFIX:PATH=${ILEN_MODULES_BUILD_DIR}
         -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -52,9 +59,27 @@ set_property(
     TARGET ILEN_METAL_COMPILER PROPERTY IMPORTED_LOCATION ${NATIVE_TOOL_BYPRODUCT}/ILEN_METAL_COMPILER
 )
 
+add_executable(ILEN_FILE_BINARIZATION IMPORTED GLOBAL)
+set_property(
+        TARGET ILEN_FILE_BINARIZATION PROPERTY IMPORTED_LOCATION ${NATIVE_TOOL_BYPRODUCT}/ILEN_FILE_BINARIZATION
+)
+
 add_dependencies(ILEN_METAL_COMPILER ilen-modules)
+add_dependencies(ILEN_FILE_BINARIZATION ilen-modules)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
+
+
+#Command used by all Platforms
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND $<TARGET_FILE:ILEN_FILE_BINARIZATION>
+    ARGS --ilen-folder ${CMAKE_SOURCE_DIR}
+    COMMENT "Organizing and binarizing all asset of the engine"
+    VERBATIM
+)
+
+
+#Commands for the Apple Ecosystem
 if(APPLE)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         message("Configuration for iOS")
@@ -103,23 +128,6 @@ if(APPLE)
     else()
         message("Configuration for macOS")
 
-        # Desactivar la compilación de herramientas, tests y ejemplos
-        set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
-        set(ASSIMP_BUILD_TESTS OFF)
-        set(ASSIMP_BUILD_SAMPLES OFF)
-        set(ASSIMP_NO_EXPORT ON)
-        set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF)
-        set(ASSIMP_BUILD_STATIC_LIB ON)
-
-        # Desactivar formatos de importación específicos (opcional)
-        set(ASSIMP_BUILD_OBJ_IMPORTER ON)
-        set(ASSIMP_BUILD_FBX_IMPORTER OFF)
-        set(ASSIMP_BUILD_GLTF_IMPORTER OFF)
-
-        add_subdirectory(external/assimp)
-
-        target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
-
         file(GLOB_RECURSE NATIVE_SOURCES src/native/macOS/*.mm src/native/apple/*.mm)
         target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
         target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa")
@@ -162,6 +170,7 @@ if(APPLE)
 endif()
 
 add_dependencies(${PROJECT_NAME} ILEN_METAL_COMPILER)
+add_dependencies(${PROJECT_NAME} ILEN_FILE_BINARIZATION)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:ILEN_DEBUG>)
 

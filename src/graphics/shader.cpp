@@ -9,7 +9,7 @@ const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";
 namespace ilen::graphics {
     IlenShader IlenShaderUtils::generateIlenShaderFromAsset(const ilen::resources::ShaderAsset& asset){
         using json = nlohmann::json;
-        auto shaderPath = FileManager::fileRoute(asset.assetPath, ILEN_FILE_TYPE_NONE);
+        auto shaderPath = FileManager::fileRoute(asset.assetPath, ILEN_FILE_TYPE_ENGINE_SHADER);
 
         std::ifstream file(shaderPath);
         json data;
@@ -17,7 +17,7 @@ namespace ilen::graphics {
         if(file.is_open()){
             file >> data;
         }else{
-            ILEN_ERROR_P(DEBUG_PREFIX, "Tratando de leer shader en la ruta %s y no se encontró, o logro abrir", asset.assetPath.c_str());
+            ILEN_ERROR_P(DEBUG_PREFIX, "Tratando de leer shader en la ruta %s y no se encontró, o logro abrir", shaderPath.c_str());
             return ErrorShader; //Enviando shader predefinido de error
         }
 

@@ -77,19 +77,11 @@ void writeToMap(const json& data, std::unordered_map<std::string, uint32_t>& nam
 }
 #endif
 
-std::string generateFriendlyName(const std::string& filename){
-
-    std::string extension = std::filesystem::path(filename).extension().string();
-    std::string name = std::filesystem::path(filename).stem().string();
-
-    return name + "-" + extensionToAssetType.find(extension)->second; 
-}
-
 void AssetsManager::loadManifiest(EngineContext* engineContext) {
-    #if ILEN_DEBUG && ILEN_DESKTOP //En dispositivod móviles o consolas esto no tiene sentido. Realiza el trabajo usando los archivos fuente
-    jobSystem = engineContext->p_jobSystem.get();
-    indexNewModels(); //Actualizamos el manifiesto con nuevos archivos y generamos sus respectivas representaciones binarias.
-    #endif
+   // #if ILEN_DEBUG && ILEN_DESKTOP //En dispositivod móviles o consolas esto no tiene sentido. Realiza el trabajo usando los archivos fuente
+   // jobSystem = engineContext->p_jobSystem.get();
+   // indexNewModels(); //Actualizamos el manifiesto con nuevos archivos y generamos sus respectivas representaciones binarias.
+   // #endif
 
     m_manifestFileName = "assets.bin.ilenmanifest";
 
@@ -210,6 +202,9 @@ void AssetsManager::loadManifiest(EngineContext* engineContext) {
     }*/
 }
 
+
+//MOVED TO EXTERNAL MODULE (TO BE USED AS COMMAND LINE, MANUALLY AND FOR THE ENGINE APP)
+/*
 #if ILEN_DESKTOP && ILEN_DEBUG //No se necesita este símbolo en un sistema que no sirva para programar
 void AssetsManager::indexNewModels(){
     m_manifestFileName = "assets.ilenmanifest";
@@ -395,8 +390,8 @@ void AssetsManager::indexNewModels(){
         std::unordered_map<uint32_t, ModelAsset> idToModelAsset;
         std::unordered_map<uint32_t, TextureAsset> idToTextureAsset;
         std::unordered_map<uint32_t, AudioAsset> idToAudioAsset;
-        std::unordered_map<uint32_t, std::shared_ptr<ilen::graphics::IlenShader>> idToShaderAsset;
-        std::unordered_map<uint32_t, std::shared_ptr<ilen::graphics::IlenMaterial>> idToMaterialAsset;
+        std::unordered_map<uint32_t, ilen::graphics::IlenShader> idToShaderAsset;
+        std::unordered_map<uint32_t, ilen::graphics::IlenMaterial> idToMaterialAsset;
 
         //2 - Procesar cada archivo y guardarlo.
         //Model loading
@@ -452,30 +447,67 @@ void AssetsManager::indexNewModels(){
         }
 
         //Texture loading
-        /*if(data.contains(ILEN_ASSET_MANIFEST_TEXTURES)){
+        if(data.contains(ILEN_ASSET_MANIFEST_TEXTURES)){
             writeToMap(data[ILEN_ASSET_MANIFEST_TEXTURES], m_friendlyNameToID, m_idToTextureAsset);
-        }*/
+        }
 
 
         
         //Audio loading
-        /*if(data.contains(ILEN_ASSET_MANIFEST_AUDIO)){
+        if(data.contains(ILEN_ASSET_MANIFEST_AUDIO)){
             writeToMap(data[ILEN_ASSET_MANIFEST_AUDIO], m_friendlyNameToID, m_idToAudioAsset);
-        }*/
+        }
 
         //Shader loading
-        /*if(data.contains(ILEN_ASSET_MANIFEST_SHADERS)){
-            std::unordered_map<uint32_t, ShaderAsset> temporalShaderMap;
-            writeToMap(data[ILEN_ASSET_MANIFEST_SHADERS], m_friendlyNameToID, temporalShaderMap);
-
-            for(const auto& shaderMap: temporalShaderMap){
-                auto toStoreShader = ilen::graphics::IlenShaderUtils::generateIlenShaderFromAsset(shaderMap.second);
-                m_idToShaderAsset.emplace(shaderMap.first, std::make_shared<ilen::graphics::IlenShader>(std::move(toStoreShader))); //Hacer el segundo de ShaderAsset a IlenShader
+        if(manifestData.contains(ILEN_ASSET_MANIFEST_SHADERS)){
+            std::string targetFolder = "shaders";
+            std::filesystem::path shaderBinaryFolder = binaryDataFolder / targetFolder;
+            if (!std::filesystem::exists(shaderBinaryFolder))
+            {
+                std::filesystem::create_directories(shaderBinaryFolder);
             }
-        }*/
+
+            for (const auto& shaderData: manifestData[ILEN_ASSET_MANIFEST_SHADERS])
+            {
+                std::string originalFilePath = shaderData[ILEN_ASSET_MANIFEST_ASSET_PATH];
+
+                auto sourcePath = sourceAssetFolders / originalFilePath;
+                auto savePath = binaryDataFolder / std::filesystem::relative(engineSourceFolder / originalFilePath, engineSourceFolder / targetFolder);
+                //zsavePath.replace_extension(".b_ilenshader");
+
+                auto path = std::filesystem::relative(savePath, binaryDataFolder);
+
+                uint32_t id = shaderData[ILEN_ASSET_MANIFEST_ASSET_ID];
+                std::string name = shaderData[ILEN_ASSET_MANIFEST_ASSET_NAME];
+
+                auto generatedShader = ilen::graphics::IlenShaderUtils::generateIlenShaderFromAsset(ShaderAsset(id, path));
+
+                //Header del archivo binario
+                ilen::binary::headers::IlenShaderHeader header{};
+                header.version = 1;
+                strncpy(header.magicNumber, "REDAHS_NELI", sizeof(header.magicNumber) - 1);
+                header.fileNameSize = generatedShader.shaderFileName.size();
+                header.fileRouteSize = generatedShader.shaderRoute.string().size(); //Esta ruta es solo carpeta,  el nombre del archivo final se compone usando el filename y la extensión correspondiente a la API gráfica.
+                header.shaderNameSize = generatedShader.shaderName.size();
+
+
+
+                if(!std::filesystem::exists(savePath.parent_path()))
+                {
+                    std::filesystem::create_directories(savePath.parent_path());
+                }
+
+                std::ofstream outFile(savePath,std::ios::binary);
+                outFile.write(reinterpret_cast<const char*>(&header),sizeof(ilen::binary::headers::IlenShaderHeader));
+                outFile.write(reinterpret_cast<const char*>(&generatedShader), sizeof(ilen::graphics::IlenShader));
+
+                friendlyNameToID[name] = id;
+                idToShaderAsset.emplace(id, generatedShader);
+            }
+        }
 
             //Material loading
-        /*if(data.contains(ILEN_ASSET_MANIFEST_MATERIALS)){
+        if(data.contains(ILEN_ASSET_MANIFEST_MATERIALS)){
             std::unordered_map<uint32_t, MaterialAsset> temporalMaterialMap;
             writeToMap(data[ILEN_ASSET_MANIFEST_MATERIALS], m_friendlyNameToID, temporalMaterialMap);
 
@@ -483,7 +515,7 @@ void AssetsManager::indexNewModels(){
                 auto toStoreMaterial = ilen::graphics::IlenMaterialHelper::generateIlenMaterialFromAsset(materialMap.second);
                 m_idToMaterialAsset.emplace(materialMap.first, std::make_shared<ilen::graphics::IlenMaterial>(std::move(toStoreMaterial))); //Hacer el segundo de ShaderAsset a IlenShader
             }    
-        }*/
+        }
         
         //3 - Generar un manifiesto para los binarios.
         //No necesito un manifiesto en JSON, mejor volcar los mapas de memoria en un archivo, así no tenemos que volver a cargar y configurar estos, sino que sea solo una lectura.
@@ -500,6 +532,7 @@ void AssetsManager::indexNewModels(){
         manifestHeader.totalOfNamesToID = friendlyNameToID.size();
         manifestHeader.totalOfModels = idToModelAsset.size();
         manifestHeader.totalOfTextures = idToTextureAsset.size();
+        manifestHeader.totalOfShaders = idToShaderAsset.size();
 
         std::ofstream binaryFile(manifiestPath, std::ios::binary);
         binaryFile.write(reinterpret_cast<const char*>(&manifestHeader), sizeof(ilen::binary::headers::IlenManifestHeader));
@@ -601,6 +634,7 @@ void AssetsManager::indexNewModels(){
         return meshData;
     }
 #endif
+*/
 
 uint32_t AssetsManager::getAssetID(const std::string& friendlyName) const {
     auto element = m_friendlyNameToID.find(friendlyName);

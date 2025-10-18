@@ -24,6 +24,9 @@ std::filesystem::path getFilePath(ILEN_FILE_TYPE category){
     case ILEN_FILE_TYPE_NONE:
         resourceSpecificFolder = "";
         break;
+    case ILEN_FILE_TYPE_ENGINE_SHADER:
+        resourceSpecificFolder = "shaders";
+        break;
     default:
         ILEN_EXECUTE_ERROR_P("FILE_MANAGER", "Dada una categoría desconocida");
         break;

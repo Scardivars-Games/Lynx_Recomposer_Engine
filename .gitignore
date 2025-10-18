@@ -6,3 +6,4 @@ build-macOS
 .DS_Store
 .vscode
 .ilen-bin-data
+cmake-build-debug
