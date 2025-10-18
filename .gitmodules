@@ -1,3 +1,6 @@
 [submodule "external/assimp"]
 	path = external/assimp
 	url = https://github.com/assimp/assimp.git
+[submodule "external/ilen-modules/external/assimp"]
+	path = external/ilen-modules/external/assimp
+	url = https://github.com/assimp/assimp.git
