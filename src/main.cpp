@@ -26,12 +26,11 @@ int main() {
         while (app.isRunning()) {
             app.update();
         }
-
-        app.shutdown();
     }catch(const core::BasicException& e){
         ILEN_FATAL_ERROR_P(e.prefix(), e.what());
     }
 
+    app.shutdown();
     return 0;
 }
 #endif

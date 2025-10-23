@@ -1,4 +1,5 @@
 #include <ilen/core/logs.h>
+#include <ilen/window/alert-box.h>
 
 namespace ilen::internal{
     std::mutex Debug::logMutex;
@@ -33,7 +34,6 @@ namespace ilen::internal{
         va_start(args, prefijo);
 
         vsnprintf(messageBuffer, sizeof(messageBuffer), content, args);
-
         va_end(args);
         std::clog << "\033[33m[WARNING"<< preparatePrefix(prefijo) << "] \033[0m" << messageBuffer << std::endl;
     }
@@ -66,5 +66,6 @@ namespace ilen::internal{
     void Debug::FatalError(const char* content, const char* prefijo){
         std::lock_guard<std::mutex> lock(logMutex);
         std::cerr << "\033[31m [FATAL_ERROR"<< preparatePrefix(std::string(prefijo)) << "] \033[0m" << content << std::endl;
+        ilen::window::box::ShowErrorDialogBox("FATAL ERROR", content);
     }
 }

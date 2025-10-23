@@ -49,14 +49,15 @@ namespace ilen{
         //Crear ventana
         ILEN_LOG_P(DEBUG_PREFIX, "Creando la ventana");
         //pGameWindow = new GameWindow(&metadata);
-        engineContext->p_gameWindow = std::make_unique<GameWindow>(&metadata);
+        engineContext->p_gameWindow = IWindow::CreateWindow(metadata);
 
         ILEN_LOG_P(DEBUG_PREFIX, "Creando la superficie para el dibujo");
-        engineContext->p_gameRenderer = std::unique_ptr<Renderer>(Renderer::create(engineContext->p_gameWindow->getSurface()));
+        engineContext->p_gameRenderer = IRenderer::CreateRenderer(engineContext->p_gameWindow->getSurface(), GraphicsAPI::Auto);
 
 
         //Inicializar cada Resource Manager (se precisa del render para ciertas funciones con la GPU)
         engineContext->p_meshManager = std::make_unique<ilen::resources::mesh::MeshManager>(engineContext.get());
+        engineContext->p_shaderManager = std::make_unique<ilen::resources::shaders::ShaderManager>(engineContext.get());
 
         //Registro sistemas.
         //Transform system (space properties of an object)
@@ -114,6 +115,7 @@ namespace ilen{
 
     void AppRuntime::shutdown(){
         //TODO
+        ILEN_LOG_P(DEBUG_PREFIX, "Shutting down engine");
         engineContext->p_jobSystem->StopJobSystem();
     }
 

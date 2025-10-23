@@ -1,11 +1,11 @@
-#include <ilen/graphics/shader.h>
+/*#include <ilen/graphics/shader.h>
 
 using namespace ilen::core;
 
 const std::string ILEN_SHADER_FILE_NAME = "shader-file-name";
 const std::string ILEN_SHADER_DIRECTORY = "shader-dir";
-const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";
-
+const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";*/
+/*
 namespace ilen::graphics {
     IlenShader IlenShaderUtils::generateIlenShaderFromAsset(const ilen::resources::ShaderAsset& asset){
         using json = nlohmann::json;
@@ -18,10 +18,10 @@ namespace ilen::graphics {
             file >> data;
         }else{
             ILEN_ERROR_P(DEBUG_PREFIX, "Tratando de leer shader en la ruta %s y no se encontró, o logro abrir", shaderPath.c_str());
-            return ErrorShader; //Enviando shader predefinido de error
+            //return ErrorShader; //Enviando shader predefinido de error
         }
 
         IlenShader fileToArchive(data[ILEN_SHADER_FILE_NAME], data[ILEN_SHADER_DIRECTORY], data[ILEN_SHADER_HUMAN_REDEABLE_NAME]);
         return fileToArchive;
     }
-}
+}*/

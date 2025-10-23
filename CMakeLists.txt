@@ -83,9 +83,12 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 if(APPLE)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         message("Configuration for iOS")
-        file(GLOB_RECURSE NATIVE_SOURCES src/native/iOS/*.mm src/native/apple/*.mm)
-        set(ASSET_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/src/native/iOS/icon/Assets.xcassets")
-        set(APPLE_LIQUID_GLASS_APPICON "${CMAKE_CURRENT_SOURCE_DIR}/src/native/iOS/icon/AppIcon.icon")
+        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/iOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm)
+        set(NATIVE_HEADERS src/Platform/iOS src/Platform/apple src/Renderer/Metal)
+
+        target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
+        set(ASSET_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/icon/Assets.xcassets")
+        set(APPLE_LIQUID_GLASS_APPICON "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/icon/AppIcon.icon")
 
         set_source_files_properties(${ASSET_FOLDER} PROPERTIES RESOURCE TRUE)
         set_source_files_properties(${APPLE_LIQUID_GLASS_APPICON} PROPERTIES RESOURCE TRUE)
@@ -100,7 +103,7 @@ if(APPLE)
             XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
             XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
             MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/native/iOS/Info.plist"
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/iOS/Info.plist"
             XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.scardivargames.ilen-test"
             MACOSX_BUNDLE_IDENTIFIER ${APP_IDENTIFIER}
             MACOSX_BUNDLE_NAME ${APP_NAME}
@@ -128,12 +131,15 @@ if(APPLE)
     else()
         message("Configuration for macOS")
 
-        file(GLOB_RECURSE NATIVE_SOURCES src/native/macOS/*.mm src/native/apple/*.mm)
+        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/macOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm)
+        set(NATIVE_HEADERS src/Platform/macOS src/Platform/apple src/Renderer/Metal)
+
+        target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
         target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
         target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa")
         set_target_properties(${PROJECT_NAME} PROPERTIES      
             BUNDLE TRUE  
-            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/native/macOS/Info.plist"
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/macOS/Info.plist"
             XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.scardivargames.ilen-test"
             MACOSX_BUNDLE_GUI_IDENTIFIER "com.scardivargames.ilen-test"
             MACOSX_BUNDLE_IDENTIFIER ${APP_IDENTIFIER}
@@ -159,7 +165,7 @@ if(APPLE)
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/native/macOS/icon" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/Platform/macOS/icon" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
         )
     endif()
     #common libs in Apple

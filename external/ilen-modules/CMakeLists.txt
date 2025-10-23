@@ -38,7 +38,7 @@ set(ASSIMP_BUILD_GLTF_IMPORTER OFF)
 
 add_subdirectory(external/assimp)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE assimp)
+target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE assimp)
 
 install(TARGETS ILEN_METAL_COMPILER DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_FILE_BINARIZATION DESTINATION executable/$<CONFIG>)

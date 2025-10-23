@@ -1,45 +1,59 @@
-#include <ilen/window/window.h>
-#include <ilen/headers/enumerations.h>
 
-#if defined (__APPLE__)
-#include <TargetConditionals.h>
+#if defined (__APPLE__) && ILEN_MACOS
 
-#if TARGET_OS_OSX
+#include "window/window-macos.h"
+
 #import <Cocoa/Cocoa.h>
 #import <MetalKit/MetalKit.h>
 
 using namespace ilen::window;
 using namespace ilen::enumerations;
 
-class WindowNativeMacOS;
-
-int GameWindow::s_width = 0;
-int GameWindow::s_height = 0;
-GameWindow::WindowNative* GameWindow::s_pNative = nullptr;
-
+//Implementación del AppDelegate
 @interface AppDelegate: NSObject<NSApplicationDelegate, NSWindowDelegate>
 @property (nonatomic, assign) WindowNativeMacOS* nativeWindow;
 @end
 
-class GameWindow::WindowNative {
-public:
-    virtual ~WindowNative() = default;
-    virtual void pollEvents() = 0;
-    virtual bool shouldClose() const = 0;
-    virtual void* getNativeWindow() const = 0;
-    virtual void* getNativeView() const = 0;
-};
+@implementation AppDelegate
+- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{
+    return YES;
+}
 
-class WindowNativeMacOS : public GameWindow::WindowNative {
-public:
-    NSWindow* nativeWindow = nil;
-    MTKView* nativeView = nil;
-    bool closeRequested = false;
-    AppDelegate* appDelegate = nil;
+- (void)windowWillClose:(NSNotification *)notification{
+    if(self.nativeWindow){
+        self.nativeWindow -> closeRequested = true;
+    }
+}
+
+
+- (NSApplicationTerminateReply)applicationShouldTerminate: (NSApplication *)sender {
+    if(self.nativeWindow){
+        self.nativeWindow -> closeRequested = true;
+    }
+    return NSTerminateCancel; //Le decimos a Cocoa que no mate el proceso, sino que nosotros lo terminamos con gracias sin crasheos.
+}
+@end
+
+namespace ilen::window {
+
+    std::unique_ptr<IWindow> IWindow::CreateWindow(const ilen::application::ApplicationMetadata& metadata){
+        s_width = metadata.startWidth;
+        s_height = metadata.startHeight;
+        
+        auto native = std::make_unique<WindowNativeMacOS>(metadata);
+        
+        return std::make_unique<IWindow>(std::move(native));
+    }
     
-    WindowNativeMacOS(int width, int height, const std::string& title, IlenWindowPropertiesFlags windowProperties){
+    WindowNativeMacOS::WindowNativeMacOS(const ilen::application::ApplicationMetadata& metadata) {
         @autoreleasepool {
             //Iniciar la app
+            
+            int width = metadata.startWidth;
+            int height = metadata.startHeight;
+            std::string title = metadata.applicationName;
+            IlenWindowPropertiesFlags windowProperties = metadata.windowPropertiesFlags;
+            
             [NSApplication sharedApplication];
             [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
             
@@ -88,14 +102,9 @@ public:
             [NSApp activateIgnoringOtherApps:YES];
         }
     }
-    
-    ~WindowNativeMacOS() override {
-        @autoreleasepool {
-            [nativeWindow close];
-        }
-    }
-    
-    void pollEvents() override {
+
+
+    void WindowNativeMacOS::pollEvents() {
         @autoreleasepool {
             NSEvent* event;
             while((event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate distantPast] inMode:NSDefaultRunLoopMode dequeue:YES])){
@@ -103,34 +112,30 @@ public:
             }
         }
     }
-    
-    bool shouldClose() const override {
+
+    bool WindowNativeMacOS::shouldClose() {
         return closeRequested;
     }
+
+    void* WindowNativeMacOS::getNativeWindow() const  { return nativeWindow; }
+    void* WindowNativeMacOS::getNativeView() const  { return nativeView; }
+}
+
+#endif
+
+/*
+class WindowNativeMacOS : public GameWindow::WindowNative {
+public:
+    NSWindow* nativeWindow = nil;
+    MTKView* nativeView = nil;
+    bool closeRequested = false;
+    AppDelegate* appDelegate = nil;
     
-    void* getNativeWindow() const override { return nativeWindow; }
-    void* getNativeView() const override { return nativeView; }
+    WindowNativeMacOS(int width, int height, const std::string& title, IlenWindowPropertiesFlags windowProperties){
+       
+    }
+
 };
-
-@implementation AppDelegate
-- (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{
-    return YES;
-}
-
-- (void)windowWillClose:(NSNotification *)notification{
-    if(self.nativeWindow){
-        self.nativeWindow -> closeRequested = true;
-    }
-}
-
-
-- (NSApplicationTerminateReply)applicationShouldTerminate: (NSApplication *)sender {
-    if(self.nativeWindow){
-        self.nativeWindow -> closeRequested = true;
-    }
-    return NSTerminateCancel; //Le decimos a Cocoa que no mate el proceso, sino que nosotros lo terminamos con gracias sin crasheos.
-}
-@end
 
 GameWindow::GameWindow(void* metadata){
     auto* meta = (ilen::application::ApplicationMetadata*)metadata;    
@@ -172,3 +177,5 @@ void* GameWindow::getSurface(){
 #endif //TARGET_OS_OSX
 
 #endif //__APPLE__
+*/
+

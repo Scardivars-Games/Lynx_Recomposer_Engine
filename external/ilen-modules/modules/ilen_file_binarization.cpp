@@ -74,10 +74,30 @@ ilen::job_system::JobSystem jobSystem;
 std::mutex fileWrite;
 
 
+namespace ilen::maths::vector {
+    // Le enseña a nlohmann/json cómo convertir un array JSON a un ilen::maths::vector
+    template<typename T, size_t N>
+    void from_json(const nlohmann::json& j, Vector<T, N>& v) {
+        if (j.is_array() && j.size() == N) {
+            for (size_t i = 0; i < N; ++i) {
+                j.at(i).get_to(v.data[i]);
+            }
+        }
+    }
+}
+
+template<typename T>
+void processScalarProperties(const nlohmann::json& jsonData, const std::string& key, std::unordered_map<std::string, ilen::graphics::MaterialProperty>& properties);
+
+template<typename VecType>
+void processVectorProperties(const nlohmann::json& jsonData, const std::string& key, std::unordered_map<std::string, ilen::graphics::MaterialProperty>& properties);
+
+
 int main(int argc, char* argv[]){
     std::filesystem::path folderPath;
 
     jobSystem.Initializate();
+    ilen::time::Time::Init();
 
     for(int i = 0; i < argc; i++){
         std::string arg = argv[i];
@@ -94,6 +114,8 @@ int main(int argc, char* argv[]){
     //Pasos para poder binarizar
     createAndOrganizeFiles(folderPath);
     binarizeFiles(folderPath);
+
+    jobSystem.StopJobSystem();
 
     return 0;
 }
@@ -230,9 +252,6 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
         }
     }
 
-    //TODO: Checkear porque parece que no siempre al volver a compilar actualiza las carpetas.
-    //assert(folderReorganized == false && "Se movieron varios assets a su carpeta correcta. Reinicie nuevamente la aplicación para que use las rutas correctas de archivos y se escriba un nuevo manifiesto.");
-
     if (folderReorganized == true)
     {
         createAndOrganizeFiles(ilenEngineFolder);
@@ -367,8 +386,8 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     std::unordered_map<uint32_t, ModelAsset> idToModelAsset;
     std::unordered_map<uint32_t, TextureAsset> idToTextureAsset;
     std::unordered_map<uint32_t, AudioAsset> idToAudioAsset;
-    std::unordered_map<uint32_t, ilen::graphics::IlenShader> idToShaderAsset;
-    std::unordered_map<uint32_t, ilen::graphics::IlenMaterial> idToMaterialAsset;
+    std::unordered_map<uint32_t, ShaderAsset> idToShaderAsset;
+    std::unordered_map<uint32_t, MaterialAsset> idToMaterialAsset;
 
     //2 - Procesar cada archivo y guardarlo.
     //Model loading
@@ -434,10 +453,15 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
 
         for (const auto& shaderData: manifestData[ILEN_ASSET_MANIFEST_SHADERS])
         {
+
+            const std::string ILEN_SHADER_FILE_NAME = "shader-file-name";
+            const std::string ILEN_SHADER_DIRECTORY = "shader-dir";
+            const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";
+
             std::string originalFilePath = shaderData[ILEN_ASSET_MANIFEST_ASSET_PATH];
 
             auto sourcePath = sourceAssetFolders / originalFilePath;
-            auto savePath = binaryDataFolder / std::filesystem::relative(engineSourceFolder / originalFilePath, engineSourceFolder / targetFolder);
+            auto savePath = binaryDataFolder / std::filesystem::relative(sourcePath, engineSourceFolder / "assets");
             //zsavePath.replace_extension(".b_ilenshader");
 
             auto path = std::filesystem::relative(savePath, binaryDataFolder);
@@ -445,7 +469,25 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             uint32_t id = shaderData[ILEN_ASSET_MANIFEST_ASSET_ID];
             std::string name = shaderData[ILEN_ASSET_MANIFEST_ASSET_NAME];
 
-            auto generatedShader = ilen::graphics::IlenShaderUtils::generateIlenShaderFromAsset(ShaderAsset(id, path));
+            std::ifstream shaderFile(sourcePath);
+            json shader;
+
+            if(shaderFile.is_open()){
+                try
+                {
+                    shader = json::parse(shaderFile);
+                }catch (json::parse_error& e)
+                {
+                    ILEN_ERROR_P(DEBUG_PREFIX, "Problemas al leer shader en ruta %s. Error: %s", sourcePath.c_str(), e.what());
+                }
+            }else{
+                ILEN_ERROR_P(DEBUG_PREFIX, "Tratando de leer shader en la ruta %s y no se encontró, o logro abrir", sourcePath.c_str());
+                //return ErrorShader; //Enviando shader predefinido de error
+            }
+
+            ilen::graphics::IlenShader generatedShader(shader[ILEN_SHADER_FILE_NAME], shader[ILEN_SHADER_DIRECTORY], shader[ILEN_SHADER_HUMAN_REDEABLE_NAME]);
+
+            //auto generatedShader = ilen::graphics::IlenShaderUtils::generateIlenShaderFromAsset(ShaderAsset(id, path));
 
             //Header del archivo binario
             ilen::binary::headers::IlenShaderHeader header{};
@@ -460,16 +502,111 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                 std::filesystem::create_directories(savePath.parent_path());
             }
 
+            savePath.replace_extension(".b_ilenshader");
+
             std::ofstream outFile(savePath,std::ios::binary);
             outFile.write(reinterpret_cast<const char*>(&header),sizeof(ilen::binary::headers::IlenShaderHeader));
-            outFile.write(reinterpret_cast<const char*>(&generatedShader), sizeof(ilen::graphics::IlenShader));
+            outFile.write(generatedShader.shaderFileName.c_str(), header.fileNameSize);
+            outFile.write(generatedShader.shaderRoute.c_str(), header.fileRouteSize);
+            outFile.write(generatedShader.shaderName.c_str(), header.shaderNameSize);
+            //outFile.write(reinterpret_cast<const char*>(&generatedShader), sizeof(ilen::graphics::IlenShader));
 
             friendlyNameToID[name] = id;
-            idToShaderAsset.emplace(id, generatedShader);
+            idToShaderAsset.emplace(id, ShaderAsset(id, std::filesystem::relative(savePath,shaderBinaryFolder)));
         }
     }
 
     //Material loading
+    if(manifestData.contains(ILEN_ASSET_MANIFEST_SHADERS)){
+        std::string targetFolder = "materials";
+        std::filesystem::path materialBinaryFolder = binaryDataFolder / targetFolder;
+        if (!std::filesystem::exists(materialBinaryFolder))
+        {
+            std::filesystem::create_directories(materialBinaryFolder);
+        }
+
+        for (const auto& materialData: manifestData[ILEN_ASSET_MANIFEST_MATERIALS])
+        {
+            const std::string ILEN_MATERIAL_NAME = "material-name";
+            const std::string ILEN_MATERIAL_VERTEX_SHADER_ID = "vertex-shader-id";
+            const std::string ILEN_MATERIAL_FRAGMENT_SHADER_ID = "fragment-shader-id";
+            const std::string ILEN_MATERIAL_VERTEX_SHADER_FUNCTION = "fragment-shader-function";
+            const std::string ILEN_MATERIAL_FRAGMENT_SHADER_FUNCTION = "vertex-shader-function";
+
+            //Keys for properties, to be added in the future
+            const std::string ILEN_MATERIAL_FLOAT_PROPERTY = "float-property";
+            const std::string ILEN_MATERIAL_INTEGER_PROPERTY = "int-property";
+            const std::string ILEN_MATERIAL_FLOAT2_PROPERTY = "float2-property";
+            const std::string ILEN_MATERIAL_FLOAT3_PROPERTY = "float3-property";
+            const std::string ILEN_MATERIAL_FLOAT4_PROPERTY = "float4-property";
+            const std::string ILEN_MATERIAL_TEXTURE_PROPERTY = "texture-property"; // Para texturas
+
+            std::string originalFilePath = materialData[ILEN_ASSET_MANIFEST_ASSET_PATH];
+
+            auto sourcePath = sourceAssetFolders / originalFilePath;
+            auto savePath = binaryDataFolder / std::filesystem::relative(sourcePath, engineSourceFolder / "assets");
+            //zsavePath.replace_extension(".b_ilenshader");
+
+            auto path = std::filesystem::relative(savePath, binaryDataFolder);
+
+            uint32_t id = materialData[ILEN_ASSET_MANIFEST_ASSET_ID];
+            std::string name = materialData[ILEN_ASSET_MANIFEST_ASSET_NAME];
+
+            std::ifstream materialFile(sourcePath);
+            json materialJson;
+
+            if(materialFile.is_open()){
+                try
+                {
+                    materialJson = json::parse(materialFile);
+                }catch (json::parse_error& e)
+                {
+                    ILEN_ERROR_P(DEBUG_PREFIX, "Problemas al leer shader en ruta %s. Error: %s", sourcePath.c_str(), e.what());
+                }
+            }else
+            {
+                ILEN_ERROR_P(DEBUG_PREFIX, "Tratando de leer shader en la ruta %s y no se encontró, o logro abrir", sourcePath.c_str());
+            }
+
+
+            ilen::graphics::IlenMaterial material;
+            material.materialName = materialJson.value(ILEN_MATERIAL_NAME, "Unnamed Material");
+            material.vertexShaderID = materialJson.value(ILEN_MATERIAL_VERTEX_SHADER_ID, 0);
+            material.fragmentShaderID = materialJson.value(ILEN_MATERIAL_FRAGMENT_SHADER_ID, 0);
+
+            // Corregí el typo en las constantes para que coincidan con el archivo de cabecera
+            material.vertexFunctionName = materialJson.value(ILEN_MATERIAL_VERTEX_SHADER_FUNCTION, "");
+            material.fragmentFunctionName = materialJson.value(ILEN_MATERIAL_FRAGMENT_SHADER_FUNCTION, "");
+
+            // Procesar todas las propiedades con la nueva lógica
+            processScalarProperties<float>(materialJson, ILEN_MATERIAL_FLOAT_PROPERTY, material.properties);
+            processScalarProperties<uint32_t>(materialJson, ILEN_MATERIAL_INTEGER_PROPERTY, material.properties);
+            processScalarProperties<uint32_t>(materialJson, ILEN_MATERIAL_TEXTURE_PROPERTY, material.properties); // Las texturas se guardan como ID (uint32_t)
+
+            processVectorProperties<ilen::maths::vector::vec2>(materialJson, ILEN_MATERIAL_FLOAT2_PROPERTY, material.properties);
+            processVectorProperties<ilen::maths::vector::vec3>(materialJson, ILEN_MATERIAL_FLOAT3_PROPERTY, material.properties);
+            processVectorProperties<ilen::maths::vector::vec4>(materialJson, ILEN_MATERIAL_FLOAT4_PROPERTY, material.properties);
+
+            //Save and binarize material file
+            ilen::binary::headers::IlenMaterialHeader header{};
+            header.version = 1;
+            strncpy(header.magicNumber, "LAIRETAM_NELI", sizeof(header.magicNumber) - 1);
+
+            if(!std::filesystem::exists(savePath.parent_path()))
+            {
+                std::filesystem::create_directories(savePath.parent_path());
+            }
+
+            savePath.replace_extension(".b_ilenmat");
+
+            std::ofstream outFile(savePath,std::ios::binary);
+            outFile.write(reinterpret_cast<const char*>(&header),sizeof(ilen::binary::headers::IlenMaterialHeader));
+            outFile.write(reinterpret_cast<const char*>(&material), sizeof(ilen::graphics::IlenMaterial));
+
+            friendlyNameToID[name] = id;
+            idToMaterialAsset.emplace(id, MaterialAsset(id, std::filesystem::relative(savePath, materialBinaryFolder)));
+        }
+    }
 
     //3 - Generar un manifiesto para los binarios.
     //No necesito un manifiesto en JSON, mejor volcar los mapas de memoria en un archivo, así no tenemos que volver a cargar y configurar estos, sino que sea solo una lectura.
@@ -487,6 +624,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     manifestHeader.totalOfModels = idToModelAsset.size();
     manifestHeader.totalOfTextures = idToTextureAsset.size();
     manifestHeader.totalOfShaders = idToShaderAsset.size();
+    manifestHeader.totalOfMaterials = idToMaterialAsset.size();
 
     std::ofstream binaryFile(manifiestPath, std::ios::binary);
     binaryFile.write(reinterpret_cast<const char*>(&manifestHeader), sizeof(ilen::binary::headers::IlenManifestHeader));
@@ -529,9 +667,22 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     {
         //Orden -> ID, SizeOfPath, Path
         uint32_t ID = pair.first;
-        ilen::graphics::IlenShader shader = pair.second;
-        auto shaderPath = shader.shaderRoute / shader.shaderName / ".b_ilenshader";
-        std::string path = shaderPath.string();
+        ShaderAsset shader = pair.second;
+        std::string path = shader.assetPath.string();
+        uint32_t pathSize = path.length();
+
+        binaryFile.write(reinterpret_cast<const char*>(&ID), sizeof(ID));
+        binaryFile.write(reinterpret_cast<const char*>(&pathSize), sizeof(pathSize));
+        binaryFile.write(path.c_str(),pathSize);
+    }
+    //Array ID to Material
+    for (auto& pair: idToMaterialAsset)
+    {
+        //Orden -> ID, SizeOfPath, Path
+        uint32_t ID = pair.first;
+        MaterialAsset material = pair.second;
+        //auto shaderPath = shader.shaderRoute / shader.shaderName / ".b_ilenshader";
+        std::string path = material.assetPath.string();
         uint32_t pathSize = path.length();
 
         binaryFile.write(reinterpret_cast<const char*>(&ID), sizeof(ID));
@@ -600,3 +751,34 @@ ilen::resources::mesh::MeshData loadModelData(std::filesystem::path modelPath){
 
         return meshData;
     }
+
+
+// Función auxiliar para procesar un objeto de propiedades escalares (float, int).
+template<typename T>
+void processScalarProperties(const nlohmann::json& jsonData, const std::string& key, std::unordered_map<std::string, ilen::graphics::MaterialProperty>& properties) {
+    if (jsonData.contains(key) && jsonData[key].is_object()) {
+        // Iteramos sobre cada par clave-valor del objeto JSON (ej. "u_Roughness": 0.5)
+        for (auto const& [propName, propValueJson] : jsonData[key].items()) {
+            if (propValueJson.is_number()) {
+                properties[propName] = propValueJson.get<T>();
+            }
+        }
+    }
+}
+
+// Función auxiliar para procesar un objeto de propiedades vectoriales (vec2, vec3, Color).
+template<typename VecType>
+void processVectorProperties(const nlohmann::json& jsonData, const std::string& key, std::unordered_map<std::string, ilen::graphics::MaterialProperty>& properties) {
+    if (jsonData.contains(key) && jsonData[key].is_object()) {
+        // Iteramos sobre cada par clave-valor del objeto JSON (ej. "_color": [1, 0, 0])
+        for (auto const& [propName, propValueJson] : jsonData[key].items()) {
+            if (propValueJson.is_array()) {
+                VecType vecValue;
+                // nlohmann::json puede deserializar un array JSON directamente
+                // a una estructura como vec3 o Color si los miembros coinciden.
+                propValueJson.get_to(vecValue);
+                properties[propName] = vecValue;
+            }
+        }
+    }
+}

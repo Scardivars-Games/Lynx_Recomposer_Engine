@@ -2,6 +2,8 @@
 
 #import <UIKit/UIKit.h>
 #include <ilen/core/lifetime.h>
+#include <ilen/headers/ilen-logs.h>
+#include <ilen/core/exceptions.h>
 
 @class SceneDelegate;
 
@@ -21,6 +23,7 @@
 @property (strong, nonatomic) UIWindow *window;
 @property (nonatomic, assign) ilen::AppRuntime* app;
 @property (nonatomic, strong) CADisplayLink *displayLink;
+@property (nonatomic, assign) BOOL engineFailed;
 
 @end
 
@@ -33,6 +36,7 @@
         return;
     }
     
+    _engineFailed = NO;
     self.app = &ilen::AppRuntime::getInstance();
     
     UIWindowScene *windowScene = (UIWindowScene *)scene;
@@ -43,25 +47,62 @@
     metadata.applicationDeveloper = "Scardivar's Games";
     metadata.applicationVersion = "0.0.1";
     metadata.iOSUIWindow = (__bridge void*)self.window;
-
     
-    self.app -> init(metadata);
+    try {
+        self.app -> init(metadata);
+    } catch (const ilen::core::BasicException& e) {
+        _engineFailed = YES;
+        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
+        [self stopApp];
+    }
+    
+    if(_engineFailed){
+        return;
+    }
     
     self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop)];
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
 }
 
 - (void)renderLoop {
-    if(self.app) {
-        self.app -> update();
+    if(_engineFailed || !self.app){
+        return;
+    }
+    
+    try{
+        if(self.app->isRunning()) {
+            self.app -> update();
+        }else{
+            [self stopApp];
+        }
+    }catch (const ilen::core::BasicException& e) {
+        _engineFailed = YES;
+        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
+        [self stopApp];
     }
 }
 
 - (void)sceneDidDisconnect:(UIScene *)scene{
-    if(self.app) {
-        delete self.app;
+    [self stopApp];
+}
+
+- (void)stopRenderLoop {
+    if(self.displayLink){
+        [self.displayLink invalidate];
+        self.displayLink = nullptr;
+    }
+}
+
+- (void)engineCleanup {
+    if(self.app){
+        self.app->shutdown();
         self.app = nullptr;
     }
+}
+
+- (void)stopApp{
+    [self stopRenderLoop];
+    [self engineCleanup];
 }
 
 @end
@@ -73,3 +114,4 @@ int main(int argc, char* argv[]) {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }
 }
+

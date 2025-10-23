@@ -1,6 +1,10 @@
 #pragma once
 #include <ilen/core/application.h>
 
+namespace ilen::application
+{
+    struct ApplicationMetadata;
+}
 
 namespace ilen::window{
     //Ilen solo soportará una ventana, no es un gestor de estas, esta clase genera una abstracción de alto nivel para las ventanas, comunicándose a bajo nivel con la API de ventanas del sistema.
@@ -8,14 +12,27 @@ namespace ilen::window{
     //macOS - Cocoa (Quartz Composer)
     //Linux - X11 (Wayland en el futuro)
     //iOS y Android, el sistema en específico de estas.
-    class GameWindow{
+
+    class WindowNative
+    {
+        public:
+            virtual ~WindowNative() = default;
+            virtual void pollEvents() = 0;
+            virtual bool shouldClose() = 0;
+            virtual void* getNativeWindow() const = 0;
+            virtual void* getNativeView() const = 0;
+    };
+
+    class IWindow{
         public:
             //Getters
             static int getWidth() {return s_width; }
             static int getHeight() { return s_height; }
 
             //Constructores
-            GameWindow(void* metadata); //ES UN PUNTERO A ilen::application::ApplicationMetadata
+            //GameWindow(void* metadata); //ES UN PUNTERO A ilen::application::ApplicationMetadata
+            //class WindowNative; //Esta clase es la que enlazará esta clase con la implementación del OS.
+            //Up is old engine architecture.
 
             void processEvents();
             bool shouldClose();
@@ -23,9 +40,13 @@ namespace ilen::window{
             void* getWindow();
             void* getSurface(); //View en Apple ecosystem.
 
-            class WindowNative; //Esta clase es la que enlazará esta clase con la implementación del OS.
+            static std::unique_ptr<IWindow> CreateWindow(const ilen::application::ApplicationMetadata& metadata);
+
+            IWindow(std::unique_ptr<WindowNative> nativeWindow);
+            ~IWindow();
         private:
+            std::unique_ptr<WindowNative> p_windowNative;
             static int s_width, s_height;
-            static WindowNative* s_pNative;
+            //static WindowNative* s_pNative;
     };
 }

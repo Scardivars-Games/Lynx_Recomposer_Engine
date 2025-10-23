@@ -3,6 +3,7 @@
 
 #include <ilen/job-system/job-system.h>
 #include <ilen/render/gpu-interfaces/buffers.h>
+#include <ilen/render/renderer.h>
 #include <ilen/resources/assets-manager.h>
 #include <ilen/core/filemanager.h>
 #include <ilen/core/lifetime.h>
@@ -17,6 +18,11 @@ namespace ilen::resources {
 
 namespace ilen {
     struct EngineContext;
+}
+
+namespace ilen::render
+{
+    class IRenderer;
 }
 
 namespace ilen::resources::mesh {
@@ -52,7 +58,7 @@ namespace ilen::resources::mesh {
 
             JobSystem* jobSystem;
             AssetsManager* assetsManager;
-            Renderer* renderer;
+            IRenderer* renderer;
 
             const char* DEBUG_PREFIX = "MESH_MANAGER";
     };
