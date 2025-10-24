@@ -32,5 +32,8 @@ namespace ilen::binary::headers {
     {
         char magicNumber[20]; //ILEN_MATERIAL -> LAIRETAM_NELI
         uint32_t version;
+        uint32_t materialNameSize;
+        uint32_t vertexFunctionSize;
+        uint32_t fragmentFunctionSize;
     };
 }

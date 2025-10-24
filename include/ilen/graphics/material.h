@@ -35,14 +35,29 @@ namespace ilen::graphics {
 
     struct IlenMaterial {
         std::string materialName;
-        uint32_t fragmentShaderID;
         uint32_t vertexShaderID;
+        uint32_t fragmentShaderID;
 
         std::string vertexFunctionName;
         std::string fragmentFunctionName;
         
         //Asigna a cada propiedad su valor correspondiente, siempre y cuando sea de algún tipo permitido.
         std::unordered_map<std::string, MaterialProperty> properties;
+
+        IlenMaterial(std::ifstream& stream, const ilen::binary::headers::IlenMaterialHeader& header) :
+            vertexShaderID(4), fragmentShaderID(4)
+        {
+            materialName.resize(header.materialNameSize);
+            vertexFunctionName.resize(header.vertexFunctionSize);
+            fragmentFunctionName.resize(header.fragmentFunctionSize);
+
+            stream.read(reinterpret_cast<char*>(vertexShaderID), sizeof(uint32_t));
+            stream.read(reinterpret_cast<char*>(fragmentShaderID), sizeof(uint32_t));
+
+            stream.read(materialName.data(), header.materialNameSize);
+            stream.read(vertexFunctionName.data(), header.vertexFunctionSize);
+            stream.read(fragmentFunctionName.data(), header.fragmentFunctionSize);
+        }
     };
 
     class IlenMaterialHelper {

@@ -591,6 +591,9 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             ilen::binary::headers::IlenMaterialHeader header{};
             header.version = 1;
             strncpy(header.magicNumber, "LAIRETAM_NELI", sizeof(header.magicNumber) - 1);
+            header.materialNameSize = material.materialName.size();
+            header.vertexFunctionSize = material.vertexFunctionName.size();
+            header.fragmentFunctionSize = material.fragmentFunctionName.size();
 
             if(!std::filesystem::exists(savePath.parent_path()))
             {
@@ -599,9 +602,16 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
 
             savePath.replace_extension(".b_ilenmat");
 
+
+            //Orden de escritura!!!
+            //Header -> Ints del material -> strings del material -> Properties (TODO)
             std::ofstream outFile(savePath,std::ios::binary);
             outFile.write(reinterpret_cast<const char*>(&header),sizeof(ilen::binary::headers::IlenMaterialHeader));
-            outFile.write(reinterpret_cast<const char*>(&material), sizeof(ilen::graphics::IlenMaterial));
+            outFile.write(reinterpret_cast<const char*>(&material.vertexShaderID), sizeof(uint32_t));
+            outFile.write(reinterpret_cast<const char*>(&material.fragmentShaderID), sizeof(uint32_t));
+            outFile.write(material.materialName.c_str(), header.materialNameSize);
+            outFile.write(material.vertexFunctionName.c_str(), header.vertexFunctionSize);
+            outFile.write(material.fragmentFunctionName.c_str(), header.fragmentFunctionSize);
 
             friendlyNameToID[name] = id;
             idToMaterialAsset.emplace(id, MaterialAsset(id, std::filesystem::relative(savePath, materialBinaryFolder)));
