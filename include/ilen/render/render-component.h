@@ -4,18 +4,18 @@
 #include <ilen/headers/ecs.h>
 #include <filesystem>
 #include <vector>
-#include <ilen/render/vertex-buffer.h>
-#include <future> 
+#include <future>
 #include <ilen/render/renderer.h>
 #include <ilen/resources/mesh-manager.h>
-
-namespace ilen::resources::mesh {
+#include <ilen/graphics/meshes.h>
+/*
+namespace ilen::graphics {
     struct MeshGPULink;
-}
+}*/
 
 namespace ilen::ecs::components {
     
-    using namespace ilen::resources::mesh;
+    using namespace ilen::graphics;
 
     struct RenderComponent {
         uint32_t meshID;
@@ -32,5 +32,14 @@ namespace ilen::ecs::components {
     struct VariableRenderingData {
         std::shared_ptr<render::IGPUBuffer> uniformBuffer;
         uint32_t drawIndex = 0; //Indices de dibujo para subirlo a la GPU.
+    };
+
+    struct StaticMaterialRenderingData {
+        StaticMaterialRenderingData() = default;
+        std::weak_ptr<render::IGPURenderPipeline> pso;
+    };
+
+    struct VisibilityComponent {
+        bool isVisible = true;
     };
 } 

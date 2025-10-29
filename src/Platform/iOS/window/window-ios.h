@@ -18,11 +18,16 @@ namespace ilen::window
             bool shouldClose() override;
             void* getNativeWindow() const override;
             void* getNativeView() const override;
+            bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) override;
         
             //Metodos públicos de la implementación
             UIWindow* nativeWindow = nullptr;
             MTKView* nativeView = nullptr;
             UIViewController* rootViewController = nullptr;
+            
+            std::atomic<bool> _windowChanged;
+            uint32_t actualWidth;
+            uint32_t actualHeight;
     };
 }
 

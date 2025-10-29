@@ -1,7 +1,8 @@
 {
     "material-name" : "Error",
     "fragment-shader-id" : 4,
-    "fragment-shader-function" : "basic_fragment",
+    "fragment-shader-function" : "error_fragment",
     "vertex-shader-id" : 4,
-    "vertex-shader-function" : "basic_vertex"
+    "vertex-shader-function" : "error_vertex",
+    "render-queue" : "Opaque"
 }

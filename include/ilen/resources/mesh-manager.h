@@ -2,15 +2,11 @@
 #pragma once
 
 #include <ilen/job-system/job-system.h>
-#include <ilen/render/gpu-interfaces/buffers.h>
 #include <ilen/render/renderer.h>
-#include <ilen/resources/assets-manager.h>
-#include <ilen/core/filemanager.h>
 #include <ilen/core/lifetime.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/graphics/meshes.h>
 #include <unordered_map>
 #include <future>
-#include <chrono>
 
 namespace ilen::resources {
     class AssetsManager;
@@ -30,19 +26,9 @@ namespace ilen::resources::mesh {
     using namespace ilen::job_system;
     using namespace ilen::render;
     using namespace ilen::core;
+    using namespace ilen::graphics;
 
     using MeshID = uint32_t; //Solamente para legebilidad. Sigue siendo un uint32_t como el resto de IDs que usa el motor.
-
-    //Indica que una entidad precisa de cargar sus datos a la VRAM. Debe eliminarse una vez se ha hecho la carga.
-    struct MeshData {
-        std::vector<ilen::render::buffers::VertexBufferData> vertexBufferData; //Array de los vertices del objeto a ser utilizados.
-        std::vector<uint32_t> indexBufferData;
-    };
-
-    struct MeshGPULink {
-        std::shared_ptr<render::IGPUBuffer> vertexBuffer;
-        std::shared_ptr<render::IGPUBuffer> indexBuffer;
-    };
 
     class MeshManager {
         public:

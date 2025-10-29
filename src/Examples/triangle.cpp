@@ -24,5 +24,5 @@ void Triangle::Init() {
 }
 
 void Triangle::Update(){
-    ILEN_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", ilen::time::Time::getDeltaTime());
+//    ILEN_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", ilen::time::Time::getDeltaTime());
 }

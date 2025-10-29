@@ -18,7 +18,7 @@ namespace ilen{
     }
 
     //Inicializa todo de la aplicación!!!
-    void AppRuntime::init(application::ApplicationMetadata metadata){
+    void AppRuntime::init(const application::ApplicationMetadata& metadata){
         engineContext = std::make_unique<EngineContext>();
 
         using namespace ilen::ecs;
@@ -58,6 +58,8 @@ namespace ilen{
         //Inicializar cada Resource Manager (se precisa del render para ciertas funciones con la GPU)
         engineContext->p_meshManager = std::make_unique<ilen::resources::mesh::MeshManager>(engineContext.get());
         engineContext->p_shaderManager = std::make_unique<ilen::resources::shaders::ShaderManager>(engineContext.get());
+        engineContext->p_materialManager = std::make_unique<ilen::resources::materials::MaterialManager>(engineContext.get());
+        engineContext->p_renderPipelineManager = std::make_unique<ilen::resources::render_pipeline::PipelineManager>(engineContext.get());
 
         //Registro sistemas.
         //Transform system (space properties of an object)
@@ -95,15 +97,14 @@ namespace ilen{
     }
 
     void AppRuntime::update(){
-
-        #if !ILEN_IOS
         engineContext->p_gameWindow->processEvents();
-        #endif
+
+        ILEN_LOG_P(DEBUG_PREFIX, "Window size, %i x %i", engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight());
 
         engineContext->p_scriptingSystem->update();
         engineContext ->p_scriptingSystem->lateUpdate();
 
-        engineContext-> p_renderSystem ->Update();
+        engineContext-> p_renderSystem -> Update();
 
         if(engineContext->p_gameRenderer){
             engineContext->p_gameRenderer->beginFrame();

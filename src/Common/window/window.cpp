@@ -2,8 +2,8 @@
 
 namespace ilen::window
 {
-    int IWindow::s_width = 0;
-    int IWindow::s_height = 0;
+    uint32_t IWindow::s_width = 0;
+    uint32_t IWindow::s_height = 0;
 
     //Creation is in platform specific window
 
@@ -19,6 +19,8 @@ namespace ilen::window
         if (p_windowNative)
         {
             p_windowNative->pollEvents();
+            //checkWindowResize(s_width, s_height);
+            p_windowNative->checkWindowResize(s_width, s_height);
         }
     }
 
@@ -48,4 +50,10 @@ namespace ilen::window
         }
         return nullptr;
     }
+
+   /* bool IWindow::checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) {
+        if (!p_windowNative) return false;
+
+    }*/
+
 }

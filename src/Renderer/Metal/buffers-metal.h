@@ -11,10 +11,9 @@ namespace ilen::render
         public:
             MetalBuffer(id<MTLBuffer> buffer, const IlenBufferDescriptor& descriptor);
 
-            virtual ~MetalBuffer();
+            ~MetalBuffer() override = default;
 
             const IlenBufferDescriptor& getDescriptor() const override;
-
             void* getNativeHandle() const override;
         private:
             __strong id<MTLBuffer> _buffer;

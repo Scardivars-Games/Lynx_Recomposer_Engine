@@ -12,11 +12,19 @@ namespace ilen::resources::shaders {
         //Precargar todos los shaders del motor para que esten disponibles al momento de crear este objeto.
         auto allShaders = p_assetsManager->getAllElementsOfType<ILEN_ASSET_TYPE_SHADER>();
 
+        std::vector<std::future<void>> futures;
+
         for (auto const& shaderMap : allShaders)
         {
-            auto shader = shaderMap.second;
+            std::future<void> future = p_jobSystem->SubmitJob([this, shaderMap](){
+                auto shader = shaderMap.second;
+                LoadShaderData(shader);
+            });
+            futures.push_back(std::move(future));
+        }
 
-            LoadShaderData(shader);
+        for (auto& future: futures) {
+            future.wait();
         }
     }
 
@@ -73,6 +81,8 @@ namespace ilen::resources::shaders {
         graphics::IlenShader engineDataShader(file, header);
 
         auto platformShader = p_renderer->createShader(engineDataShader);
+
+        std::lock_guard lock(m_mutex);
         m_shaderData.emplace(asset.assetID, std::move(platformShader));
         //shaderTest.emplace(asset.assetID, engineDataShader);
     }

@@ -16,6 +16,7 @@ namespace ilen::enumerations {
         ILEN_FILE_TYPE_ENGINE_SHADER,
         ILEN_FILE_TYPE_TEXTURE,
         ILEN_FILE_TYPE_MODEL,
+        ILEN_FILE_TYPE_MATERIAL,
         ILEN_FILE_TYPE_ASSETS_MANIFEST,
         ILEN_FILE_TYPE_NONE //Relativo a assets en este caso.
     };
@@ -39,5 +40,29 @@ namespace ilen::enumerations {
         ILEN_RENDER_GPU_BUFFER_VERTEX,
         ILEN_RENDER_GPU_BUFFER_INDEX,
         ILEN_RENDER_GPU_BUFFER_UNIFORM
+    };
+
+    enum class ILEN_VERTEX_LAYOUT_TYPE {
+        ILEN_VERTEX_LAYOUT_GLOBAL = 1,
+        ILEN_VERTEX_LAYOUT_BONED = 2,
+        ILEN_VERTEX_LAYOUT_PARTICLES = 3,
+        ILEN_VERTEX_LAYOUT_DEBUG = 4,
+        ILEN_VERTEX_LAYOUT_POST_PROCESS = 5,
+    };
+
+    //RenrerQueue de los Materiales (Usado para organizar las draw calls, y saber el estado a asignar en el PSO)}
+    enum class ILEN_GPU_RENDER_QUEUE_TYPE {
+        ILEN_GPU_RENDER_QUEUE_OPAQUE = 1000, //Objetos completamente opacos
+        ILEN_GPU_RENDER_QUEUE_ALPHA_TEST = 2000, //Objetos opacos, pero con agujeros
+        ILEN_GPU_RENDER_QUEUE_TRANSPARENT = 3000, //Objetos con cierto nivel de transparencia
+        ILEN_GPU_RENDER_QUEUE_OVERLAY = 4000, //UI, y elementos que se deban dibujar por encima de todo.
+    };
+
+    enum class ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE {
+        ILEN_GPU_VERTEX_BUFFER_FORMAT_INT,
+        ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT,
+        ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT2,
+        ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT3,
+        ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT4,
     };
 }

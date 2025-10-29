@@ -4,7 +4,10 @@
 #include <ilen/headers/core.h>
 #include <ilen/job-system/job-system.h>
 #include <ilen/resources/shaders-manager.h>
+#include <ilen/resources/materials-manager.h>
+#include <ilen/resources/render-pipeline-manager.h>
 #include <memory>
+
 
 namespace ilen::ecs::systems {
     class RenderSystem;
@@ -14,16 +17,20 @@ namespace ilen::ecs::systems {
 
 namespace ilen::resources {
     class AssetsManager;
+    namespace mesh {
+        class MeshManager;
+    }
+    namespace shaders {
+        class ShaderManager;
+    }
+    namespace materials {
+        class MaterialManager;
+    }
+    namespace render_pipeline {
+        class PipelineManager;
+    }
 }
 
-namespace ilen::resources::mesh {
-    class MeshManager;
-}
-
-namespace ilen::resources::shaders
-{
-    class ShaderManager;
-}
 
 namespace ilen {
     //Almacena todos los punteros necesarios para el funcionamiento correcto del motor. Se debe crear al lado de los metadatos del motor
@@ -32,9 +39,13 @@ namespace ilen {
         std::unique_ptr<window::IWindow> p_gameWindow;
         std::unique_ptr<render::IRenderer> p_gameRenderer;
         std::unique_ptr<ilen::ecs::ECSCoordinator> p_coordinator;
-        std::unique_ptr<ilen::resources::mesh::MeshManager> p_meshManager;
+
+        //Resources Managers
         std::unique_ptr<ilen::resources::AssetsManager> p_assetsManager;
+        std::unique_ptr<ilen::resources::mesh::MeshManager> p_meshManager;
         std::unique_ptr<ilen::resources::shaders::ShaderManager> p_shaderManager;
+        std::unique_ptr<ilen::resources::materials::MaterialManager> p_materialManager;
+        std::unique_ptr<ilen::resources::render_pipeline::PipelineManager> p_renderPipelineManager;
 
         //ECS Systems (shared ptrs)
         std::shared_ptr<ilen::ecs::systems::RenderSystem> p_renderSystem;
@@ -45,7 +56,7 @@ namespace ilen {
     class AppRuntime {
         public:
             static AppRuntime& getInstance();
-            void init(application::ApplicationMetadata metadata); //Inicia el motor
+            void init(const application::ApplicationMetadata &metadata); //Inicia el motor
             void update(); //Ejecuta el loop del motor
             void shutdown(); //Detiene el motor
             bool isRunning();

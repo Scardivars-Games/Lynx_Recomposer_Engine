@@ -21,13 +21,14 @@ namespace ilen::window{
             virtual bool shouldClose() = 0;
             virtual void* getNativeWindow() const = 0;
             virtual void* getNativeView() const = 0;
+            virtual bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) = 0;
     };
 
     class IWindow{
         public:
             //Getters
-            static int getWidth() {return s_width; }
-            static int getHeight() { return s_height; }
+            static uint32_t getWidth() {return s_width; }
+            static uint32_t getHeight() { return s_height; }
 
             //Constructores
             //GameWindow(void* metadata); //ES UN PUNTERO A ilen::application::ApplicationMetadata
@@ -42,11 +43,13 @@ namespace ilen::window{
 
             static std::unique_ptr<IWindow> CreateWindow(const ilen::application::ApplicationMetadata& metadata);
 
+            //bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight);
+
             IWindow(std::unique_ptr<WindowNative> nativeWindow);
             ~IWindow();
-        private:
+        protected:
             std::unique_ptr<WindowNative> p_windowNative;
-            static int s_width, s_height;
+            static uint32_t s_width, s_height;
             //static WindowNative* s_pNative;
     };
 }

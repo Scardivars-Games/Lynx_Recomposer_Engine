@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ilen/resources/assets-manager.h>
+#include <ilen/resources/materials-manager.h>
 #include <ilen/ecs/types.h>
 #include <ilen/headers/enumerations.h>
 #include <cstddef>
@@ -23,6 +24,8 @@ namespace ilen::resources {
 namespace ilen::ecs::systems {
 
     using namespace ilen::resources::mesh;
+    using namespace ilen::resources::render_pipeline;
+    using namespace ilen::resources::materials;
     using namespace ilen::ecs::components; 
     using namespace ilen::job_system;    
     using namespace ilen::core;    
@@ -30,48 +33,84 @@ namespace ilen::ecs::systems {
     class RenderSystem : public ilen::ecs::System {
         public:
             void Start(EngineContext* engineContext) {
-                m_jobSystemInstance = engineContext->p_jobSystem.get();
-                m_meshManager = engineContext->p_meshManager.get();
-                m_Coordinator = engineContext->p_coordinator.get();
+                p_jobSystemInstance = engineContext->p_jobSystem.get();
+                p_meshManager = engineContext->p_meshManager.get();
+                p_Coordinator = engineContext->p_coordinator.get();
+                p_renderPipelineManager = engineContext->p_renderPipelineManager.get();
+                p_materialManager = engineContext->p_materialManager.get();
             }
 
             void Update(){
-                m_meshManager->UpdateProcess();
+                p_meshManager->UpdateProcess();
                 // Este método se debe llamar en cada fotograma.
                 for(auto const& entity : entities){ 
-                    if(auto render = m_Coordinator->getComponent<RenderComponent>(entity); render != nullptr){
+                    if(auto render = p_Coordinator->getComponent<RenderComponent>(entity); render != nullptr){
                         //En este loops estamos trabajando con una entidad con rendering. Toda entidad que renderice tiene que tener sus datos en VRAM, sino, hay que asignarlos
-                        auto staticMeshData = m_Coordinator->getComponent<StaticRenderingData>(entity);
-                        
-                        if(staticMeshData == nullptr){
-                           //Solicitar la carga de estos datos
-                            auto solitudeResult = m_meshManager->getMeshHandlers(render->meshID);
+                        //Carga y obtención de Meshes
+                        HaveVisibilityDefined(*render, entity);
+                        CheckMeshStatus(*render, entity);
+                        CheckRenderPipelineStatus(*render, entity);
+                    }
+                }
+            }
 
-                            if(solitudeResult.lock() == nullptr){
-                                continue; //Salta a la siguiente entidad, esta no puede hacer nada.
-                            }else{  
-                                //Guardamos el puntero
-                                StaticRenderingData data{};
-                                data.staticBuffers = solitudeResult;
-                                m_Coordinator->addComponent(entity, std::move(data));
-                            }
-                        }else{
-                            auto pointer = staticMeshData->staticBuffers.lock();
-                            if(pointer == nullptr){
-                                //Ya no existe, borramos el componente
-                                m_Coordinator->removeComponent<StaticRenderingData>(entity);
-                                continue;
-                            }
-                            //Puntero es válido a datos de la GPU.
-                        }
+            void HaveVisibilityDefined(const RenderComponent& render, const Entity& entity) {
+                auto visibility = p_Coordinator->getComponent<VisibilityComponent>(entity);
+
+                if (visibility == nullptr) {
+                    p_Coordinator->addComponent(entity, VisibilityComponent{});
+                }
+            }
+
+            void CheckMeshStatus(const RenderComponent& render, const Entity& entity) const {
+                auto staticMeshData = p_Coordinator->getComponent<StaticRenderingData>(entity);
+
+                if(staticMeshData == nullptr){
+                    //Solicitar la carga de estos datos
+                    auto solitudeResult = p_meshManager->getMeshHandlers(render.meshID);
+
+                    if(solitudeResult.lock() != nullptr){
+                        StaticRenderingData data{};
+                        data.staticBuffers = solitudeResult;
+                        p_Coordinator->addComponent(entity, std::move(data));
+                    }
+                    //continue; //Salta a la siguiente entidad, esta no puede hacer nada.
+                    //No hace continue porque sino anularia para ese frame empezar la creación del PSO
+                }
+                //Lo muevo para que se compruebe al momento de renderizar (no tiene sentido un doble chequeo, mucho menos porque aqui no se manda a regenerar)
+                /*else{
+                    auto pointer = staticMeshData->staticBuffers.lock();
+                    if(pointer == nullptr){
+                        //Ya no existe, borramos el componente
+                        p_Coordinator->removeComponent<StaticRenderingData>(entity);
+                    }
+                    //Puntero es válido a datos de la GPU.
+                }*/
+            }
+
+            void CheckRenderPipelineStatus(const RenderComponent& render, const Entity& entity) const {
+                auto staticMaterialData = p_Coordinator->getComponent<StaticMaterialRenderingData>(entity);
+
+                if (staticMaterialData == nullptr) {
+                    auto material = p_materialManager->getMaterial(render.materialID);
+
+                    auto descriptor = IlenRenderPipelineDescriptor(material);
+
+                    auto psoSolicitude = p_renderPipelineManager->getRenderPipeline(descriptor);
+                    if (psoSolicitude.lock() != nullptr) {
+                        StaticMaterialRenderingData data{};
+                        data.pso = psoSolicitude;
+                        p_Coordinator->addComponent(entity, std::move(data));
                     }
                 }
             }
 
         private:
-            ilen::ecs::ECSCoordinator* m_Coordinator;
-            JobSystem* m_jobSystemInstance;   
-            MeshManager* m_meshManager;   
+            ECSCoordinator* p_Coordinator = nullptr;
+            JobSystem* p_jobSystemInstance = nullptr;
+            MeshManager* p_meshManager = nullptr;
+            PipelineManager* p_renderPipelineManager = nullptr;
+            MaterialManager* p_materialManager = nullptr;
             const char* DEBUG_PREFIX = "RENDER_SYSTEM";
     };
 }

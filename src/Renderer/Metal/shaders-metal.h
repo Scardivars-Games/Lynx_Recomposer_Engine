@@ -15,12 +15,12 @@ namespace  ilen::render {
     public:
         MetalShader(id<MTLLibrary> globalLibrary, ilen::graphics::IlenShader shaderRecipe);
 
-        virtual ~MetalShader() = default;
+        ~MetalShader() override;
 
         const ilen::graphics::IlenShader& getShaderMetadata() const override;
         const void* getNativeShaderFromFunctionName(std::string functionName) override;
     private:
-        std::unordered_map<std::string, id<MTLFunction>> _shaderFunctions;
+        std::unordered_map<std::string, void*> _shaderFunctions;
         id<MTLLibrary> _shaderLibrary;
         const char* DEBUG_PREFIX = "METAL_SHADER";
     };

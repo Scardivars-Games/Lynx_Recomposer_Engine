@@ -20,6 +20,7 @@ const std::string ILEN_MATERIAL_FLOAT3_PROPERTY = "float3-property";
 const std::string ILEN_MATERIAL_FLOAT4_PROPERTY = "float4-property";
 const std::string ILEN_MATERIAL_TEXTURE_PROPERTY = "texture-property"; // Para texturas
 
+/*
 namespace ilen::maths::vector {
     // Le enseña a nlohmann/json cómo convertir un array JSON a un ilen::maths::vector
     template<typename T, size_t N>
@@ -60,8 +61,8 @@ void processVectorProperties(const nlohmann::json& jsonData, const std::string& 
             }
         }
     }
-}
-
+}*/
+/*
 namespace ilen::graphics {
     IlenMaterial IlenMaterialHelper::generateIlenMaterialFromAsset(const ilen::resources::MaterialAsset& asset){
         using json = nlohmann::json;
@@ -74,7 +75,7 @@ namespace ilen::graphics {
             file >> data;
         } else {
             ILEN_ERROR_P(DEBUG_PREFIX, "No se pudo abrir el archivo de material en la ruta: %s", materialPath.c_str());
-            return {};
+            return IlenMaterial{};
         }
 
         IlenMaterial material;
@@ -97,4 +98,4 @@ namespace ilen::graphics {
 
         return material;
     }
-}
+}*/

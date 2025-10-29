@@ -9,27 +9,30 @@ std::filesystem::path getFilePath(ILEN_FILE_TYPE category){
     std::string resourceSpecificFolder;
     switch (category)
     {
-    case ILEN_FILE_TYPE_MODEL:
-        resourceSpecificFolder = "models";
-        break;
-    case ILEN_FILE_TYPE_NATIVE_SHADER:
-        resourceSpecificFolder = "shader-code";
-        break;
-    case ILEN_FILE_TYPE_TEXTURE:
-        resourceSpecificFolder = "textures";
-        break;
-    case ILEN_FILE_TYPE_ASSETS_MANIFEST:
-        resourceSpecificFolder = "manifests";
-        break;
-    case ILEN_FILE_TYPE_NONE:
-        resourceSpecificFolder = "";
-        break;
-    case ILEN_FILE_TYPE_ENGINE_SHADER:
-        resourceSpecificFolder = "shaders";
-        break;
-    default:
-        ILEN_EXECUTE_ERROR_P("FILE_MANAGER", "Dada una categoría desconocida");
-        break;
+        case ILEN_FILE_TYPE_MODEL:
+            resourceSpecificFolder = "models";
+            break;
+        case ILEN_FILE_TYPE_NATIVE_SHADER:
+            resourceSpecificFolder = "shader-code";
+            break;
+        case ILEN_FILE_TYPE_TEXTURE:
+            resourceSpecificFolder = "textures";
+            break;
+        case ILEN_FILE_TYPE_ASSETS_MANIFEST:
+            resourceSpecificFolder = "manifests";
+            break;
+        case ILEN_FILE_TYPE_NONE:
+            resourceSpecificFolder = "";
+            break;
+        case ILEN_FILE_TYPE_ENGINE_SHADER:
+            resourceSpecificFolder = "shaders";
+            break;
+        case ILEN_FILE_TYPE_MATERIAL:
+            resourceSpecificFolder = "materials";
+            break;
+        default:
+            ILEN_EXECUTE_ERROR_P("FILE_MANAGER", "Dada una categoría desconocida");
+            break;
     }
 
     return FileManager::getApplicationResourcesPath() / resourceSpecificFolder;

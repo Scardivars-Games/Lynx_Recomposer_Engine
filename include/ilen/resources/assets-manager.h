@@ -6,6 +6,7 @@
 #include <ilen/render/render-component.h>
 #include <ilen/headers/enumerations.h>
 #include <ilen/core/lifetime.h>
+#include <ilen/graphics/meshes.h>
 
 /*
 #if ILEN_DEBUG && ILEN_DESKTOP
@@ -24,10 +25,6 @@ namespace ilen::graphics {
     class IlenShaderUtils;
     struct IlenMaterial;
     class IlenMaterialHelper;
-}
-
-namespace ilen::resources::mesh {
-    struct MeshData;
 }
 
 //Administra una base de datos, en formato JSON, con cada objeto y elemento que administre el motor. Su comportamiento será el de un Singleton.
@@ -51,6 +48,7 @@ namespace ilen::resources {
 
     //ID de datos predefinidos
     static const uint32_t ErrorShaderID = 4;
+    static const uint32_t ErrorMaterialID = 3;
 
     class AssetsManager {
         public:
@@ -93,7 +91,13 @@ namespace ilen::resources {
                 } else if constexpr (std::is_same_v<T, MaterialAsset>) {
                     auto it = m_idToMaterialAsset.find(id);
                     if (it == m_idToMaterialAsset.end()){
-                        ILEN_EXECUTE_ERROR_P("ASSET_MANAGER", "Asset con id: %d no existente en el subgrupo de materiales.", id);
+                        ILEN_ERROR_P("ASSET_MANAGER", "Asset con id: %d no existente en el subgrupo de materials.", id);
+                        auto errorIT = m_idToMaterialAsset.find(ErrorMaterialID);
+                        if (errorIT == m_idToMaterialAsset.end())
+                        {
+                            ILEN_EXECUTE_ERROR_P("ASSET_MANAGER", "Error grave al cargar el shader de error por defecto, como fallback por material inválido. Reinstale el programa, y si el error persiste, póngase en contacto con soporte para buscar una solución");
+                        }
+                        return errorIT->second;
                     }
                     return it->second;
                 } else {

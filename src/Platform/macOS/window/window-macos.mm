@@ -32,6 +32,19 @@ using namespace ilen::enumerations;
     }
     return NSTerminateCancel; //Le decimos a Cocoa que no mate el proceso, sino que nosotros lo terminamos con gracias sin crasheos.
 }
+
+-(void)windowDidResize:(NSNotification *)notification{
+    if(self.nativeWindow && self.nativeWindow->nativeView){
+        MTKView* view = self.nativeWindow->nativeView;
+        
+        CGSize newPixelSize = view.drawableSize;
+        
+        self.nativeWindow->_newWidth = (uint32_t)newPixelSize.width;
+        self.nativeWindow->_newHeight = (uint32_t)newPixelSize.height;
+        
+        self.nativeWindow->_windowSizeChanged.store(true);
+    }
+}
 @end
 
 namespace ilen::window {
@@ -45,7 +58,7 @@ namespace ilen::window {
         return std::make_unique<IWindow>(std::move(native));
     }
     
-    WindowNativeMacOS::WindowNativeMacOS(const ilen::application::ApplicationMetadata& metadata) {
+    WindowNativeMacOS::WindowNativeMacOS(const ilen::application::ApplicationMetadata& metadata) : _windowSizeChanged(false) {
         @autoreleasepool {
             //Iniciar la app
             
@@ -96,6 +109,12 @@ namespace ilen::window {
             //Creación de la vista principal
             nativeView = [[MTKView alloc] initWithFrame:frame];
             [nativeWindow setContentView:nativeView];
+
+            CGSize newPixelSize = nativeView.drawableSize;
+            _newWidth = (uint32_t)newPixelSize.width;
+           _newHeight = (uint32_t)newPixelSize.height;
+
+            _windowSizeChanged.store(true);
             
             //Mostrar la ventana
             [nativeWindow makeKeyAndOrderFront:nil];
@@ -113,12 +132,24 @@ namespace ilen::window {
         }
     }
 
+    bool WindowNativeMacOS::checkWindowResize(uint32_t &outWidth, uint32_t &outHeight){
+        if(!_windowSizeChanged.load()){
+            return false;
+        }
+        
+        outWidth = _newWidth;
+        outHeight = _newHeight;
+        
+        _windowSizeChanged.store(false);
+        return true;
+    }
+
     bool WindowNativeMacOS::shouldClose() {
         return closeRequested;
     }
 
-    void* WindowNativeMacOS::getNativeWindow() const  { return nativeWindow; }
-    void* WindowNativeMacOS::getNativeView() const  { return nativeView; }
+    void* WindowNativeMacOS::getNativeWindow() const  { return (__bridge void*)nativeWindow; }
+    void* WindowNativeMacOS::getNativeView() const  { return (__bridge void*)nativeView; }
 }
 
 #endif

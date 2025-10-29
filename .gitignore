@@ -7,3 +7,4 @@ build-macOS
 .vscode
 .ilen-bin-data
 cmake-build-debug
+cmake-build-release

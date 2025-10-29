@@ -7,10 +7,6 @@
 namespace ilen::render {
     MetalBuffer::MetalBuffer(id<MTLBuffer> buffer, const IlenBufferDescriptor& descriptor) : _buffer(buffer), _descriptor(descriptor) {};
 
-    MetalBuffer::~MetalBuffer() {
-        _buffer = nil;
-    }
-
     const IlenBufferDescriptor& MetalBuffer::getDescriptor() const {
         return _descriptor;
     }

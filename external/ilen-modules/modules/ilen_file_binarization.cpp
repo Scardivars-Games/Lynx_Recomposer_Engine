@@ -4,7 +4,8 @@
 #include <fstream>
 #include <external/json/json.hpp>
 #include <ilen/headers/ilen-logs.h>
-#include <ilen/resources/mesh-manager.h>
+#include <ilen/headers/enumerations.h>
+#include <ilen/graphics/meshes.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -12,7 +13,9 @@
 #include <future>
 #include <mutex>
 
+#include "ilen/resources/assets-manager.h"
 
+using namespace ilen::enumerations;
 const char* DEBUG_PREFIX = "FILE_BINARIZATION";
 
 //CONSTANTE TIPOS TO AVOID TYPING ERRORS
@@ -25,6 +28,27 @@ const std::string ILEN_ASSET_MANIFEST_TEXTURES = "textures";
 const std::string ILEN_ASSET_MANIFEST_MATERIALS = "materials";
 const std::string ILEN_ASSET_MANIFEST_AUDIO = "audio";
 const std::string ILEN_ASSET_MANIFEST_SHADERS = "shaders";
+
+//CONSTANTES PARA SHADERS
+const std::string ILEN_SHADER_FILE_NAME = "shader-file-name";
+const std::string ILEN_SHADER_DIRECTORY = "shader-dir";
+const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";
+
+//CONSTANTES PARA MATERIALES
+const std::string ILEN_MATERIAL_NAME = "material-name";
+const std::string ILEN_MATERIAL_VERTEX_SHADER_ID = "vertex-shader-id";
+const std::string ILEN_MATERIAL_FRAGMENT_SHADER_ID = "fragment-shader-id";
+const std::string ILEN_MATERIAL_VERTEX_SHADER_FUNCTION = "vertex-shader-function";
+const std::string ILEN_MATERIAL_FRAGMENT_SHADER_FUNCTION = "fragment-shader-function";
+const std::string ILEN_MATERIAL_RENDER_QUEUE = "render-queue";
+
+//Keys for properties, to be added in the future
+const std::string ILEN_MATERIAL_FLOAT_PROPERTY = "float-property";
+const std::string ILEN_MATERIAL_INTEGER_PROPERTY = "int-property";
+const std::string ILEN_MATERIAL_FLOAT2_PROPERTY = "float2-property";
+const std::string ILEN_MATERIAL_FLOAT3_PROPERTY = "float3-property";
+const std::string ILEN_MATERIAL_FLOAT4_PROPERTY = "float4-property";
+const std::string ILEN_MATERIAL_TEXTURE_PROPERTY = "texture-property"; // Para texturas
 
 //Necesito una base de datos de extensiones soportadas y que tipo de asset es
 std::unordered_map<std::string, std::string> extensionToAssetType = {
@@ -60,6 +84,13 @@ std::unordered_map<std::string, std::string> folderToManifestAssetGroup = {
     {"materials", ILEN_ASSET_MANIFEST_MATERIALS},
 };
 
+static std::map<std::string, ILEN_GPU_RENDER_QUEUE_TYPE> stringToCorrectRenderQueue = {
+    {"Opaque", ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE},
+    {"AlphaTest", ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_ALPHA_TEST},
+    {"Transparent",ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_TRANSPARENT},
+    {"Overlay", ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OVERLAY},
+};
+
 const std::vector<std::string> ILEN_ASSET_MANIFEST_ASSETS_TYPES = { ILEN_ASSET_MANIFEST_MODEL, ILEN_ASSET_MANIFEST_TEXTURES, ILEN_ASSET_MANIFEST_AUDIO, ILEN_ASSET_MANIFEST_MATERIALS, ILEN_ASSET_MANIFEST_SHADERS };
 
 
@@ -68,7 +99,7 @@ using json = nlohmann::json;
 void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder);
 void binarizeFiles(std::filesystem::path ilenEngineFolder);
 std::string generateFriendlyName(const std::string& filename);
-ilen::resources::mesh::MeshData loadModelData(std::filesystem::path modelPath);
+ilen::graphics::MeshData loadModelData(std::filesystem::path modelPath);
 
 ilen::job_system::JobSystem jobSystem;
 std::mutex fileWrite;
@@ -405,7 +436,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             futures.push_back(
                 jobSystem.SubmitJob([=, &sourceAssetFolders, &engineSourceFolder, &binaryModelFolder, &idToModelAsset, &friendlyNameToID, &assetData]() {
                     auto modelPath = sourceAssetFolders / filePath;
-                    ilen::resources::mesh::MeshData toBinarize = loadModelData(modelPath);
+                    ilen::graphics::MeshData toBinarize = loadModelData(modelPath);
                     auto savePath = binaryModelFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / targetFolder);
                     savePath.replace_extension(".ilenmesh");
                     //Header del binario
@@ -453,10 +484,6 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
 
         for (const auto& shaderData: manifestData[ILEN_ASSET_MANIFEST_SHADERS])
         {
-
-            const std::string ILEN_SHADER_FILE_NAME = "shader-file-name";
-            const std::string ILEN_SHADER_DIRECTORY = "shader-dir";
-            const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";
 
             std::string originalFilePath = shaderData[ILEN_ASSET_MANIFEST_ASSET_PATH];
 
@@ -527,19 +554,6 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
 
         for (const auto& materialData: manifestData[ILEN_ASSET_MANIFEST_MATERIALS])
         {
-            const std::string ILEN_MATERIAL_NAME = "material-name";
-            const std::string ILEN_MATERIAL_VERTEX_SHADER_ID = "vertex-shader-id";
-            const std::string ILEN_MATERIAL_FRAGMENT_SHADER_ID = "fragment-shader-id";
-            const std::string ILEN_MATERIAL_VERTEX_SHADER_FUNCTION = "fragment-shader-function";
-            const std::string ILEN_MATERIAL_FRAGMENT_SHADER_FUNCTION = "vertex-shader-function";
-
-            //Keys for properties, to be added in the future
-            const std::string ILEN_MATERIAL_FLOAT_PROPERTY = "float-property";
-            const std::string ILEN_MATERIAL_INTEGER_PROPERTY = "int-property";
-            const std::string ILEN_MATERIAL_FLOAT2_PROPERTY = "float2-property";
-            const std::string ILEN_MATERIAL_FLOAT3_PROPERTY = "float3-property";
-            const std::string ILEN_MATERIAL_FLOAT4_PROPERTY = "float4-property";
-            const std::string ILEN_MATERIAL_TEXTURE_PROPERTY = "texture-property"; // Para texturas
 
             std::string originalFilePath = materialData[ILEN_ASSET_MANIFEST_ASSET_PATH];
 
@@ -578,6 +592,14 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             material.vertexFunctionName = materialJson.value(ILEN_MATERIAL_VERTEX_SHADER_FUNCTION, "");
             material.fragmentFunctionName = materialJson.value(ILEN_MATERIAL_FRAGMENT_SHADER_FUNCTION, "");
 
+            std::string renderQueueString = materialJson.value(ILEN_MATERIAL_RENDER_QUEUE, "Opaque");
+            auto it = stringToCorrectRenderQueue.find(renderQueueString);
+            if (it != stringToCorrectRenderQueue.end()) {
+                material.renderQueue = it->second;
+            }else {
+                material.renderQueue = ilen::enumerations::ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
+            }
+
             // Procesar todas las propiedades con la nueva lógica
             processScalarProperties<float>(materialJson, ILEN_MATERIAL_FLOAT_PROPERTY, material.properties);
             processScalarProperties<uint32_t>(materialJson, ILEN_MATERIAL_INTEGER_PROPERTY, material.properties);
@@ -604,11 +626,12 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
 
 
             //Orden de escritura!!!
-            //Header -> Ints del material -> strings del material -> Properties (TODO)
+            //Header -> Ints del material (incluye el RenderQueue) -> strings del material ->  Properties (TODO)
             std::ofstream outFile(savePath,std::ios::binary);
             outFile.write(reinterpret_cast<const char*>(&header),sizeof(ilen::binary::headers::IlenMaterialHeader));
             outFile.write(reinterpret_cast<const char*>(&material.vertexShaderID), sizeof(uint32_t));
             outFile.write(reinterpret_cast<const char*>(&material.fragmentShaderID), sizeof(uint32_t));
+            outFile.write(reinterpret_cast<const char *>(&material.renderQueue), sizeof(ILEN_GPU_RENDER_QUEUE_TYPE));
             outFile.write(material.materialName.c_str(), header.materialNameSize);
             outFile.write(material.vertexFunctionName.c_str(), header.vertexFunctionSize);
             outFile.write(material.fragmentFunctionName.c_str(), header.fragmentFunctionSize);
@@ -704,14 +727,14 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     ILEN_WARNING_P(DEBUG_PREFIX, "End of binarization: %.4f", ilen::time::Time::getTotalTime());
 }
 
-ilen::resources::mesh::MeshData loadModelData(std::filesystem::path modelPath){
+ilen::graphics::MeshData loadModelData(std::filesystem::path modelPath){
         //std::filesystem::path meshFilePath = core::FileManager::fileRoute(meshPath, ILEN_FILE_TYPE_NONE);
         Assimp::Importer importer;
 
         const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
         if(!scene || !scene->HasMeshes()){
             ILEN_WARNING_P(DEBUG_PREFIX, "El objeto en la ruta %s no contenía ningún dato del tipo Mesh o ocurrió un error. Favor de revisar la información del archivo. Error: %s", modelPath.string().c_str(), importer.GetErrorString());
-            return ilen::resources::mesh::MeshData{};
+            return ilen::graphics::MeshData{};
         }
 
         //De momento soporte a un mesh por archivo. A futuro se debe de cambiar.
@@ -755,7 +778,7 @@ ilen::resources::mesh::MeshData loadModelData(std::filesystem::path modelPath){
             }
         }
 
-        ilen::resources::mesh::MeshData meshData{};
+        ilen::graphics::MeshData meshData{};
         meshData.indexBufferData = indexData;
         meshData.vertexBufferData = vertexData;
 

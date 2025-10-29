@@ -49,6 +49,7 @@ namespace ilen::resources::shaders {
 
 
             std::unordered_map<ShaderID, std::shared_ptr<IShader>> m_shaderData;
+            std::mutex m_mutex;
 
             JobSystem* p_jobSystem;
             IRenderer* p_renderer;
