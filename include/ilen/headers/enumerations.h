@@ -52,10 +52,11 @@ namespace ilen::enumerations {
 
     //RenrerQueue de los Materiales (Usado para organizar las draw calls, y saber el estado a asignar en el PSO)}
     enum class ILEN_GPU_RENDER_QUEUE_TYPE {
-        ILEN_GPU_RENDER_QUEUE_OPAQUE = 1000, //Objetos completamente opacos
-        ILEN_GPU_RENDER_QUEUE_ALPHA_TEST = 2000, //Objetos opacos, pero con agujeros
-        ILEN_GPU_RENDER_QUEUE_TRANSPARENT = 3000, //Objetos con cierto nivel de transparencia
-        ILEN_GPU_RENDER_QUEUE_OVERLAY = 4000, //UI, y elementos que se deban dibujar por encima de todo.
+        ILEN_GPU_RENDER_QUEUE_OPAQUE = 50, //Objetos completamente opacos
+        ILEN_GPU_RENDER_QUEUE_ALPHA_TEST = 100, //Objetos opacos, pero con agujeros
+        ILEN_GPU_RENDER_QUEUE_TRANSPARENT = 200, //Objetos con cierto nivel de transparencia
+        ILEN_GPU_RENDER_QUEUE_OVERLAY = 255, //UI, y elementos que se deban dibujar por encima de todo.
+        //Esto se mapeara a un uint8_t por lo que el valor máximo es 255
     };
 
     enum class ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE {
@@ -64,5 +65,10 @@ namespace ilen::enumerations {
         ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT2,
         ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT3,
         ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT4,
+    };
+
+    enum class ILEN_CAMERA_PROJECTION_TYPE {
+        ILEN_CAMERA_PROJECTION_PERSPECTIVE,
+        ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC,
     };
 }

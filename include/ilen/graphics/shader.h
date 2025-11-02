@@ -4,15 +4,16 @@
 #include <filesystem>
 #include <ilen/headers/enumerations.h>
 #include <external/json/json.hpp>
-#include <ilen/resources/assets-manager.h>
+//#include <ilen/resources/assets-manager.h>
 #include <ilen/resources/binary_headers.h>
+#include <ilen/resources/assets-elements.h>
 
 
 /*namespace ilen::binary::headers
 {
     struct IlenShaderHeader;
 }*/
-
+/*
 namespace ilen::resources {
     using namespace ilen::enumerations;
 
@@ -20,7 +21,7 @@ namespace ilen::resources {
     struct AssetElement;
     
     using ShaderAsset = AssetElement<ILEN_ASSET_TYPE_SHADER>; // El 4 corresponde a ILEN_ASSET_TYPE_SHADER
-}
+}*/
 
 
 namespace ilen::graphics {

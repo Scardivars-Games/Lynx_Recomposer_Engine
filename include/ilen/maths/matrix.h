@@ -28,7 +28,7 @@ namespace ilen::maths::matrix{
     //Define una Matrix con tamaño Rows(Filas) y Cols(Columnas)
     //Esta se llena con elemento del tipo genérico T (int, float, double, etc)
     template<typename T, size_t Rows, size_t Cols>
-    struct Matrix{
+    struct alignas(16) Matrix{
         //Debido a que este módulo es para gráficos, se usaran matrices column-major, o sea, cada vector contendrá los datos de una columna.
         //Solo en caso de DirectX se usará row-major.
 
@@ -228,6 +228,21 @@ namespace ilen::maths::matrix{
         return projectionMatrix;
     }
 
+    template<typename T>
+    Matrix<T, 4, 4> orthographic(T left, T right, T bottom, T top, T nearPlane, T farPlane) {
+        Matrix<T, 4, 4> projection(static_cast<T>(0.0));
+
+        projection[0][0] = static_cast<T>(2.0) / (right - left);
+        projection[1][1] = static_cast<T>(2.0) / (top - bottom);
+        projection[2][2] = static_cast<T>(-2.0) / (farPlane - nearPlane); //Ojo: En directX posiblemente deba usarse -1
+        projection[3][0] = -(right + left) / (right - left);
+        projection[3][1] = -(top + bottom) / (top - bottom);
+        projection[3][2] = -(farPlane + nearPlane) / (farPlane - nearPlane);
+        projection[3][3] = static_cast<T>(1.0);
+
+        return projection;
+    }
+
     // Transponer matrix (Row-major -> Column-major)
     template<typename T, size_t Rows, size_t Cols>
     Matrix<T, Cols, Rows> transposeRowToColumn(const Matrix<T, Rows, Cols>& rowMajorMatrix) {
@@ -256,7 +271,80 @@ namespace ilen::maths::matrix{
         return transposedMatrix;
     }
 
+    //Calculo del determinante de una matriz
+    template<typename T>
+    T determinant(const Matrix<T, 4, 4>& matrix) {
+        T cofactor00 = matrix[2][2] * matrix[3][3] - matrix[3][2] * matrix[2][3];
+        T cofactor01 = matrix[2][1] * matrix[3][3] - matrix[3][1] * matrix[2][3];
+        T cofactor02 = matrix[2][1] * matrix[3][2] - matrix[3][1] * matrix[2][2];
+        T cofactor03 = matrix[2][0] * matrix[3][3] - matrix[3][0] * matrix[2][3];
+        T cofactor04 = matrix[2][0] * matrix[3][2] - matrix[3][0] * matrix[2][2];
+        T cofactor05 = matrix[2][0] * matrix[3][1] - matrix[3][0] * matrix[2][1];
 
+        T det = matrix[0][0] * (matrix[1][1] * cofactor00 - matrix[1][2] * cofactor01 + matrix[1][3] * cofactor02) -
+                matrix[0][1] * (matrix[1][0] * cofactor00 - matrix[1][2] * cofactor03 + matrix[1][3] * cofactor04) +
+                matrix[0][2] * (matrix[1][0] * cofactor01 - matrix[1][1] * cofactor03 + matrix[1][3] * cofactor05) -
+                matrix[0][3] * (matrix[1][0] * cofactor02 - matrix[1][1] * cofactor04 + matrix[1][2] * cofactor05);
+
+        return det;
+    }
+
+    template<typename T>
+    Matrix <T, 4, 4> inverse (const Matrix<T, 4, 4>& m) {
+        // Implementación de la matriz adjunta (¡column-major!)
+        T cof00 = m[2][2] * m[3][3] - m[3][2] * m[2][3];
+        T cof01 = m[2][1] * m[3][3] - m[3][1] * m[2][3];
+        T cof02 = m[2][1] * m[3][2] - m[3][1] * m[2][2];
+        T cof03 = m[2][0] * m[3][3] - m[3][0] * m[2][3];
+        T cof04 = m[2][0] * m[3][2] - m[3][0] * m[2][2];
+        T cof05 = m[2][0] * m[3][1] - m[3][0] * m[2][1];
+        T cof06 = m[1][2] * m[3][3] - m[3][2] * m[1][3];
+        T cof07 = m[1][1] * m[3][3] - m[3][1] * m[1][3];
+        T cof08 = m[1][1] * m[3][2] - m[3][1] * m[1][2];
+        T cof09 = m[1][0] * m[3][3] - m[3][0] * m[1][3];
+        T cof10 = m[1][0] * m[3][2] - m[3][0] * m[1][2];
+        T cof11 = m[1][0] * m[3][1] - m[3][0] * m[1][1];
+        T cof12 = m[1][2] * m[2][3] - m[2][2] * m[1][3];
+        T cof13 = m[1][1] * m[2][3] - m[2][1] * m[1][3];
+        T cof14 = m[1][1] * m[2][2] - m[2][1] * m[1][2];
+        T cof15 = m[1][0] * m[2][3] - m[2][0] * m[1][3];
+        T cof16 = m[1][0] * m[2][2] - m[2][0] * m[1][2];
+        T cof17 = m[1][0] * m[2][1] - m[2][0] * m[1][1];
+
+        Matrix<T, 4, 4> adj;
+        adj[0][0] =  (m[1][1] * cof00 - m[1][2] * cof01 + m[1][3] * cof02);
+        adj[0][1] = -(m[0][1] * cof00 - m[0][2] * cof01 + m[0][3] * cof02);
+        adj[0][2] =  (m[0][1] * cof06 - m[0][2] * cof07 + m[0][3] * cof08);
+        adj[0][3] = -(m[0][1] * cof12 - m[0][2] * cof13 + m[0][3] * cof14);
+        adj[1][0] = -(m[1][0] * cof00 - m[1][2] * cof03 + m[1][3] * cof04);
+        adj[1][1] =  (m[0][0] * cof00 - m[0][2] * cof03 + m[0][3] * cof04);
+        adj[1][2] = -(m[0][0] * cof06 - m[0][2] * cof09 + m[0][3] * cof10);
+        adj[1][3] =  (m[0][0] * cof12 - m[0][2] * cof15 + m[0][3] * cof16);
+        adj[2][0] =  (m[1][0] * cof01 - m[1][1] * cof03 + m[1][3] * cof05);
+        adj[2][1] = -(m[0][0] * cof01 - m[0][1] * cof03 + m[0][3] * cof05);
+        adj[2][2] =  (m[0][0] * cof07 - m[0][1] * cof09 + m[0][3] * cof11);
+        adj[2][3] = -(m[0][0] * cof13 - m[0][1] * cof15 + m[0][3] * cof17);
+        adj[3][0] = -(m[1][0] * cof02 - m[1][1] * cof04 + m[1][2] * cof05);
+        adj[3][1] =  (m[0][0] * cof02 - m[0][1] * cof04 + m[0][2] * cof05);
+        adj[3][2] = -(m[0][0] * cof08 - m[0][1] * cof10 + m[0][2] * cof11);
+        adj[3][3] =  (m[0][0] * cof14 - m[0][1] * cof16 + m[0][2] * cof17);
+
+        T det = m[0][0] * adj[0][0] + m[0][1] * adj[1][0] + m[0][2] * adj[2][0] + m[0][3] * adj[3][0];
+
+        // Evitar división por cero
+        if (std::abs(det) < static_cast<T>(1e-6)) {
+            // Retornar identidad o manejar el error
+            return Matrix<T, 4, 4>::identity();
+        }
+
+        T invDet = static_cast<T>(1.0) / det;
+        for (size_t c = 0; c < 4; ++c) {
+            for (size_t r = 0; r < 4; ++r) {
+                adj[c][r] = adj[c][r] * invDet;
+            }
+        }
+        return adj;
+    }
 
     //Definiciones de matrices
     using mat4 = Matrix<float, 4, 4>;

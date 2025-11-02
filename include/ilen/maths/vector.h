@@ -17,12 +17,12 @@ using float32_t = std::float32_t;
 
 namespace ilen::maths::vector{
     template<typename T, size_t N>
-    struct Vector{
+    struct alignas(16) Vector{
         T data[N];
     };
 
     template<typename T>
-    struct Vector <T, 2>{
+    struct alignas(16) Vector <T, 2>{
         union{
             T data[2];
             struct {T x, y; };
@@ -31,8 +31,8 @@ namespace ilen::maths::vector{
 
         //Constructor
         Vector() = default;
-        Vector(T scalar) : x(scalar), y(scalar) {};
-        Vector(T x, T y) : x(x), y(y) {};
+        explicit Vector(T scalar) : x(scalar), y(scalar) {};
+        explicit Vector(T x, T y) : x(x), y(y) {};
 
         T& operator[](size_t index) { return data[index]; }
         const T& operator[](size_t index) const { return data[index]; }
@@ -44,7 +44,7 @@ namespace ilen::maths::vector{
 
     //Vector3
     template<typename T>
-    struct Vector <T, 3>{
+    struct alignas(16) Vector <T, 3>{
         union{
             T data[3];
             struct {T x, y, z; };
@@ -53,9 +53,9 @@ namespace ilen::maths::vector{
 
         //Constructor
         Vector() = default;
-        Vector(T scalar) : x(scalar), y(scalar), z(scalar) {};
-        Vector(T x, T y, T z) : x(x), y(y), z(z) {};
-        Vector(const Vector<T, 2>& vec2, T z = 0) : x(vec2.x), y(vec2.y), z(z) {};
+        explicit Vector(T scalar) : x(scalar), y(scalar), z(scalar) {};
+        explicit Vector(T x, T y, T z) : x(x), y(y), z(z) {};
+        explicit Vector(const Vector<T, 2>& vec2, T z = 0) : x(vec2.x), y(vec2.y), z(z) {};
 
         static Vector<T, 3> up(){
             return Vector<T, 3>(T(0), T(1), T(0));
@@ -86,7 +86,7 @@ namespace ilen::maths::vector{
 
     //Vector4
     template<typename T>
-    struct Vector <T, 4>{
+    struct alignas(16) Vector <T, 4>{
         union{
             T data[4];
             struct {T x, y, z, w; };
@@ -95,10 +95,10 @@ namespace ilen::maths::vector{
 
         //Constructor
         Vector() = default;
-        Vector(T scalar) : x(scalar), y(scalar), z(scalar), w(scalar) {};
-        Vector(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {};
-        Vector(const Vector<T, 2>& vec2, T z = 0, T w = 0) : x(vec2.x), y(vec2.y), z(z), w(w) {};
-        Vector(const Vector<T, 3>& vec3, T w = 0) : x(vec3.x), y(vec3.y), z(vec3.z), w(w) {};
+        explicit Vector(T scalar) : x(scalar), y(scalar), z(scalar), w(scalar) {};
+        explicit Vector(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {};
+        explicit Vector(const Vector<T, 2>& vec2, T z = 0, T w = 0) : x(vec2.x), y(vec2.y), z(z), w(w) {};
+        explicit Vector(const Vector<T, 3>& vec3, T w = 0) : x(vec3.x), y(vec3.y), z(vec3.z), w(w) {};
 
         T& operator[](size_t index) { return data[index]; }
         const T& operator[](size_t index) const { return data[index]; }

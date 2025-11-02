@@ -84,11 +84,23 @@ namespace ilen::resources::mesh {
                 //Obtenemos la promesa futura y almacenamos en la estructura correspondiente.
                 MeshGPULink link = future.get();
                 m_meshBufferData[id] = std::make_shared<MeshGPULink>(std::move(link));
+                m_meshRuntime.emplace(id, m_nextRuntimeID);
+                m_nextRuntimeID++;
 
                 it = m_meshLoadingData.erase(it); //Elimino el iterador actual, y registro el próximo disponible.
             }else{
                 ++it;
             }
         }
+    }
+
+    uint16_t MeshManager::getMeshRuntimeID(MeshID id) const {
+        std::lock_guard lock(m_mutex);
+        auto it = m_meshRuntime.find(id);
+        if(it != m_meshRuntime.end()) {
+            return it->second;
+        }
+
+        return 0;
     }
 }

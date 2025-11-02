@@ -6,14 +6,18 @@
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/headers/enumerations.h>
 #include <ilen/graphics/meshes.h>
+#include <ilen/resources/binary_headers.h>
+#include <ilen/resources/assets-elements.h>
+#include <ilen/graphics/material.h>
+#include <ilen/graphics/shader.h>
+#include <ilen/core/time.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <ilen/job-system/job-system.h>
+#include <set>
 #include <future>
 #include <mutex>
-
-#include "ilen/resources/assets-manager.h"
 
 using namespace ilen::enumerations;
 const char* DEBUG_PREFIX = "FILE_BINARIZATION";

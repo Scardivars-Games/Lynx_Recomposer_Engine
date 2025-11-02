@@ -80,35 +80,7 @@ namespace ilen::render {
         
     std::shared_ptr<IGPUBuffer> MetalRender::createBuffer(const IlenBufferDescriptor& descriptor, const void* data) {
         //Vamos a crear primero un stagging buffer y luego crear el buffer real que manejara la app
-        @autoreleasepool {
-            id<MTLBuffer> buffer;
-            
-            if(data == nullptr){
-                //Si no hay datos al momento de crear significa que se poblara a futuro en la app. Lo mejor en este caso es que comparta la misma memoria que la CPU.
-                buffer = [_device newBufferWithLength:descriptor.bufferSize options: MTLResourceStorageModeShared];
-            }else{
-                id<MTLBuffer> staggingBuffer = [_device newBufferWithBytes:data length:descriptor.bufferSize options: MTLResourceStorageModeShared];
-                staggingBuffer.label = @"Stagging Buffer";
-                
-                buffer = [_device newBufferWithLength:descriptor.bufferSize options:MTLResourceStorageModePrivate];
-                buffer.label = [NSString stringWithUTF8String: descriptor.bufferLabelName.c_str()];
-                
-                id<MTLCommandBuffer> blitCommandBuffer = [_commandQueue commandBuffer];
-                blitCommandBuffer.label = @"Blit Command Buffer";
-                
-                id<MTLBlitCommandEncoder> blitCommandEncoder = [blitCommandBuffer blitCommandEncoder];
-                blitCommandEncoder.label = @"Blit Command Encoder";
-                
-                [blitCommandEncoder copyFromBuffer:staggingBuffer sourceOffset:0 toBuffer:buffer destinationOffset:0 size:descriptor.bufferSize];
-                [blitCommandEncoder endEncoding];
-                
-                [blitCommandBuffer commit];               
-                
-                 //buffer = [_device newBufferWithBytes:data length:descriptor.bufferSize options: MTLResourceStorageModePrivate];
-            }
-            
-            return std::make_shared<MetalBuffer>(buffer, descriptor);
-        }
+        return std::make_shared<MetalBuffer>(_device, descriptor, data, _commandQueue);
     }
 
     std::shared_ptr<IShader> MetalRender::createShader(const ilen::graphics::IlenShader& shaderDescriptor){

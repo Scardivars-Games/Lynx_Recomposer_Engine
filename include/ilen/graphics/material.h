@@ -1,12 +1,8 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
 #include <ilen/headers/enumerations.h>
 #include <fstream>
-//#include <ilen/core/filemanager.h>
-//#include <external/json/json.hpp>
-//#include <ilen/resources/assets-manager.h>
 #include <ilen/maths/vector.h>
 #include <ilen/graphics/color.h>
 #include <unordered_map>

@@ -49,9 +49,12 @@ namespace ilen::resources::materials {
 
         std::lock_guard lock(m_mutex);
         m_materials.emplace(asset.assetID, material);
+        m_materialsRuntime.emplace(asset.assetID, m_nextRuntimeID);
+        m_nextRuntimeID++;
     }
 
     const IlenMaterial& MaterialManager::getMaterial(MaterialID id) {
+        std::lock_guard lock(m_mutex);
         auto it  = m_materials.find(id);
 
         if (it != m_materials.end()) {
@@ -62,6 +65,11 @@ namespace ilen::resources::materials {
         auto asset = p_assetsManager->getAssetElement<MaterialAsset>(id);
         if (asset.assetID == ErrorMaterialID) {
             auto errorMat = m_materials.find(ErrorMaterialID);
+            if (errorMat == m_materials.end()) {
+                ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "FATAL ERROR! Error during a material loading, and the predefined error material was not available. Please, reinstall the app.");
+                //End of APP execution
+            }
+
             return errorMat->second;
         }
 
@@ -70,4 +78,13 @@ namespace ilen::resources::materials {
         return finalSearch->second;
     }
 
+    uint16_t MaterialManager::getRuntimeMaterial(MaterialID id) const {
+        std::lock_guard lock(m_mutex);
+        auto it = m_materialsRuntime.find(id);
+        if (it != m_materialsRuntime.end()) {
+            return it->second;
+        }
+
+        return 0; //Fallback value, no impide el renderizado, pero hace que ese material pierda eficiencia
+    }
 }

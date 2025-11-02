@@ -8,6 +8,7 @@
 
 namespace ilen::render {
     std::map<VertexBufferLayout, void*> MetalRenderPipeline::m_vertexBufferDescriptors;
+    std::mutex MetalRenderPipeline::_psoMutex;
 
     MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, MTKView* view) : _pso(nil) {
         @autoreleasepool {
@@ -44,15 +45,19 @@ namespace ilen::render {
                     layout = ILEN_GLOBAL_VERTEX_LAYOUT;
                     break;
             }
-            
+
+
             void* cachedVertexDescriptor = nullptr;
-            auto it = m_vertexBufferDescriptors.find(layout);
-            
-            if(it != m_vertexBufferDescriptors.end()){
-                cachedVertexDescriptor = it->second;
-            }else{
-                cachedVertexDescriptor = generateVertexDescriptor(layout);
-                m_vertexBufferDescriptors.emplace(layout, cachedVertexDescriptor);
+            {
+                 std::lock_guard lock(_psoMutex);
+                auto it = m_vertexBufferDescriptors.find(layout);
+
+                if(it != m_vertexBufferDescriptors.end()){
+                    cachedVertexDescriptor = it->second;
+                }else{
+                    cachedVertexDescriptor = generateVertexDescriptor(layout);
+                    m_vertexBufferDescriptors.emplace(layout, cachedVertexDescriptor);
+                }
             }
             
             pipelineDescriptor.vertexDescriptor = (__bridge MTLVertexDescriptor*)cachedVertexDescriptor;
@@ -84,6 +89,9 @@ namespace ilen::render {
             pipelineDescriptor.stencilAttachmentPixelFormat = view.depthStencilPixelFormat;
             
             NSError* error = nil;
+            
+            m_renderQueue = descriptor.renderQueue;
+            
             _pso = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
             
             [pipelineDescriptor release];
@@ -103,7 +111,7 @@ namespace ilen::render {
         return (__bridge void*)_pso;
     }
 
-    void* MetalRenderPipeline::generateVertexDescriptor(VertexBufferLayout layout) const {
+    void* IGPURenderPipeline::generateVertexDescriptor(VertexBufferLayout layout) {
         @autoreleasepool {
             MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor vertexDescriptor];
             vertexDescriptor.layouts[0].stride = layout.stride;
@@ -111,11 +119,11 @@ namespace ilen::render {
             size_t advancedMemory = 0;
             for(int i = 0; i < layout.attributes.size(); i++){
                 auto actualAttribute = layout.attributes[i];
-                MTLVertexFormat mtlFormat = getMTLFormat(actualAttribute);
-                size_t formatSize = getFormatSize(actualAttribute);
+                MTLVertexFormat mtlFormat = MetalRenderPipeline::getMTLFormat(actualAttribute);
+                size_t formatSize = MetalRenderPipeline::getFormatSize(actualAttribute);
                 
                 if(mtlFormat == MTLVertexFormatInvalid){
-                    ILEN_ERROR_P(DEBUG_PREFIX, "El atributo con índice %i no es válido para el layout dado.", i);
+                    ILEN_ERROR_P(MetalRenderPipeline::DEBUG_PREFIX, "El atributo con índice %i no es válido para el layout dado.", i);
                     continue;
                 }
                 

@@ -4,12 +4,14 @@
 #include <ilen/render/gpu-interfaces/buffers.h>
 
 @protocol MTLBuffer;
+@protocol MTLCommandQueue;
+@protocol MTLDevice;
 
 namespace ilen::render
 {
     class MetalBuffer : public IGPUBuffer {
         public:
-            MetalBuffer(id<MTLBuffer> buffer, const IlenBufferDescriptor& descriptor);
+            MetalBuffer(id<MTLDevice> device, const IlenBufferDescriptor& descriptor, const void* data, id<MTLCommandQueue> commandQueue);
 
             ~MetalBuffer() override = default;
 

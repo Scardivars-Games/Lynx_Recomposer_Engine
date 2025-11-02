@@ -6,6 +6,7 @@
 #include <ilen/resources/shaders-manager.h>
 #include <ilen/resources/materials-manager.h>
 #include <ilen/resources/render-pipeline-manager.h>
+#include <ilen/camera/camera-system.h>
 #include <memory>
 
 
@@ -13,6 +14,7 @@ namespace ilen::ecs::systems {
     class RenderSystem;
     class TransformSystem;
     class ScriptingSystem;
+    class CameraSystem;
 }
 
 namespace ilen::resources {
@@ -51,15 +53,16 @@ namespace ilen {
         std::shared_ptr<ilen::ecs::systems::RenderSystem> p_renderSystem;
         std::shared_ptr<ilen::ecs::systems::TransformSystem> p_transformSystem;
         std::shared_ptr<ilen::ecs::systems::ScriptingSystem> p_scriptingSystem;
+        std::shared_ptr<ilen::ecs::systems::CameraSystem> p_cameraSystem;
     };
 
     class AppRuntime {
         public:
             static AppRuntime& getInstance();
             void init(const application::ApplicationMetadata &metadata); //Inicia el motor
-            void update(); //Ejecuta el loop del motor
-            void shutdown(); //Detiene el motor
-            bool isRunning();
+            void update() const; //Ejecuta el loop del motor
+            void shutdown() const; //Detiene el motor
+            bool isRunning() const;
         private:
             AppRuntime() = default;
             const static inline char* DEBUG_PREFIX = "APP_RUNTIME";

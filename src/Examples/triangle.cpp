@@ -12,8 +12,8 @@ void Triangle::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = {0.0f, 0.0f, 0.0f};
-    transform.scale = {1.0f, 1.0f, 1.0f};
+    transform.position = vec3(0.0f, 0.0f, 0.0f);
+    transform.scale = vec3(1.0f, 1.0f, 1.0f);
     coordinator->addComponent(entity, std::move(transform));
 
     RenderComponent render{};

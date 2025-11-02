@@ -23,6 +23,7 @@ namespace ilen::resources::render_pipeline {
             std::map<IlenRenderPipelineDescriptor, std::shared_ptr<IGPURenderPipeline>> m_pipelines;
             std::map<IlenRenderPipelineDescriptor, std::future<std::shared_ptr<IGPURenderPipeline>>> m_loadingPipelines;
             std::mutex m_mutex;
+            uint16_t m_nextPsoID = 1;
 
             IRenderer* p_renderer;
             shaders::ShaderManager* p_shaderManager;

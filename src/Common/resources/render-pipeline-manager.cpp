@@ -9,6 +9,8 @@ namespace ilen::resources::render_pipeline {
     }
 
     std::weak_ptr<IGPURenderPipeline> PipelineManager::getRenderPipeline(const IlenRenderPipelineDescriptor& descriptor) {
+        std::lock_guard lock(m_mutex);
+
         //Primero, buscar si existe la Pipeline ya creada en el mapa, sino se solicita crear una
         auto it = m_pipelines.find(descriptor);
         if (it != m_pipelines.end()) {
@@ -23,7 +25,7 @@ namespace ilen::resources::render_pipeline {
         std::future<std::shared_ptr<IGPURenderPipeline>> future = p_jobSystem->SubmitJob([this, descriptor] -> std::shared_ptr<IGPURenderPipeline> {
             //Hay que generar una nueva PSO.
             auto newPSO = p_renderer->createRenderPipeline(descriptor, p_shaderManager);
-            m_pipelines[descriptor] = newPSO;
+            //  m_pipelines[descriptor] = newPSO;
             return newPSO;
         });
 
@@ -32,13 +34,21 @@ namespace ilen::resources::render_pipeline {
     }
 
     void PipelineManager::UpdatePipelineWorks() {
-        for (auto& it : m_loadingPipelines) {
-            auto& [descriptor, future] = it;
+        std::lock_guard lock(m_mutex);
+
+        for (auto it = m_loadingPipelines.begin(); it != m_loadingPipelines.end(); /* no-op */) {
+            auto& [descriptor, future] = *it;
+
             if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
                 std::shared_ptr<IGPURenderPipeline> newPSO = future.get();
 
+                m_nextPsoID++;
+                newPSO->setID(m_nextPsoID);
+
                 m_pipelines[descriptor] = std::move(newPSO);
-                m_loadingPipelines.erase(descriptor);
+                it = m_loadingPipelines.erase(it);
+            } else {
+                ++it;
             }
         }
     }

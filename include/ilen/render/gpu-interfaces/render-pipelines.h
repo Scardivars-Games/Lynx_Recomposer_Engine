@@ -45,6 +45,12 @@ namespace ilen::render {
         public:
             virtual ~IGPURenderPipeline() = default;
             virtual const void* getNativeRenderPipeline() const = 0;
-            virtual void* generateVertexDescriptor(VertexBufferLayout layout) const = 0;
+            static void* generateVertexDescriptor(VertexBufferLayout layout);
+            virtual void setID(uint16_t id) { m_psoID = id; }
+            virtual uint16_t getID() const { return m_psoID; }
+            virtual ILEN_GPU_RENDER_QUEUE_TYPE getRenderQueue() const { return m_renderQueue; }
+        protected:
+            ILEN_GPU_RENDER_QUEUE_TYPE m_renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
+            uint16_t m_psoID = 0;
     };
 }

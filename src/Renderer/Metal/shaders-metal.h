@@ -4,7 +4,7 @@
 #if defined (__APPLE__)
 
 #include <ilen/render/gpu-interfaces/shaders.h>
-#include <ilen/core/logs.h>
+#include <ilen/headers/ilen-logs.h>
 #include <unordered_map>
 
 @protocol MTLFunction;
