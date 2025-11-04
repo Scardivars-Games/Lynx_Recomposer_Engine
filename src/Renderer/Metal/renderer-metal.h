@@ -3,6 +3,7 @@
 
 #include <ilen/render/renderer.h>
 #include <memory>
+#include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
 
 @protocol MTLDevice;
 @protocol MTLCommandQueue;
@@ -32,10 +33,13 @@ namespace ilen::render
             std::shared_ptr<IShader> createShader(const ilen::graphics::IlenShader& shaderDescriptor) override;
             
             std::shared_ptr<IGPURenderPipeline> createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor& pipelineDescriptor, ilen::resources::shaders::ShaderManager* shaderManager) override;
+
+            IGPUParallelCommandEncoder* getParallelCommandEncoder() override;
         private:
             id<MTLCommandBuffer> _commandBuffer;
-            id<MTLRenderCommandEncoder> _renderEnconder;
             void* _frameAutoReleasePool;
+
+            std::unique_ptr<IGPUParallelCommandEncoder> _parallelCommandEncoder;
 
             void generateNewMetalLibrary(); //Método fallback que busca todos los archivos fuente de .metal y los compila como un único .metallib
     };

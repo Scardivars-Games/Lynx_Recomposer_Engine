@@ -4,6 +4,7 @@
 #include "buffers-metal.h"
 #include "shaders-metal.h"
 #include "render-pipelines-metal.h"
+#include "parallel-command-encoder-metal.h"
 #include <ilen/headers/ilen-logs.h>
 
 #include <TargetConditionals.h>
@@ -53,6 +54,10 @@ namespace ilen::render {
     }
 
     MetalRender::~MetalRender() {
+        if(_parallelCommandEncoder){
+            IRenderer::FinalizeEncoding(_parallelCommandEncoder.get());
+            _parallelCommandEncoder.reset();
+        }
         _device = nil;
         _commandQueue = nil;
         _ilenMetalLibrary = nil;
@@ -62,17 +67,22 @@ namespace ilen::render {
         _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
         
         _commandBuffer = [_commandQueue commandBuffer];
-        _renderEnconder = [_commandBuffer renderCommandEncoderWithDescriptor:metalView.currentRenderPassDescriptor];
+        _parallelCommandEncoder = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer, metalView.currentRenderPassDescriptor);
     }
 
     void MetalRender::endFrame() {
             //No necesario en METAL
-            [_renderEnconder endEncoding];
+            if(_parallelCommandEncoder){
+                IRenderer::FinalizeEncoding(_parallelCommandEncoder.get());
+                _parallelCommandEncoder.reset();
+            }else{
+                ILEN_ERROR_P(DEBUG_PREFIX, "Llamado el end frame sin un válido parallel encoder creado");
+            }
+                
             [_commandBuffer presentDrawable:metalView.currentDrawable];
             [_commandBuffer commit];
             
             _commandBuffer = nil;
-            _renderEnconder = nil;
         
             [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
             _frameAutoReleasePool = nullptr;
@@ -89,6 +99,10 @@ namespace ilen::render {
 
     std::shared_ptr<IGPURenderPipeline> MetalRender::createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor &pipelineDescriptor, ilen::resources::shaders::ShaderManager *shaderManager){
         return std::make_shared<MetalRenderPipeline>(_device, pipelineDescriptor, shaderManager, metalView);
+    }
+
+    IGPUParallelCommandEncoder* MetalRender::getParallelCommandEncoder(){
+        return _parallelCommandEncoder.get();
     }
 
 

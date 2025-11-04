@@ -6,6 +6,9 @@ namespace ilen::ecs::systems {
         p_Coordinator = engineContext->p_coordinator.get();
         p_JobSystem = engineContext->p_jobSystem.get();
         p_Renderer = engineContext->p_gameRenderer.get();
+        p_cameraSystem = engineContext->p_cameraSystem.get();
+        p_matManager = engineContext->p_materialManager.get();
+        p_meshManager = engineContext->p_meshManager.get();
     }
 
     void RenderDrawSystem::Update() {

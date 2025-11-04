@@ -34,7 +34,6 @@ namespace ilen::ecs::systems {
         public:
             void Init(EngineContext* engineContext);
             void Update();
-
         private:
             ECSCoordinator* p_Coordinator = nullptr;
             JobSystem* p_jobSystemInstance = nullptr;
