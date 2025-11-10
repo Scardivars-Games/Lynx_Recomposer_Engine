@@ -9,7 +9,7 @@
 
 namespace ilen::render::buffers {
     //Estructurá básica que el motor usa para almacenar los datos del VertexBuffer una vez cargado los datos de un modelo.
-    struct VertexBufferData {
+    struct alignas(16) VertexBufferData {
         ilen::maths::vector::float4 vertexPosition;
         ilen::graphics::Color vertexColor;
         ilen::maths::vector::float2 UV;
@@ -26,6 +26,7 @@ namespace ilen::graphics {
     struct MeshGPULink {
         std::shared_ptr<render::IGPUBuffer> vertexBuffer;
         std::shared_ptr<render::IGPUBuffer> indexBuffer;
+        uint32_t indexCount = 0;
     };
 }
 

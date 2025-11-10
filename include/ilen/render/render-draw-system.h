@@ -25,5 +25,9 @@ namespace ilen::ecs::systems {
             CameraSystem* p_cameraSystem = nullptr;
             MaterialManager* p_matManager = nullptr;
             MeshManager* p_meshManager = nullptr;
+
+            uint32_t m_minInstanceRenderingElements = 5; //Si un elemento se repite más de 5 veces se realiza Instance Rendering.
+
+            static inline const char* DEBUG_PREFIX = "RENDER_DRAW_SYSTEM";
     };
 }

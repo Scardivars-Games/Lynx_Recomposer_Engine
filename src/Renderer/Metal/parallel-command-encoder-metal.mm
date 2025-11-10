@@ -24,29 +24,34 @@ namespace ilen::render {
     }
 
     IGPURenderEncoder* MetalParallelCommandEncoder::GetThreadEncoder(){
-        std::lock_guard lock(_mutex);
-        
-        id<MTLRenderCommandEncoder> threadEncoder = [_parallelEncoder renderCommandEncoder];
-        auto engineEncoder = std::make_unique<MetalRenderEncoder>(threadEncoder);
-        
-        for(auto const& [slot, buffer]: _globalBuffers){
-            engineEncoder->SetGlobalBuffer(slot, buffer);
+        @autoreleasepool {
+            std::lock_guard lock(_mutex);
+            
+            id<MTLRenderCommandEncoder> threadEncoder = [_parallelEncoder renderCommandEncoder];
+            auto engineEncoder = std::make_unique<MetalRenderEncoder>(threadEncoder);
+            
+            for(auto const& [slot, buffer]: _globalBuffers){
+                //ILEN_LOG_P(DEBUG_PREFIX, "Setting global buffer for the single thread encoder");
+                engineEncoder->SetGlobalBuffer(slot, buffer);
+            }
+            
+            IGPURenderEncoder* rawPtr = engineEncoder.get();
+            
+            _childEncoders.push_back(std::move(engineEncoder));
+            
+            return rawPtr;
         }
-        
-        IGPURenderEncoder* rawPtr = engineEncoder.get();
-        
-        _childEncoders.push_back(std::move(engineEncoder));
-        
-        return rawPtr;
     }
 
     void MetalParallelCommandEncoder::EndEncoding(){
-        if(_parallelEncoder){
-            _childEncoders.clear();
-            
-            [_parallelEncoder endEncoding];
-            [_parallelEncoder release];
-            _parallelEncoder = nil;
+        @autoreleasepool {
+            if(_parallelEncoder){
+                _childEncoders.clear();
+                
+                [_parallelEncoder endEncoding];
+                [_parallelEncoder release];
+                _parallelEncoder = nil;
+            }
         }
     }
 }

@@ -11,7 +11,8 @@ namespace ilen::ecs::systems {
 
     void RenderSystem::Update() {
         p_meshManager->UpdateProcess();
-        // Este método se debe llamar en cada fotograma.
+        p_renderPipelineManager->UpdatePipelineWorks();
+        // Este method se debe llamar en cada fotograma.
         for(auto const& entity : entities){
             if(auto render = p_Coordinator->getComponent<RenderComponent>(entity); render != nullptr){
                 //En este loops estamos trabajando con una entidad con rendering. Toda entidad que renderice tiene que tener sus datos en VRAM, sino, hay que asignarlos
@@ -37,10 +38,11 @@ namespace ilen::ecs::systems {
         if(staticMeshData == nullptr){
             //Solicitar la carga de estos datos
             auto solitudeResult = p_meshManager->getMeshHandlers(render.meshID);
+            auto runtimeID = p_meshManager->getMeshRuntimeID(render.meshID);
 
-            if(solitudeResult.lock() != nullptr){
-                StaticRenderingData data{};
-                data.staticBuffers = solitudeResult;
+            if(solitudeResult.lock() != nullptr && runtimeID != 0){
+                ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
+                StaticRenderingData data{solitudeResult, runtimeID};
                 p_Coordinator->addComponent(entity, std::move(data));
             }
             //continue; //Salta a la siguiente entidad, esta no puede hacer nada.
@@ -66,9 +68,11 @@ namespace ilen::ecs::systems {
             auto descriptor = IlenRenderPipelineDescriptor(material);
 
             auto psoSolicitude = p_renderPipelineManager->getRenderPipeline(descriptor);
-            if (psoSolicitude.lock() != nullptr) {
-                StaticMaterialRenderingData data{};
-                data.pso = psoSolicitude;
+            auto runtimeID = p_materialManager->getRuntimeMaterial(render.materialID);
+
+            if (psoSolicitude.lock() != nullptr && runtimeID != 0) {
+                ILEN_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
+                StaticMaterialRenderingData data{psoSolicitude, runtimeID};
                 p_Coordinator->addComponent(entity, std::move(data));
             }
         }

@@ -17,7 +17,7 @@ namespace ilen{
         return runtime;
     }
 
-    //Inicializa todo de la aplicación!!!
+    //Inicializa la aplicación!!!
     void AppRuntime::init(const application::ApplicationMetadata& metadata){
         engineContext = std::make_unique<EngineContext>();
 
@@ -52,7 +52,7 @@ namespace ilen{
         engineContext->p_gameWindow = IWindow::CreateWindow(metadata);
 
         ILEN_LOG_P(DEBUG_PREFIX, "Creando la superficie para el dibujo");
-        engineContext->p_gameRenderer = IRenderer::CreateRenderer(engineContext->p_gameWindow->getSurface(), GraphicsAPI::Auto);
+        engineContext->p_gameRenderer = IRenderer::CreateRenderer(engineContext->p_gameWindow->getSurface(), ILEN_GPU_GRAPHICS_API_TYPE::Auto);
 
 
         //Inicializar cada Resource Manager (se precisa del render para ciertas funciones con la GPU)
@@ -74,6 +74,12 @@ namespace ilen{
         renderSignature.set(engineContext->p_coordinator->getComponentType<components::RenderComponent>());
         engineContext->p_coordinator->setSystemSignature<systems::RenderSystem>(renderSignature);
 
+        //Render Draw System (Llama a dibujar a la GPU según los datos generados por el Render System)
+        engineContext->p_renderDrawSystem = engineContext->p_coordinator->registerSystem<systems::RenderDrawSystem>();
+        Signature renderDrawSignature;
+        //renderDrawSignature.set(engineContext->p_coordinator->getComponentType<components::RenderItem>()); //Esto no lo posee ninguna entidad como componente, no es firma válida.
+        engineContext->p_coordinator->setSystemSignature<systems::RenderDrawSystem>(renderSignature); //Que reciba todas las entidades que el sistema anterior. TODO: Luego le añadimos firmas más específicas al funcionamiento del sistema.
+
         //Init ScriptSystem for gameobjects if don't work GameObjects here inherited classes.
         engineContext->p_scriptingSystem = engineContext->p_coordinator->registerSystem<systems::ScriptingSystem>();
         Signature scriptingSignature;
@@ -92,6 +98,10 @@ namespace ilen{
         components::ScriptingBridgeComponent scripting{};
         scripting.bind<Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
         engineContext->p_coordinator->addComponent(triangle, std::move(scripting));
+        auto falseCamera = engineContext->p_coordinator->createEntity();
+        components::ScriptingBridgeComponent bridge2{};
+        bridge2.bind<FalseCamera>();
+        engineContext->p_coordinator->addComponent(falseCamera, std::move(bridge2));
 
         
         engineContext->p_transformSystem->Init(engineContext.get());
@@ -101,13 +111,15 @@ namespace ilen{
         engineContext->p_renderSystem->Init(engineContext.get());
         //Inicializar cámara
         engineContext->p_cameraSystem->Init(engineContext.get());
+        //RenderDraw System.
+        engineContext->p_renderDrawSystem->Init(engineContext.get());
         ilen::time::Time::setNewFrame();
     }
 
     void AppRuntime::update() const {
         engineContext->p_gameWindow->processEvents();//Actualizamos eventos de la ventana o OS
 
-        ILEN_LOG_P(DEBUG_PREFIX, "Window size, %i x %i", engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight());
+        //ILEN_LOG_P(DEBUG_PREFIX, "Window size, %i x %i", engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight());
 
         engineContext->p_scriptingSystem->Update(); //Hacemos todas las modificaciones que pida el códigos
         engineContext ->p_scriptingSystem->LateUpdate(); //Hacemos las modificaciones que deben hacerse tras el Update de todos los elementos del juegos
@@ -115,11 +127,12 @@ namespace ilen{
         engineContext->p_transformSystem->Update(); //Actualizamos las matrices de transformación de acuerdo a las instrucciones dejadas por el update (componentes de modificacion). y calculamos lo necesario para renderizar
 
         engineContext-> p_renderSystem -> Update(); //Preparamos y obtenemos los objetos que deben ser dibujados
-        engineContext->p_cameraSystem ->Update(engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight()); //Calculamos todo lo de la camara
+        engineContext->p_cameraSystem ->Update(engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight()); //Calculamos all de la camara
 
         if(engineContext->p_gameRenderer){
             engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
             //Aquí deberia poblarse el queue de dibujado.
+            engineContext->p_renderDrawSystem->Update();
             engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
         }
         application::Application::stopUntilNextFrame();
@@ -127,7 +140,7 @@ namespace ilen{
     }
 
     void AppRuntime::shutdown() const {
-        //TODO
+        //Actualmente detiene el job system, que es el unico sistema que no se libera automaticamente por el OS.
         ILEN_LOG_P(DEBUG_PREFIX, "Shutting down engine");
         engineContext->p_jobSystem->StopJobSystem();
     }

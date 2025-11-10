@@ -5,6 +5,7 @@
 #include "shaders-metal.h"
 #include "render-pipelines-metal.h"
 #include "parallel-command-encoder-metal.h"
+#include "instance-buffer-metal.h"
 #include <ilen/headers/ilen-logs.h>
 
 #include <TargetConditionals.h>
@@ -39,6 +40,9 @@ namespace ilen::render {
             NSString* libraryPath = [[NSBundle mainBundle] pathForResource:@"ilen" ofType:@"metallib" inDirectory:@"assets/shader-code"];
             #endif
             
+            size_t instanceBufferSize = 4 * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
+            _instanceBuffer = std::make_unique<MetalInstanceBuffer>(_device, instanceBufferSize);
+            
             if(!libraryPath){
                 ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se encontro libreria por defecto de Metal");
                 generateNewMetalLibrary();
@@ -65,6 +69,7 @@ namespace ilen::render {
 
     void MetalRender::beginFrame() {
         _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
+        _instanceBuffer->OnBeginFrame();
         
         _commandBuffer = [_commandQueue commandBuffer];
         _parallelCommandEncoder = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer, metalView.currentRenderPassDescriptor);
@@ -103,6 +108,10 @@ namespace ilen::render {
 
     IGPUParallelCommandEncoder* MetalRender::getParallelCommandEncoder(){
         return _parallelCommandEncoder.get();
+    }
+
+    IGPUInstanceBuffer* MetalRender::getInstanceBuffer() {
+        return _instanceBuffer.get();
     }
 
 

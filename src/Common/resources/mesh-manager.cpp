@@ -65,10 +65,11 @@ namespace ilen::resources::mesh {
                 ilen::render::IlenBufferDescriptor indexDescriptor{};
                 indexDescriptor.bufferType = ILEN_RENDER_GPU_BUFFER_INDEX;
                 indexDescriptor.bufferSize = mesh.indexBufferData.size() * sizeof(uint32_t);
-                vertexDescriptor.bufferLabelName = "Index Buffer for mesh ID " + std::to_string(meshObject.assetID);
+                indexDescriptor.bufferLabelName = "Index Buffer for mesh ID " + std::to_string(meshObject.assetID);
                 indexDescriptor.count = mesh.indexBufferData.size();
 
                 link.indexBuffer = renderer->createBuffer(indexDescriptor, mesh.indexBufferData.data());
+                link.indexCount = mesh.indexBufferData.size();
                 return link;
             });
 

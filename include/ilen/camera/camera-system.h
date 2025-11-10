@@ -10,11 +10,12 @@ namespace ilen::ecs::systems {
     class CameraSystem: public ilen::ecs::System {
         public:
             void Init(const EngineContext* engineContext);
-            void Update(float viewportWidth, float viewportHeight);
+            void Update(uint32_t viewportWidth, uint32_t viewportHeight);
 
-            const components::CameraComponent& getMainCamera() const;
+            const components::CameraComponent* getMainCamera() const;
         private:
             ECSCoordinator* p_Coordinator = nullptr;
+            render::IRenderer* p_Renderer = nullptr;
             components::CameraComponent* m_mainCamera = nullptr;
     };
 }

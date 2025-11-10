@@ -10,11 +10,13 @@
 #include <memory>
 
 
+
 namespace ilen::ecs::systems {
     class RenderSystem;
     class TransformSystem;
     class ScriptingSystem;
     class CameraSystem;
+    class RenderDrawSystem;
 }
 
 namespace ilen::resources {
@@ -51,6 +53,7 @@ namespace ilen {
 
         //ECS Systems (shared ptrs)
         std::shared_ptr<ilen::ecs::systems::RenderSystem> p_renderSystem;
+        std::shared_ptr<ilen::ecs::systems::RenderDrawSystem> p_renderDrawSystem;
         std::shared_ptr<ilen::ecs::systems::TransformSystem> p_transformSystem;
         std::shared_ptr<ilen::ecs::systems::ScriptingSystem> p_scriptingSystem;
         std::shared_ptr<ilen::ecs::systems::CameraSystem> p_cameraSystem;

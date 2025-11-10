@@ -33,6 +33,8 @@ int main(int argc, char* argv[]){
     std::filesystem::path folderPath;
     std::string sdk;
 
+    bool addDebug = false;
+
     for(int i = 0; i < argc; i++){
         std::string arg = argv[i];
         if(arg == "--ilen-folder" || arg == "-f"){
@@ -49,11 +51,14 @@ int main(int argc, char* argv[]){
                 std::cerr << "Error: Hace falta indicar el sdk a usar para crear la libreria de metal" << std::endl;
                 return 1;
             }
+        }else if (arg == "--add-debug") {
+            addDebug = true;
         }
     }
 
     //Normalmente buscaria un archvio .ilenproject (para saber que es la carpeta del proyecto y así poder hacer la busqueda). De momento se asume que es proyecto.
     std::filesystem::path sourceFolder = folderPath / "assets" / "shader-code";
+    std::filesystem::path metalIncludes = folderPath / "include";
     std::vector<std::filesystem::path> shaderFiles;
 
     std::filesystem::path buildFolder = folderPath / ".ilen-bin-data" / "shader-code";
@@ -81,8 +86,10 @@ int main(int argc, char* argv[]){
         std::filesystem::path intermediateFile = buildFolder / metalFile.filename().replace_extension(".air");
 
         std::stringstream command;
-        command << "xcrun -sdk " << sdk << " metal -c " << metalFile.string() << " -o " << intermediateFile.string();
-
+        command << "xcrun -sdk " << sdk << " metal -I " <<  metalIncludes << " -c " << metalFile.string() << " -o " << intermediateFile.string();
+        if (addDebug) {
+            command << " -frecord-sources -gline-tables-only";
+        }
         std::cout << command.str() << std::endl;
 
         if(!executeCommand(command.str())){

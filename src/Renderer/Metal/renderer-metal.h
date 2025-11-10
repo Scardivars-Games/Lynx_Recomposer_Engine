@@ -35,11 +35,13 @@ namespace ilen::render
             std::shared_ptr<IGPURenderPipeline> createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor& pipelineDescriptor, ilen::resources::shaders::ShaderManager* shaderManager) override;
 
             IGPUParallelCommandEncoder* getParallelCommandEncoder() override;
+            IGPUInstanceBuffer* getInstanceBuffer() override;
         private:
             id<MTLCommandBuffer> _commandBuffer;
             void* _frameAutoReleasePool;
 
             std::unique_ptr<IGPUParallelCommandEncoder> _parallelCommandEncoder;
+            std::unique_ptr<IGPUInstanceBuffer> _instanceBuffer;
 
             void generateNewMetalLibrary(); //Método fallback que busca todos los archivos fuente de .metal y los compila como un único .metallib
     };

@@ -124,7 +124,7 @@ if(APPLE)
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
-            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk iphoneos
+            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk iphoneos $<$<CONFIG:Debug>:--add-debug>
             COMMENT "Compilando shader de metal para ser usados en iOS"
             VERBATIM
         )
@@ -144,6 +144,9 @@ if(APPLE)
         target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa")
         set_target_properties(${PROJECT_NAME} PROPERTIES      
             BUNDLE TRUE  
+            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+            XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
+            MACOSX_BUNDLE TRUE
             MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/macOS/Info.plist"
             XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.scardivargames.ilen-test"
             MACOSX_BUNDLE_GUI_IDENTIFIER "com.scardivargames.ilen-test"
@@ -163,7 +166,7 @@ if(APPLE)
 
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
-            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk macosx
+            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk macosx $<$<CONFIG:Debug>:--add-debug>
             COMMENT "Compilando shader de metal para ser usados en MacOS"
             VERBATIM
         )

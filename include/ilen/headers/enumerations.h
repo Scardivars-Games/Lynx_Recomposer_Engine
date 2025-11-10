@@ -71,4 +71,13 @@ namespace ilen::enumerations {
         ILEN_CAMERA_PROJECTION_PERSPECTIVE,
         ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC,
     };
+
+    enum class ILEN_GPU_GRAPHICS_API_TYPE {
+        //Por convención, mantener nombres normales de las API.
+        Auto,
+        Metal,
+        Vulkan,
+        OpenGL,
+        DirectX12,
+    };
 }

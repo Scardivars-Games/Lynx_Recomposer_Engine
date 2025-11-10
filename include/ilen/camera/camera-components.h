@@ -29,10 +29,12 @@ namespace ilen::ecs::components {
             const mat4& getViewMatrix() const { return viewMatrix; }
             const mat4& getProjectionMatrix() const { return projectionMatrix; }
             const mat4& getViewProjectionMatrix() const { return viewProjectionMatrix; }
+            render::IGPUBuffer* getViewProjectionCameraBuffer() const {return  cameraBuffer.get(); }
         private:
             mat4 viewMatrix = mat4::identity();
             mat4 projectionMatrix = mat4::identity();
             mat4 viewProjectionMatrix = mat4::identity();
+            std::shared_ptr<render::IGPUBuffer> cameraBuffer = {};
             //Faltaría implementar un Frustum para hacer clipping.
     };
 }

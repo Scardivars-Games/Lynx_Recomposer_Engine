@@ -17,9 +17,11 @@ namespace ilen::render
 
             const IlenBufferDescriptor& getDescriptor() const override;
             void* getNativeHandle() const override;
+            void writeDataToBuffer(const void* data, size_t size, size_t offset) override;
         private:
             __strong id<MTLBuffer> _buffer;
             IlenBufferDescriptor _descriptor;
+            static inline const char* DEBUG_PREFIX = "METAL_BUFFERS";
     };
 }
 

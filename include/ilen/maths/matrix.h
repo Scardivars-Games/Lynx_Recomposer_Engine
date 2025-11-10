@@ -202,7 +202,7 @@ namespace ilen::maths::matrix{
     }
 
     template<typename T>
-    Matrix<T, 4, 4> perspective(const Degrees& fov, const T& aspectRatio, const T& nearPlane, const T& farPlane) {
+    Matrix<T, 4, 4> perspective(const Degrees& fov, const T& aspectRatio, const T& nearPlane, const T& farPlane, ILEN_GPU_GRAPHICS_API_TYPE GraphicsAPI) {
         Radians fovInRadians(fov);
         
         /*T f = T(1.0) / tan(fovInRadians.getValue() / 2.0);
@@ -221,23 +221,36 @@ namespace ilen::maths::matrix{
         projectionMatrix[0][0] = scalingFactor / aspectRatio;
         projectionMatrix[1][1] = scalingFactor;
 
-        projectionMatrix[2][2] = (farPlane) / (nearPlane - farPlane);
-        projectionMatrix[3][2] = (farPlane * nearPlane) / (nearPlane - farPlane);
-        projectionMatrix[2][3] = T(-1.0);
+        if (GraphicsAPI == ILEN_GPU_GRAPHICS_API_TYPE::OpenGL) {
+            projectionMatrix[2][2] = (farPlane + nearPlane) / (nearPlane - farPlane);
+            projectionMatrix[3][2] = (2 * farPlane * nearPlane) / (nearPlane - farPlane);
+            projectionMatrix[2][3] = T(-1);
+        }else {
+            projectionMatrix[2][2] = (farPlane) / (nearPlane - farPlane);
+            projectionMatrix[3][2] = (farPlane * nearPlane) / (nearPlane - farPlane);
+            projectionMatrix[2][3] = T(-1.0);
+        }
+
 
         return projectionMatrix;
     }
 
     template<typename T>
-    Matrix<T, 4, 4> orthographic(T left, T right, T bottom, T top, T nearPlane, T farPlane) {
+    Matrix<T, 4, 4> orthographic(T left, T right, T bottom, T top, T nearPlane, T farPlane, ILEN_GPU_GRAPHICS_API_TYPE GraphicsAPI) {
         Matrix<T, 4, 4> projection(static_cast<T>(0.0));
+
+        if (GraphicsAPI == ILEN_GPU_GRAPHICS_API_TYPE::OpenGL) {
+            projection[2][2] = static_cast<T>(-2.0) / (farPlane - nearPlane); //Ojo: En directX posiblemente deba usarse -1
+            projection[3][2] = -(farPlane + nearPlane) / (farPlane - nearPlane);
+        }else {
+            projection[2][2] = static_cast<T>(1) / (farPlane - nearPlane);
+            projection[3][2] = -nearPlane / (farPlane - nearPlane);
+        }
 
         projection[0][0] = static_cast<T>(2.0) / (right - left);
         projection[1][1] = static_cast<T>(2.0) / (top - bottom);
-        projection[2][2] = static_cast<T>(-2.0) / (farPlane - nearPlane); //Ojo: En directX posiblemente deba usarse -1
         projection[3][0] = -(right + left) / (right - left);
         projection[3][1] = -(top + bottom) / (top - bottom);
-        projection[3][2] = -(farPlane + nearPlane) / (farPlane - nearPlane);
         projection[3][3] = static_cast<T>(1.0);
 
         return projection;

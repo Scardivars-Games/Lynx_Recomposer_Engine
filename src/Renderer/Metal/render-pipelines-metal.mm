@@ -116,22 +116,22 @@ namespace ilen::render {
             MTLVertexDescriptor* vertexDescriptor = [MTLVertexDescriptor vertexDescriptor];
             vertexDescriptor.layouts[0].stride = layout.stride;
             
-            size_t advancedMemory = 0;
             for(int i = 0; i < layout.attributes.size(); i++){
                 auto actualAttribute = layout.attributes[i];
                 MTLVertexFormat mtlFormat = MetalRenderPipeline::getMTLFormat(actualAttribute);
-                size_t formatSize = MetalRenderPipeline::getFormatSize(actualAttribute);
+                //size_t formatSize = MetalRenderPipeline::getFormatSize(actualAttribute);
                 
                 if(mtlFormat == MTLVertexFormatInvalid){
                     ILEN_ERROR_P(MetalRenderPipeline::DEBUG_PREFIX, "El atributo con índice %i no es válido para el layout dado.", i);
                     continue;
                 }
                 
-                vertexDescriptor.attributes[i].format = mtlFormat;
-                vertexDescriptor.attributes[i].offset = advancedMemory;
-                vertexDescriptor.attributes[i].bufferIndex = 0;
+                auto attributeIndex = layout.attributeIndex[i];
                 
-                advancedMemory += formatSize;
+                vertexDescriptor.attributes[attributeIndex].format = mtlFormat;
+                vertexDescriptor.attributes[attributeIndex].offset = layout.offsets[i];
+                vertexDescriptor.attributes[attributeIndex].bufferIndex = 0;
+                
             }
             
             return [vertexDescriptor retain];

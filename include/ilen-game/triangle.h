@@ -10,3 +10,8 @@ class Triangle : public GameObject {
         void Init() override;
         void Update() override;
 };
+
+class FalseCamera : public GameObject {
+    public:
+        void Init() override;
+};

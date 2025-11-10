@@ -1,11 +1,17 @@
 #include <metal_stdlib>
+#include <ilen/render/render-constants.h>
+
+#include <metal_stdlib>
+#include <ilen/render/render-constants.h> // Tu header agnóstico
 
 using namespace metal;
+using namespace ilen::render; // Para structs y slots
 
 struct VertexIn {
-    float4 position [[attribute(0)]];
-    float4 color [[attribute(1)]];
-    float2 uv [[attribute(2)]];
+    float3 position [[attribute(slots::VertexBufferAttribute_Position)]]; // Attr 0
+    float4 color    [[attribute(slots::VertexBufferAttribute_Color)]];    // Attr 1
+    float2 uv       [[attribute(slots::VertexBufferAttribute_UV)]];       // Attr 2
+    float3 normal   [[attribute(slots::VertexBufferAttribute_Normal)]];   // Attr 3
 };
 
 struct VertexOut {
@@ -14,14 +20,23 @@ struct VertexOut {
     float2 uv;
 };
 
-vertex VertexOut basic_vertex(uint vertexID [[vertex_id]], device const VertexIn* vertices [[buffer(0)]]) {
+vertex VertexOut basic_vertex(
+    VertexIn in                  [[stage_in]],
+    CONSTANT structs::CameraData* camData [[buffer(slots::GlobalBufferSlot_Camera)]],
+    CONSTANT structs::InstanceData* instanceData [[buffer(slots::RenderBufferSlot_InstanceModel)]],
+    uint instanceID [[instance_id]]
+) {
     VertexOut out;
-    out.position = float4(vertices[vertexID].position);
-    out.color = vertices[vertexID].color;
-    out.uv = vertices[vertexID].uv;
+    float4x4 modelMatrix = instanceData[instanceID].modelMatrix;
+    float4x4 vpMatrix = camData->viewProjectionMatrix;
+    out.position = vpMatrix * modelMatrix * float4(in.position, 1.0);
+    out.color = in.color;
+    out.uv = in.uv;
     return out;
 }
 
-fragment float4 basic_fragment(VertexOut in [[stage_in]]) {
+fragment float4 basic_fragment(
+    VertexOut in [[stage_in]]
+) {
     return in.color;
 }

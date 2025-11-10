@@ -21,14 +21,14 @@ namespace  ilen::render {
             auto vertexFunction = [globalLibrary newFunctionWithName:vertName];
             auto fragmentFunction = [globalLibrary newFunctionWithName:fragName];
             
-            if(vertexFunction){
+            /*if(vertexFunction){
                 MTLFunctionType type = [vertexFunction functionType];
                 if(type == MTLFunctionTypeVertex){
                     ILEN_LOG_P(DEBUG_PREFIX, "Éxito: %s si es una función vertex", [vertName UTF8String]);
                 }else{
                     ILEN_LOG_P(DEBUG_PREFIX, "ERROR!!! %s no es una función vertex, es %i", [vertName UTF8String], (uint32_t)type);
                 }
-            }
+            }*/
             
             //Busqueda y reporte de errores
             if(!vertexFunction){

@@ -19,7 +19,7 @@ namespace ilen::job_system {
         public:
             //Inicializa el job system.
             void Initializate() {
-                const int num_threads = std::thread::hardware_concurrency() - 1;
+                const uint num_threads = std::thread::hardware_concurrency() - 1;
 
                 for(int i = 0; i< num_threads; i++) {
                     workThreads.emplace_back([this] {
@@ -63,6 +63,10 @@ namespace ilen::job_system {
                 }
                 condition.notify_one();
                 return res;
+            }
+
+            const size_t AvailableThreads() const {
+                return workThreads.size();
             }
         private:
             std::vector<std::thread> workThreads; //Lista de todos los hilos de trabajo creados por el motor.

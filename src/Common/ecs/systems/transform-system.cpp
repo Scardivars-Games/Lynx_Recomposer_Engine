@@ -37,13 +37,13 @@ namespace ilen::ecs::systems {
         //Orden es SRT (Scale-Rotation-Traslation)
         //Se tiene que hacer alrevés porque las matrices operan de esa forma.
         //Transform
-        matrix::translate(modelMatrix, transform->position);
+        modelMatrix = matrix::translate(modelMatrix, transform->position);
         //Rotation
-        matrix::rotate(modelMatrix, Radians(Degrees(transform->rotation.x), ILEN_ANGLE_TYPE_DEGREES), vec3::right()); //X
-        matrix::rotate(modelMatrix, Radians(Degrees(transform->rotation.y), ILEN_ANGLE_TYPE_DEGREES), vec3::up()); //Y
-        matrix::rotate(modelMatrix, Radians(Degrees(transform->rotation.z), ILEN_ANGLE_TYPE_DEGREES), vec3::forward()); //Z
+        modelMatrix = matrix::rotate(modelMatrix, Radians(Degrees(transform->rotation.x), ILEN_ANGLE_TYPE_DEGREES), vec3::right()); //X
+        modelMatrix = matrix::rotate(modelMatrix, Radians(Degrees(transform->rotation.y), ILEN_ANGLE_TYPE_DEGREES), vec3::up()); //Y
+        modelMatrix = matrix::rotate(modelMatrix, Radians(Degrees(transform->rotation.z), ILEN_ANGLE_TYPE_DEGREES), vec3::forward()); //Z
         //Scale
-        matrix::scale(modelMatrix, transform->scale);
+        modelMatrix= matrix::scale(modelMatrix, transform->scale);
 
         transform->localToWorldMatrix = parentMatrix * modelMatrix;
 

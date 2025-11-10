@@ -6,6 +6,7 @@
 #include <ilen/render/gpu-interfaces/buffers.h>
 #include <ilen/render/gpu-interfaces/shaders.h>
 #include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
+#include <ilen/render/gpu-interfaces/instance-buffer.h>
 //#include <ilen/resources/shaders-manager.h>
 #include <ilen/graphics/shader.h>
 
@@ -24,14 +25,6 @@ namespace ilen::render {
     struct IlenRenderPipelineDescriptor;
     class IGPUParallelCommandEncoder;
 
-    enum class GraphicsAPI {
-        Auto,
-        Metal,
-        Vulkan,
-        OpenGL,
-        DirectX12,
-    };
-
     class IRenderer {
         public:
             virtual ~IRenderer() = default;
@@ -44,14 +37,18 @@ namespace ilen::render {
             virtual std::shared_ptr<IGPURenderPipeline> createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor& pipelineDescriptor, ilen::resources::shaders::ShaderManager* shaderManager) = 0;
 
             virtual IGPUParallelCommandEncoder* getParallelCommandEncoder() = 0;
+            virtual IGPUInstanceBuffer* getInstanceBuffer() = 0;
 
-            static std::unique_ptr<IRenderer> CreateRenderer(void* native_surface, GraphicsAPI api);
-        protected:
+            static std::unique_ptr<IRenderer> CreateRenderer(void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api);
+            static ILEN_GPU_GRAPHICS_API_TYPE getActualGraphicsAPI() { return actualAPI; }
+    protected:
             static void FinalizeEncoding(IGPUParallelCommandEncoder* commandEncoder) {
                 if (commandEncoder) {
                     commandEncoder->EndEncoding();
                 }
             }
             static inline const char* DEBUG_PREFIX = "RENDER";
+        private:
+            static ILEN_GPU_GRAPHICS_API_TYPE actualAPI;
     };
 }

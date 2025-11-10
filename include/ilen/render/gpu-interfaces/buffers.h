@@ -19,6 +19,6 @@ namespace ilen::render {
 
             virtual const IlenBufferDescriptor& getDescriptor() const = 0;
             virtual void* getNativeHandle() const = 0;
-            
+            virtual void writeDataToBuffer(const void* data, size_t size, size_t offset) = 0;
     };
 }

@@ -26,7 +26,9 @@ namespace ilen::ecs::components {
     //Puntero debil a los buffers fijos en la GPU. Deben solicitarse al MeshManager el puntero y antes de operar hacer un .lock() para obtener un shared_ptr válido para ese frame. En que de que no se obtenga algo válido, volver a solicitar los meshes.
     struct StaticRenderingData {
         StaticRenderingData() = default;
-        std::weak_ptr<MeshGPULink> staticBuffers;
+        StaticRenderingData(std::weak_ptr<MeshGPULink> buffer, uint32_t runtimeID) : staticBuffers(buffer), runtimeMeshID(runtimeID) {}
+        std::weak_ptr<MeshGPULink> staticBuffers = {};
+        uint32_t runtimeMeshID = 0;
     };
 
     struct VariableRenderingData {
@@ -36,10 +38,22 @@ namespace ilen::ecs::components {
 
     struct StaticMaterialRenderingData {
         StaticMaterialRenderingData() = default;
+        StaticMaterialRenderingData(std::weak_ptr<render::IGPURenderPipeline> pso, uint32_t runtimeID) : pso(pso), runtimeMaterialID(runtimeID) {};
         std::weak_ptr<render::IGPURenderPipeline> pso;
+        uint32_t runtimeMaterialID = 0;
     };
 
     struct VisibilityComponent {
         bool isVisible = true;
+    };
+
+    //No es un componente como tal del ECS, pero si una estructura necesaria para poder renderizar
+    struct RenderItem {
+        Entity entity;
+        uint64_t sortKey;
+
+        bool operator<(const RenderItem& other) const {
+            return sortKey < other.sortKey;
+        }
     };
 } 

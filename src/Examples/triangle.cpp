@@ -13,7 +13,7 @@ void Triangle::Init() {
 
     TransformComponent transform{};
     transform.position = vec3(0.0f, 0.0f, 0.0f);
-    transform.scale = vec3(1.0f, 1.0f, 1.0f);
+    transform.scale = vec3(4.0f, 4.0f, 4.0f);
     coordinator->addComponent(entity, std::move(transform));
 
     RenderComponent render{};
@@ -24,5 +24,19 @@ void Triangle::Init() {
 }
 
 void Triangle::Update(){
-//    ILEN_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", ilen::time::Time::getDeltaTime());
+    ILEN_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", ilen::time::Time::getDeltaTime());
+}
+
+void FalseCamera::Init() {
+    TransformComponent transform{};
+    transform.position = vec3(0.0f, 2.0f, -10.0f);
+    transform.scale = vec3(1.0f, 1.0f, 1.0f);
+    coordinator->addComponent(entity, std::move(transform));
+
+    CameraComponent camera{};
+    camera.isPrimary = true;
+    camera.fovDegrees = 70.0f;
+    //camera.nearClip = 5;
+    camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
+    coordinator->addComponent(entity, std::move(camera));
 }
