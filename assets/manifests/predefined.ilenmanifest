@@ -9,21 +9,36 @@
             "id": 2,
             "name": "quad",
             "path": "models/predefined/quad.obj"
+        },
+        {
+            "id": 3,
+            "name": "cube",
+            "path": "models/predefined/cube.obj"
         }
     ],
     "materials" : [
         {
-            "id": 3,
+            "id": 4,
             "name": "error",
             "path": "materials/predefined/error.ilenmat"
+        },
+        {
+            "id": 5,
+            "name": "basic",
+            "path": "materials/predefined/basic.ilenmat"
         }
     ],
     "shaders" : [
         {
-            "id": 4,
+            "id": 6,
             "name": "error",
             "path": "shaders/predefined/error.ilenshader"
+        },
+	    {
+            "id": 7,
+            "name": "basic",
+            "path": "shaders/predefined/basic.ilenshader"
         }
     ],
-    "totalOfElements": 4
+    "totalOfElements": 7
 }

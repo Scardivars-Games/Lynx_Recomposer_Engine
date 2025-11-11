@@ -1,8 +1,8 @@
 {
     "material-name" : "Básico",
-    "fragment-shader-id" : 27,
+    "fragment-shader-id" : 7,
     "fragment-shader-function" : "basic_fragment",
-    "vertex-shader-id" : 27,
+    "vertex-shader-id" : 7,
     "vertex-shader-function" : "basic_vertex",
     "render-queue" : "Opaque"
 }

@@ -6,7 +6,7 @@
 
 
 //FOR NO-EDITOR GAME
-#include <ilen-game/triangle.h>
+#include <ilen-examples/triangle.h>
 //END
 
 using namespace ilen::core;
@@ -96,11 +96,11 @@ namespace ilen{
         //Init all object for no editor.
         auto triangle = engineContext->p_coordinator->createEntity();
         components::ScriptingBridgeComponent scripting{};
-        scripting.bind<Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
+        scripting.bind<ilen::game::Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
         engineContext->p_coordinator->addComponent(triangle, std::move(scripting));
         auto falseCamera = engineContext->p_coordinator->createEntity();
         components::ScriptingBridgeComponent bridge2{};
-        bridge2.bind<FalseCamera>();
+        bridge2.bind<ilen::game::FalseCamera>();
         engineContext->p_coordinator->addComponent(falseCamera, std::move(bridge2));
 
         

@@ -86,7 +86,7 @@ namespace ilen::render {
             //Colores del pixel
             colorAttach.pixelFormat = view.colorPixelFormat;
             pipelineDescriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat;
-            pipelineDescriptor.stencilAttachmentPixelFormat = view.depthStencilPixelFormat;
+            pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
             
             NSError* error = nil;
             

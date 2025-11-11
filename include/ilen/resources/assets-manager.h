@@ -31,8 +31,8 @@ namespace ilen::graphics {
 //Administra una base de datos, en formato JSON, con cada objeto y elemento que administre el motor. Su comportamiento será el de un Singleton.
 namespace ilen::resources {
     //ID de datos predefinidos
-    static const uint32_t ErrorShaderID = 4;
-    static const uint32_t ErrorMaterialID = 3;
+    static const uint32_t ErrorShaderID = 6;
+    static const uint32_t ErrorMaterialID = 4;
 
     class AssetsManager {
         public:

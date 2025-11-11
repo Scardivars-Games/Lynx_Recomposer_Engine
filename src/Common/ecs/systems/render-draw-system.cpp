@@ -160,7 +160,7 @@ namespace ilen::ecs::systems {
 
                         cmd->DrawIndexedInstanced(indexCount, totalOfInstance, offset);
                     }else {
-                        ILEN_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
+                        //ILEN_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
                         //Render en bucle
                         if (!isIntanceBufferSet) {
                             cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());

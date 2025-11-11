@@ -1,5 +1,5 @@
 {
     "shader-file-name": "basic",
-    "shader-dir" : "basic",
+    "shader-dir" : "predefined/basic",
     "shader-name" : "Básico"
 }

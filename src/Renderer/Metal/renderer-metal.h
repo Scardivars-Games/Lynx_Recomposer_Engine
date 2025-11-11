@@ -4,6 +4,7 @@
 #include <ilen/render/renderer.h>
 #include <memory>
 #include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
+#include <dispatch/dispatch.h>
 
 @protocol MTLDevice;
 @protocol MTLCommandQueue;
@@ -11,6 +12,7 @@
 @protocol MTLCommandBuffer;
 @protocol MTLRenderCommandEncoder;
 @class MTKView;
+@protocol CAMetalDrawable;
 
 namespace ilen::render
 {
@@ -38,10 +40,14 @@ namespace ilen::render
             IGPUInstanceBuffer* getInstanceBuffer() override;
         private:
             id<MTLCommandBuffer> _commandBuffer;
+            id<CAMetalDrawable> _currentDrawable;
             void* _frameAutoReleasePool;
 
             std::unique_ptr<IGPUParallelCommandEncoder> _parallelCommandEncoder;
             std::unique_ptr<IGPUInstanceBuffer> _instanceBuffer;
+
+            int MAX_FRAMES_IN_FLIGHT = 1;
+            dispatch_semaphore_t _inFlightSemaphores;
 
             void generateNewMetalLibrary(); //Método fallback que busca todos los archivos fuente de .metal y los compila como un único .metallib
     };

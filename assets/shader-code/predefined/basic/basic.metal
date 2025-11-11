@@ -1,7 +1,4 @@
 #include <metal_stdlib>
-#include <ilen/render/render-constants.h>
-
-#include <metal_stdlib>
 #include <ilen/render/render-constants.h> // Tu header agnóstico
 
 using namespace metal;

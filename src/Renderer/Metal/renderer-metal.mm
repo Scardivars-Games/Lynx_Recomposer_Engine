@@ -25,6 +25,8 @@ namespace ilen::render {
                 ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se logro crear el contexto de Metal. Dispositivo inválido");
             }
             metalView.device = _device;
+            metalView.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
+            metalView.preferredFramesPerSecond = 60;
             _commandQueue = [_device newCommandQueue];
 
             #if TARGET_OS_OSX
@@ -54,6 +56,8 @@ namespace ilen::render {
                     ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Imposible cargar libreria por defecto del motor %@", localError);
                 }
             }
+            
+            _inFlightSemaphores = dispatch_semaphore_create(MAX_FRAMES_IN_FLIGHT);
         }
     }
 
@@ -68,14 +72,45 @@ namespace ilen::render {
     }
 
     void MetalRender::beginFrame() {
+        dispatch_semaphore_wait(_inFlightSemaphores, DISPATCH_TIME_FOREVER);
         _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
         _instanceBuffer->OnBeginFrame();
         
+        _currentDrawable = [metalView currentDrawable];
+        
+        if(!_currentDrawable){
+            _commandBuffer = nil;
+            [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+            _frameAutoReleasePool = nil;
+            return;
+        }
+        
+        //Crear un Render Pass por defecto para opacos y depth buffer
+        MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+        //Color buffer
+        renderPassDescriptor.colorAttachments[0].texture = _currentDrawable.texture;
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+        renderPassDescriptor.colorAttachments[0].clearColor = metalView.clearColor;
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+        
+        //Depth buffer
+        renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+        renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
+        renderPassDescriptor.depthAttachment.clearDepth = 1.0;
+        renderPassDescriptor.depthAttachment.texture = metalView.depthStencilTexture;
+        
         _commandBuffer = [_commandQueue commandBuffer];
-        _parallelCommandEncoder = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer, metalView.currentRenderPassDescriptor);
+        _parallelCommandEncoder = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer, renderPassDescriptor);
     }
 
     void MetalRender::endFrame() {
+        if(!_commandBuffer){
+            if(_currentDrawable == nil){
+                dispatch_semaphore_signal(_inFlightSemaphores);
+            }
+            return;
+        }
+        
             //No necesario en METAL
             if(_parallelCommandEncoder){
                 IRenderer::FinalizeEncoding(_parallelCommandEncoder.get());
@@ -83,11 +118,18 @@ namespace ilen::render {
             }else{
                 ILEN_ERROR_P(DEBUG_PREFIX, "Llamado el end frame sin un válido parallel encoder creado");
             }
+            
+            __block dispatch_semaphore_t semaphore = _inFlightSemaphores;
+        
+            [_commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
+                dispatch_semaphore_signal(semaphore);
+            }];
                 
-            [_commandBuffer presentDrawable:metalView.currentDrawable];
+            [_commandBuffer presentDrawable:_currentDrawable];
             [_commandBuffer commit];
             
             _commandBuffer = nil;
+            _currentDrawable = nil;
         
             [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
             _frameAutoReleasePool = nullptr;

@@ -30,4 +30,16 @@ namespace ilen::ecs::components {
 
         friend class ilen::ecs::systems::TransformSystem;
     };
+
+    struct Traslate_TransformOrder{
+        vec3 traslation;
+    };
+
+    struct Rotation_TransformOrder {
+        vec3 rotation;
+    };
+
+    struct Scale_TransformOrder {
+        vec3 scale;
+    };
 }

@@ -43,10 +43,10 @@ namespace ilen::ecs::systems {
             if (cameraComponent->isPrimary == true) {
                 m_mainCamera = cameraComponent;
             }
-           ILEN_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
+           //ILEN_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
 
             cameraComponent->viewMatrix = matrix::inverse(transformComponent->getWorldMatrix());
-            ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewMatrix).c_str());
+            //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewMatrix).c_str());
 
             if (cameraComponent->projectionType == ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_PERSPECTIVE) {
                 cameraComponent->projectionMatrix = matrix::perspective(Degrees(cameraComponent->fovDegrees), aspectRatio, cameraComponent->nearClip, cameraComponent->farClip, actualGraphicsAPI);
@@ -59,7 +59,7 @@ namespace ilen::ecs::systems {
 
             auto viewProjectionMatrix = cameraComponent->projectionMatrix * cameraComponent->viewMatrix;
             cameraComponent->viewProjectionMatrix = viewProjectionMatrix;
-            ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
+            //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
             cameraComponent->cameraBuffer->writeDataToBuffer(&viewProjectionMatrix, 0 ,0);
         }
     }

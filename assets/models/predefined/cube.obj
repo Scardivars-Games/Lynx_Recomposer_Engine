@@ -1,0 +1,36 @@
+# .obj para un Cubo con UVs
+# 8 Vértices (Posiciones)
+v -0.5 -0.5 0.5
+v 0.5 -0.5 0.5
+v -0.5 0.5 0.5
+v 0.5 0.5 0.5
+v -0.5 0.5 -0.5
+v 0.5 0.5 -0.5
+v -0.5 -0.5 -0.5
+v 0.5 -0.5 -0.5
+
+# 4 Coordenadas de Textura (UVs)
+vt 0.0 0.0
+vt 1.0 0.0
+vt 0.0 1.0
+vt 1.0 1.0
+
+# 6 Caras (12 triángulos), formato v/vt
+# Cara Frontal
+f 1/1 2/2 3/3
+f 3/3 2/2 4/4
+# Cara Trasera
+f 7/1 5/3 6/4
+f 7/1 6/4 8/2
+# Cara Superior
+f 3/1 4/2 5/3
+f 5/3 4/2 6/4
+# Cara Inferior
+f 1/1 7/3 8/4
+f 1/1 8/4 2/2
+# Cara Izquierda
+f 7/1 1/2 5/4
+f 5/4 1/2 3/3
+# Cara Derecha
+f 2/1 8/2 4/3
+f 4/3 8/2 6/4
