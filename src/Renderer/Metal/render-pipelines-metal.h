@@ -16,7 +16,7 @@
 namespace ilen::render {
     using namespace ilen::enumerations;
 
-    class MetalRenderPipeline: public IGPURenderPipeline {
+    class MetalRenderPipeline final: public IGPURenderPipeline {
         public:
             explicit MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, MTKView* view);
             ~MetalRenderPipeline() override;

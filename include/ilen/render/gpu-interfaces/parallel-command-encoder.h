@@ -2,12 +2,31 @@
 
 #include <ilen/render/gpu-interfaces/buffers.h>
 #include <ilen/render/gpu-interfaces/render-encoders.h>
+#include <ilen/render/gpu-interfaces/texture.h>
 
 namespace ilen::render {
     class IRenderer;
 
+    struct IlenEncoderAttachmentDescriptor {
+        IGPUTexture* texture;
+        ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE storeOption;
+        ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE loadOption;
+    };
+
+    struct IlenParallelEncoderDescriptor {
+        //Color attachment
+        std::vector<std::unique_ptr<IlenEncoderAttachmentDescriptor>> colorAttachments;
+
+        //Depth/Stencil
+        std::unique_ptr<IlenEncoderAttachmentDescriptor> depthAttachment;
+        std::unique_ptr<IlenEncoderAttachmentDescriptor> stencilAttachment;
+
+        const char* label = nullptr;
+    };
+
     //Al inicio de cada frame, la GPU genera uno de esto. Luego cada thread del submision le pide un command encoder para codificar.
-    //En caso de que la API no soporte esto, ese hijo será unico y se protegera por un mutex.
+    //En caso de que la API no soporte esto, ese hijo será unico y se protegera por un mutex. Si se requiere algun render pass extra,
+    //la CPU puede generarlos.
     class IGPUParallelCommandEncoder {
         friend class ilen::render::IRenderer;
 

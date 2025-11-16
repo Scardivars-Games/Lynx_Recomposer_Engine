@@ -8,7 +8,7 @@
 @protocol MTLBuffer;
 
 namespace ilen::render {
-    class MetalRenderEncoder: public IGPURenderEncoder {
+    class MetalRenderEncoder final: public IGPURenderEncoder {
         public:
             MetalRenderEncoder(id<MTLRenderCommandEncoder> encoder);
             virtual ~MetalRenderEncoder();
@@ -20,7 +20,7 @@ namespace ilen::render {
             void SetInstancedBuffer(uint32_t slot, IGPUBuffer* buffer) override;
             
             void DrawIndexed(uint32_t indexCount) override;
-            void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t baseInstanceOffset) override;
+            void DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset) override;
             
             void EndEncoding() override;
         private:

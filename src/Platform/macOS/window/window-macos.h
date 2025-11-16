@@ -34,8 +34,7 @@ namespace ilen::window
             AppDelegate* appDelegate = nil;
         
             std::atomic<bool> _windowSizeChanged;
-            uint32_t _newWidth;
-            uint32_t _newHeight;
+            CGSize _drawableSize;
     };
 }
 

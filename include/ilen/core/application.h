@@ -10,6 +10,8 @@
 #include <thread>
 #include <memory>
 
+#include "runtime_options.h"
+
 namespace ilen::application{
     struct ApplicationMetadata {
         std::string applicationName = "";
@@ -39,17 +41,20 @@ namespace ilen::application{
         }
     };
 
-    class Application{
+    class Application final{
         public:
-            static void setFrameRate(int newFramerate) { s_framerateInMiliseconds = 1.0f / newFramerate; }
+            static void setFrameRate(int newFramerate) {
+                s_framerateInMiliseconds = 1.0f / newFramerate;
+                ilen::core::options::RenderingOptions::actualFPS = newFramerate;
+            }
             static float getFrameRate() { return s_framerateInMiliseconds * 1000; }
-            static const std::string getApplicationName() { return s_applicationName; }
-            static const std::string getApplicationDeveloper() { return s_applicationDeveloper; }
-            static const std::string getApplicationVersion() { return s_applicationVersion; }
+            static std::string getApplicationName() { return s_applicationName; }
+            static std::string getApplicationDeveloper() { return s_applicationDeveloper; }
+            static std::string getApplicationVersion() { return s_applicationVersion; }
 
             //Pausa la app hasta el siguiente frame
             static void stopUntilNextFrame() {
-                auto wakeTime = ilen::time::Time::getWakeTime(s_framerateInMiliseconds);
+                const auto wakeTime = ilen::time::Time::getWakeTime(s_framerateInMiliseconds);
                 std::chrono::duration<double, std::milli> margin(1);
                 std::this_thread::sleep_until(wakeTime - margin);
 

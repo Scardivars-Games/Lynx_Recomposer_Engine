@@ -18,7 +18,7 @@ namespace ilen::render {
             virtual void SetInstancedBuffer(uint32_t slot, IGPUBuffer* buffer) = 0;
 
             virtual void DrawIndexed(uint32_t indexCount) = 0;
-            virtual void DrawIndexedInstanced(uint32_t indexCount, uint32_t instanceCount, uint32_t baseInstanceOffset) = 0;
+            virtual void DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset) = 0;
 
             virtual void EndEncoding() = 0;
     };

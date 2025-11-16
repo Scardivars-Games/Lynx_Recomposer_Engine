@@ -7,8 +7,11 @@
 #include <ilen/render/gpu-interfaces/shaders.h>
 #include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
 #include <ilen/render/gpu-interfaces/instance-buffer.h>
-//#include <ilen/resources/shaders-manager.h>
+#include <ilen/render/render-draw-system.h>
 #include <ilen/graphics/shader.h>
+#include <ilen/core/runtime_options.h>
+
+#include "render-draw-system.h"
 
 namespace ilen::graphics
 {
@@ -19,24 +22,36 @@ namespace ilen::resources::shaders {
     class ShaderManager;
 }
 
+namespace ilen::ecs::systems {
+    class RenderDrawSystem;
+}
+
 namespace ilen::render {
     class IShader;
     class IGPURenderPipeline;
     struct IlenRenderPipelineDescriptor;
     class IGPUParallelCommandEncoder;
 
+    //This is intended to be used only by the main thread. Once the parallel Encoder is obtained, it can be used to generate encoder for secondary threads.
     class IRenderer {
+        friend class ilen::ecs::systems::RenderDrawSystem;
+
         public:
             virtual ~IRenderer() = default;
             virtual void beginFrame() = 0;
             virtual void endFrame() = 0;
+            virtual void endEncoding(IGPUParallelCommandEncoder* encoder) = 0;
 
             //Builder for GPU Interfaces
             virtual std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data) = 0;
             virtual std::shared_ptr<IShader> createShader(const ilen::graphics::IlenShader& shaderDescriptor) = 0;
             virtual std::shared_ptr<IGPURenderPipeline> createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor& pipelineDescriptor, ilen::resources::shaders::ShaderManager* shaderManager) = 0;
+            virtual std::unique_ptr<IGPUParallelCommandEncoder> createNewParallelCommandEncoder(const IlenParallelEncoderDescriptor& descriptor) = 0;
+            virtual std::unique_ptr<IGPUTexture> createNewPlatformTexture(const IlenGPUTextureDescriptor& descriptor) = 0;
 
-            virtual IGPUParallelCommandEncoder* getParallelCommandEncoder() = 0;
+            //getters of encoders and buffers.
+            virtual std::unique_ptr<IGPUParallelCommandEncoder> getParallelCommandEncoder() = 0;
+            virtual void returnParallelCommandEncoder(std::unique_ptr<IGPUParallelCommandEncoder> encoder) = 0;
             virtual IGPUInstanceBuffer* getInstanceBuffer() = 0;
 
             static std::unique_ptr<IRenderer> CreateRenderer(void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api);
@@ -48,6 +63,8 @@ namespace ilen::render {
                 }
             }
             static inline const char* DEBUG_PREFIX = "RENDER";
+            bool isParallelEncoderInOtherObject = false; //Is the way to know at the end frame if the parallel encoder is nullptr cause there is no render target, or was given to the one renderer, but it don't return
+            //that or another encoder the be used to present a drawable to screen.
         private:
             static ILEN_GPU_GRAPHICS_API_TYPE actualAPI;
     };

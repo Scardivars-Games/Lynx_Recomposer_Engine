@@ -9,7 +9,7 @@
 
 namespace ilen::render
 {
-    class MetalBuffer : public IGPUBuffer {
+    class MetalBuffer final: public IGPUBuffer {
         public:
             MetalBuffer(id<MTLDevice> device, const IlenBufferDescriptor& descriptor, const void* data, id<MTLCommandQueue> commandQueue);
 

@@ -85,8 +85,18 @@ namespace ilen::render {
             }
             //Colores del pixel
             colorAttach.pixelFormat = view.colorPixelFormat;
-            pipelineDescriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat;
-            pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+            
+            if(ilen::core::options::RenderingOptions::isDepthEnabled){
+                pipelineDescriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat;
+            }else{
+                pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
+            }
+            
+            if(ilen::core::options::RenderingOptions::isStencilEnabled){
+                pipelineDescriptor.stencilAttachmentPixelFormat = view.depthStencilPixelFormat;
+            }else{
+                pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+            }
             
             NSError* error = nil;
             

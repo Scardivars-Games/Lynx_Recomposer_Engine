@@ -69,7 +69,7 @@ namespace ilen::resources::mesh {
                 indexDescriptor.count = mesh.indexBufferData.size();
 
                 link.indexBuffer = renderer->createBuffer(indexDescriptor, mesh.indexBufferData.data());
-                link.indexCount = mesh.indexBufferData.size();
+                link.indexCount = static_cast<uint32_t>(mesh.indexBufferData.size());
                 return link;
             });
 

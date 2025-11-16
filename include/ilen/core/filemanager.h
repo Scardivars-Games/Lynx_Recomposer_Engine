@@ -9,7 +9,7 @@
 using namespace ilen::enumerations;
 
 namespace ilen::core{
-    class FileManager {
+    class FileManager final{
         public:
             static void Init();
             static std::string readFile(const std::string& filename, ILEN_FILE_TYPE category);

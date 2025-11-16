@@ -30,7 +30,7 @@ namespace ilen::ecs::systems {
     using namespace ilen::job_system;    
     using namespace ilen::core;    
 
-    class RenderSystem : public ilen::ecs::System {
+    class RenderSystem final: public ilen::ecs::System {
         public:
             void Init(EngineContext* engineContext);
             void Update();

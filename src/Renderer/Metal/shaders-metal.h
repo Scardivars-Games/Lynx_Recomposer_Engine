@@ -11,7 +11,7 @@
 @protocol MTLLibrary;
 
 namespace  ilen::render {
-    class MetalShader: public IShader {
+    class MetalShader final: public IShader {
     public:
         MetalShader(id<MTLLibrary> globalLibrary, ilen::graphics::IlenShader shaderRecipe);
 

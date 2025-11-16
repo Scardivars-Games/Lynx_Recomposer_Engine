@@ -23,6 +23,12 @@ namespace ilen::time{
                 isTimeInitialized();
                 return s_deltaTime;
             }
+            static float getTimeSinceCurrentFrameStart() {
+                isTimeInitialized();
+                auto now = clock::now();
+                std::chrono::duration<float> total = now - s_lastFrame;
+                return total.count();
+            }
             static void setNewFrame(){
                 isTimeInitialized();
                 auto now = clock::now();

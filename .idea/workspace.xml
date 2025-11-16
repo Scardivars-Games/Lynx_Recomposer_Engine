@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="8" type="long" />
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
+  </component>
+  <component name="CMakePresetLoader">{
+  &quot;useNewFormat&quot;: true
+}</component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
+  <component name="CMakeReloadState">
+    <option name="reloaded" value="true" />
+  </component>
+  <component name="CMakeRunConfigurationManager">
+    <generated>
+      <config projectName="ilen-engine" targetName="ilen-engine" />
+      <config projectName="ilen-engine" targetName="ilen-modules" />
+    </generated>
+  </component>
+  <component name="CMakeSettings">
+    <configurations>
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug" />
+      <configuration PROFILE_NAME="Release" ENABLED="true" CONFIG_NAME="Release" />
+    </configurations>
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="65f713f5-b467-48b0-80c3-45e85b716c0e" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/include/ilen/core/runtime_options.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/texture.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Renderer/Metal/texture-metal.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Renderer/Metal/texture-metal.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/core/application.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/application.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/core/bitflags.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/bitflags.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/core/filemanager.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/filemanager.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/core/lifetime.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/lifetime.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/core/time.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/time.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/headers/enumerations.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/headers/enumerations.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/job-system/job-system.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/job-system/job-system.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/parallel-command-encoder.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/parallel-command-encoder.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/render-encoders.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/render-encoders.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/render/render-constants.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/render-constants.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/render/render-draw-system.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/render-draw-system.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/render/render-system.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/render-system.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/include/ilen/render/renderer.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/renderer.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Common/ecs/systems/render-draw-system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Common/ecs/systems/render-draw-system.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Common/resources/mesh-manager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Common/resources/mesh-manager.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Examples/triangle.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Examples/triangle.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/buffers-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/buffers-metal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/instance-buffer-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/instance-buffer-metal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.mm" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectApplicationVersion">
+    <option name="ide" value="CLion" />
+    <option name="majorVersion" value="2025" />
+    <option name="minorVersion" value="2.4" />
+    <option name="productBranch" value="Classic" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 7
+}</component>
+  <component name="ProjectId" id="35QAniwHYKQZttnMA8WJixr0gHC" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "CMake Application.ilen-engine.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.west.config.association.type.startup.service": "true",
+    "cf.advertisement.text.overridden": "true",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "git-widget-placeholder": "main",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager" selected="CMake Application.ilen-engine">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ilen-engine" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ilen-engine" TARGET_NAME="ilen-engine" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ilen-engine" RUN_TARGET_NAME="ilen-engine">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="ilen-modules" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ilen-engine" TARGET_NAME="ilen-modules" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="CMake Application.ilen-engine" />
+      <item itemvalue="CMake Application.ilen-modules" />
+    </list>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="65f713f5-b467-48b0-80c3-45e85b716c0e" name="Changes" comment="" />
+      <created>1763032091430</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1763032091430</updated>
+      <workItem from="1763032092696" duration="8381000" />
+      <workItem from="1763165471988" duration="574000" />
+      <workItem from="1763174293544" duration="2613000" />
+      <workItem from="1763208406019" duration="10297000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticReloadCMake value="true" />
+  </component>
+</project>

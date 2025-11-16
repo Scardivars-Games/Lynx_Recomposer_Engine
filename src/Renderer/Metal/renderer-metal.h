@@ -13,10 +13,10 @@
 @protocol MTLRenderCommandEncoder;
 @class MTKView;
 @protocol CAMetalDrawable;
+@protocol MTLTexture;
 
-namespace ilen::render
-{
-    class MetalRender : public IRenderer {
+namespace ilen::render {
+    class MetalRender final: public IRenderer {
         public:
             id<MTLDevice> _device;
             id<MTLCommandQueue> _commandQueue;
@@ -30,26 +30,34 @@ namespace ilen::render
             void beginFrame() override;
 
             void endFrame() override;
+            void endEncoding(IGPUParallelCommandEncoder* encoder) override;
 
             std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data = nullptr) override;
             std::shared_ptr<IShader> createShader(const ilen::graphics::IlenShader& shaderDescriptor) override;
-            
             std::shared_ptr<IGPURenderPipeline> createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor& pipelineDescriptor, ilen::resources::shaders::ShaderManager* shaderManager) override;
+            std::unique_ptr<IGPUParallelCommandEncoder> getParallelCommandEncoder() override;
+            std::unique_ptr<IGPUParallelCommandEncoder> createNewParallelCommandEncoder(const IlenParallelEncoderDescriptor& descriptor) override;
+            std::unique_ptr<IGPUTexture> createNewPlatformTexture(const IlenGPUTextureDescriptor& descriptor) override;
 
-            IGPUParallelCommandEncoder* getParallelCommandEncoder() override;
+            void returnParallelCommandEncoder(std::unique_ptr<IGPUParallelCommandEncoder> encoder) override;
             IGPUInstanceBuffer* getInstanceBuffer() override;
         private:
-            id<MTLCommandBuffer> _commandBuffer;
-            id<CAMetalDrawable> _currentDrawable;
+            std::vector<id<MTLCommandBuffer>> _commandBuffer;
             void* _frameAutoReleasePool;
 
-            std::unique_ptr<IGPUParallelCommandEncoder> _parallelCommandEncoder;
-            std::unique_ptr<IGPUInstanceBuffer> _instanceBuffer;
+            std::vector<std::unique_ptr<IGPUParallelCommandEncoder>> _parallelCommandEncoder;
+            std::vector<std::unique_ptr<IGPUInstanceBuffer>> _instanceBuffer;
 
-            int MAX_FRAMES_IN_FLIGHT = 1;
+            const uint8_t MAX_FRAMES_IN_FLIGHT = 3;
+            uint8_t _actualFrame = 0;
             dispatch_semaphore_t _inFlightSemaphores;
+        
+            std::vector<std::unique_ptr<IGPUTexture>> _sceneTexture;
+            std::vector<std::unique_ptr<IGPUTexture>> _depthTexture;
+            std::vector<id<CAMetalDrawable>> _drawables;
 
             void generateNewMetalLibrary(); //Método fallback que busca todos los archivos fuente de .metal y los compila como un único .metallib
+            void generateFrameTextures();
     };
 }
 

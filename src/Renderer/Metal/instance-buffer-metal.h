@@ -8,7 +8,7 @@
 #include "buffers-metal.h"
 
 namespace ilen::render {
-    class MetalInstanceBuffer : public IGPUInstanceBuffer {
+    class MetalInstanceBuffer final : public IGPUInstanceBuffer {
     public:
         MetalInstanceBuffer(id<MTLDevice> device, size_t bufferSize);
         ~MetalInstanceBuffer() override;

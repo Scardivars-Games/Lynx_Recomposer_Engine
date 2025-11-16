@@ -1,5 +1,7 @@
 #pragma once 
 
+#include <cstdint>
+
 namespace ilen::enumerations {
     enum ILEN_ASSET_TYPE {
         ILEN_ASSET_TYPE_MODEL,
@@ -79,5 +81,55 @@ namespace ilen::enumerations {
         Vulkan,
         OpenGL,
         DirectX12,
+    };
+
+    enum class ILEN_GPU_TEXTURE_TYPE {
+        ILEN_GPU_TEXTURE_TYPE_2D,
+        ILEN_GPU_TEXTURE_TYPE_3D,
+        ILEN_GPU_TEXTURE_TYPE_CUBE_MAP
+    };
+
+    enum class ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE {
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN,
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH,
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_STENCIL, //Texture for depth + stencil.
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT_HALF, //16 bit - one channel.
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT, //32bit - one channel
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF, //16 bits - two channels
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2, //32 bits - two channels
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT3_HALF, //16 bits - three channels
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT3, //32 bits - three channels
+        ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID,
+    };
+
+    //Usos que tendra la textura
+    enum ILEN_GPU_TEXTURE_USAGE_TYPE{
+        ILEN_GPU_TEXTURE_USAGE_RENDERTARGET = 1 << 0,
+        ILEN_GPU_TEXTURE_USAGE_SHADER_READ = 1 << 1,
+        ILEN_GPU_TEXTURE_USAGE_SHADER_WRITE = 1 << 2,
+        //ILEN_GPU_TEXTURE_USAGE_DEPTHSTENCIL = 1 << 3,
+    };
+
+    enum class ILEN_GPU_TEXTURE_PRESENTATION_TYPE {
+        ILEN_GPU_TEXTURE_PRESENTATION_PRESENT,//Esto significa que la textura se muestra en pantalla. En metal sería obtener el drawable (CAMetalDrawable).
+        ILEN_GPU_TEXTURE_PRESENTATION_NOTPRESENT,
+    };
+
+    //memorias en GPU que propiedades deben tener
+    enum class ILEN_GPU_MEMORY_PROPERTY_TYPE {
+        ILEN_GPU_MEMORY_PROPERTY_PRIVATE, //Visible solo por la GPU
+        ILEN_GPU_MEMORY_PROPERTY_SHARED, //Visible tanto por la GPU como la CPU.
+    };
+
+    enum class ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE {
+        ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE, //Almacena esa textura
+        ILEN_GPU_RENDER_PASS_STORE_OPTION_DISCARD, //La elimina
+        ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE, //Me da igual, el driver optimiza
+    };
+
+    enum class ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE {
+        ILEN_GPU_RENDER_PASS_LOAD_OPTION_LOAD, //Carga el valor de la textura
+        ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR, //La limpia a un valor por defecto antes de usarla.
+        ILEN_GPU_RENDER_PASS_LOAD_OPTION_DONT_CARE, //Me da igual, el driver optimiza
     };
 }

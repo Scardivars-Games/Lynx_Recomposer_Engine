@@ -5,15 +5,40 @@
 #include <ilen/render/gpu-interfaces/render-pipelines.h>
 #include <ilen/job-system/job-system.h>
 
+namespace ilen {
+    struct EngineContext;
+}
+
+namespace ilen::resources {
+    namespace materials {
+        class MaterialManager;
+    }
+    namespace mesh {
+        class MeshManager;
+    }
+}
+
+namespace ilen::render {
+    class IGPURenderPipeline;
+}
+
+namespace ilen::ecs {
+    class ECSCoordinator;
+}
+
 namespace ilen::ecs::systems {
-    using namespace ilen::resources::render_pipeline;
+    class CameraSystem;
+
     using namespace ilen::job_system;
     using namespace ilen::resources::materials;
     using namespace ilen::resources::mesh;
+    using namespace ilen::render;
+    //using namespace ilen::resources::render_pipeline;
 
-    class RenderDrawSystem: public ilen::ecs::System {
+
+    class RenderDrawSystem final: public ilen::ecs::System {
         public:
-            void Init(const EngineContext* engineContext);
+            void Init(const ilen::EngineContext* engineContext);
             void Update();
 
         private:
@@ -21,7 +46,7 @@ namespace ilen::ecs::systems {
 
             ECSCoordinator* p_Coordinator = nullptr;
             JobSystem* p_JobSystem = nullptr;
-            IRenderer* p_Renderer = nullptr;
+            ilen::render::IRenderer* p_Renderer = nullptr;
             CameraSystem* p_cameraSystem = nullptr;
             MaterialManager* p_matManager = nullptr;
             MeshManager* p_meshManager = nullptr;

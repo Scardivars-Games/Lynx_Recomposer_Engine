@@ -61,19 +61,21 @@ namespace  ilen::render {
     }
 
     const void* MetalShader::getNativeShaderFromFunctionName(std::string functionName){
-        auto it = _shaderFunctions.find(functionName);
-        if (it != _shaderFunctions.end()) {
-            return it->second;
+        @autoreleasepool {
+            auto it = _shaderFunctions.find(functionName);
+            if (it != _shaderFunctions.end()) {
+                return it->second;
+            }
+            //Si no existe,se genera la libreria y añade
+            auto newFunction = [_shaderLibrary newFunctionWithName:[NSString stringWithUTF8String:functionName.c_str()]];
+            if(!newFunction){
+                ILEN_ERROR_P(DEBUG_PREFIX, "La funcion %s no fue encontrada en la biblioteca de Metal", functionName.c_str());
+            }
+            
+            void* newFunctionPtr = (__bridge void*)newFunction;
+            _shaderFunctions.emplace(functionName, newFunctionPtr);
+            return newFunctionPtr;
         }
-        //Si no existe,se genera la libreria y añade
-        auto newFunction = [_shaderLibrary newFunctionWithName:[NSString stringWithUTF8String:functionName.c_str()]];
-        if(!newFunction){
-            ILEN_ERROR_P(DEBUG_PREFIX, "La funcion %s no fue encontrada en la biblioteca de Metal", functionName.c_str());
-        }
-        
-        void* newFunctionPtr = (__bridge void*)newFunction;
-        _shaderFunctions.emplace(functionName, newFunctionPtr);
-        return newFunctionPtr;
     }
 }
 

@@ -2,6 +2,7 @@
 #if defined (__APPLE__) && ILEN_MACOS
 
 #include "window/window-macos.h"
+#include <ilen/headers/ilen-logs.h>
 
 #import <Cocoa/Cocoa.h>
 #import <MetalKit/MetalKit.h>
@@ -37,10 +38,7 @@ using namespace ilen::enumerations;
     if(self.nativeWindow && self.nativeWindow->nativeView){
         MTKView* view = self.nativeWindow->nativeView;
         
-        CGSize newPixelSize = view.drawableSize;
-        
-        self.nativeWindow->_newWidth = (uint32_t)newPixelSize.width;
-        self.nativeWindow->_newHeight = (uint32_t)newPixelSize.height;
+        self->_nativeWindow->_drawableSize = view.drawableSize;
         
         self.nativeWindow->_windowSizeChanged.store(true);
     }
@@ -109,10 +107,10 @@ namespace ilen::window {
             //Creación de la vista principal
             nativeView = [[MTKView alloc] initWithFrame:frame];
             [nativeWindow setContentView:nativeView];
+            
 
-            CGSize newPixelSize = nativeView.drawableSize;
-            _newWidth = (uint32_t)newPixelSize.width;
-           _newHeight = (uint32_t)newPixelSize.height;
+            _drawableSize = nativeView.drawableSize;
+            
 
             _windowSizeChanged.store(true);
             
@@ -137,8 +135,13 @@ namespace ilen::window {
             return false;
         }
         
-        outWidth = _newWidth;
-        outHeight = _newHeight;
+        outWidth = _drawableSize.width;
+        outHeight = _drawableSize.height;
+        //nativeView.drawableSize = nativeView.bounds.size;
+        CAMetalLayer* layer = (CAMetalLayer*)nativeView.layer;
+        [layer setDrawableSize:_drawableSize];
+        
+        ILEN_LOG("Drawable Size: %i x %i. Screen bounds: %i x %i", nativeView.drawableSize.width, nativeView.drawableSize.height, nativeView.bounds.size.width, nativeView.bounds.size.height);
         
         _windowSizeChanged.store(false);
         return true;

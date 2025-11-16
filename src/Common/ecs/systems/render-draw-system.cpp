@@ -1,5 +1,6 @@
 #include <ilen/render/render-draw-system.h>
 #include <ilen/render/render-constants.h>
+#include <ilen/core/runtime_options.h>
 #include <ilen/transform/transform-component.h>
 
 
@@ -35,6 +36,7 @@ namespace ilen::ecs::systems {
         if (!encoder) {
             return; //No hay un encoder al que llamar para dibujar
         }
+        auto encoderPtr = encoder.get();
 
         std::vector<RenderItem> renderItems;
         renderItems.reserve(entities.size());
@@ -68,6 +70,14 @@ namespace ilen::ecs::systems {
         }
 
         if (renderItems.empty()) {
+            if (core::options::RenderingOptions::isPostProcessEnabled) {
+                IRenderer::FinalizeEncoding(encoderPtr);
+                //Cambiar encoder por el de post process.
+
+            }
+
+
+            p_Renderer->returnParallelCommandEncoder(std::move(encoder));
             return;
         }
 
@@ -82,20 +92,20 @@ namespace ilen::ecs::systems {
         size_t itemsPerThread = (totalOfItem + numberOfThreads - 1) / numberOfThreads;
 
         std::vector<std::future<void>> futures;
-
+        
         for (size_t i = 0; i < numberOfThreads; i++) {
             size_t chunckStart = i * itemsPerThread;
             size_t chunckEnd = std::min(chunckStart + itemsPerThread, totalOfItem);
 
             if (chunckStart >= chunckEnd) continue;
 
-            futures.push_back(p_JobSystem->SubmitJob( [this, encoder, &renderItems, chunckStart, chunckEnd, instanceBuffer]() {
+            futures.push_back(p_JobSystem->SubmitJob( [this, encoderPtr, &renderItems, chunckStart, chunckEnd, instanceBuffer]() {
                 //Cache para el batching
                 IGPURenderPipeline* lastPSO = nullptr;
                 uint16_t lastMaterialID = 0;
                 uint16_t lastMeshID = 0;
 
-                auto cmd = encoder->GetThreadEncoder();
+                auto cmd = encoderPtr->GetThreadEncoder();
 
                 std::vector<mat4> matrixVector;
                 bool isIntanceBufferSet = false;
@@ -188,6 +198,12 @@ namespace ilen::ecs::systems {
         for (auto& future : futures) {
             future.wait();
         }
+        if (core::options::RenderingOptions::isPostProcessEnabled) {
+            //Finalizar encoder, liberar, y asignarlo otro puntero. TODO
+        }
+
+
+        p_Renderer->returnParallelCommandEncoder(std::move(encoder));
 
         //El End encoding lo llama el hilo principal.
     }

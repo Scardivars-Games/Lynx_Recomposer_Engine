@@ -59,7 +59,7 @@ namespace ilen {
         std::shared_ptr<ilen::ecs::systems::CameraSystem> p_cameraSystem;
     };
 
-    class AppRuntime {
+    class AppRuntime final{
         public:
             static AppRuntime& getInstance();
             void init(const application::ApplicationMetadata &metadata); //Inicia el motor

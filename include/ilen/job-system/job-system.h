@@ -15,7 +15,7 @@
 namespace ilen::job_system {
     using Job = std::function<void()>;
 
-    class JobSystem {
+    class JobSystem final{
         public:
             //Inicializa el job system.
             void Initializate() {
