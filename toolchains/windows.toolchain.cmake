@@ -1,0 +1,5 @@
+set(CMAKE_SYSTEM_NAME Windows)
+
+set(CMAKE_C_COMPILER "cl")
+set(CMAKE_CXX_COMPILER "cl")
+set(CMAKE_RC_COMPILER "rc")
