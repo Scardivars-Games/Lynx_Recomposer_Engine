@@ -3,6 +3,7 @@ build
 build-ios
 build_macOS
 build-macOS
+.vs
 .cache
 .DS_Store
 .vscode
