@@ -3,6 +3,7 @@
 #include <string>
 #include <ilen/core/exceptions.h>
 #include <mutex>
+#include <stdarg.h>
 
 namespace ilen::internal{
     class Debug {

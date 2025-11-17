@@ -80,9 +80,4 @@
         ilen::internal::Debug::ExecuteError(format, prefixBuffer, ##__VA_ARGS__); \
     } while (0)
 
-#define ILEN_FATAL_ERROR_P(prefix, format, ...) \
-    do { \
-        char prefixBuffer[1024]; \
-        snprintf(prefixBuffer, sizeof(prefixBuffer), "%s (%s:%d)", prefix, __ILEN_FILENAME__, __LINE__); \
-        ilen::internal::Debug::FatalError(format, prefixBuffer); \
-    } while (0)
+#define ILEN_FATAL_ERROR_P(prefix, format, ...) do { char prefixBuffer[1024]; snprintf(prefixBuffer, sizeof(prefixBuffer), "%s (%s:%d)", prefix, __ILEN_FILENAME__, __LINE__); ilen::internal::Debug::FatalError(format, prefixBuffer, ##__VA_ARGS__); } while (0)

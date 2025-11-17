@@ -1,5 +1,7 @@
 //Este punto de entrada es válido para muchos sistemas operativos, pero no para iOS
+#ifdef __APPLE__
 #include <TargetConditionals.h>
+#endif
 
 #if !TARGET_OS_IOS //Si esta app no es de iOS
 #include <ilen/headers/core.h>

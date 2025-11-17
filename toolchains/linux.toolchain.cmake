@@ -1,0 +1,40 @@
+set(CMAKE_SYSTEM_NAME Linux)
+
+if(NOT DEFINED TARGET_ARCH)
+set(TARGET_ARCH "native" CACHE STRING "Target Architecture for Linux Build")
+endif()
+
+string(TOLOWER "${TARGET_ARCH}" TARGET_ARCH_LOWER)
+
+if("${TARGET_ARCH_LOWER}" STREQUAL "arm64")
+
+    #ARM64 build options
+    message(STATUS "Building for Linux in arm64")
+    set(CMAKE_SYSTEM_PROCESSOR aarch64)
+    set(TOOLCHAIN_PREFIX aarch64-linux-gnu-)
+
+elseif("${TARGET_ARCH_LOWER}" STREQUAL "x86_64")
+
+    #x86_64 build
+    message(STATUS "Building for Linux in x86_64")
+    set(CMAKE_SYSTEM_PROCESSOR x86_64)
+    set(TOOLCHAIN_PREFIX x86_64-linux-gnu-)
+
+elseif("${TARGET_ARCH_LOWER}" STREQUAL "native")
+
+    message(STATUS "Setting native build in linux")
+    unset(CMAKE_FIND_ROOT_PATH)
+    set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM BOTH)
+    set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY BOTH)
+    set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+    return()
+endif()
+
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
