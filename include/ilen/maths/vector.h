@@ -153,9 +153,9 @@ namespace ilen::maths::vector{
     float32_t magnitude(const Vector<T, N>& v) {
         float32_t data = 0;
         for(size_t i = 0; i < N; i++){
-            data += pow(v[i], 2);
+            data += (float32_t)pow(v[i], 2);
         }
-        data = sqrt(data);
+        data = (float32_t)sqrt(data);
         return data;
     };
 

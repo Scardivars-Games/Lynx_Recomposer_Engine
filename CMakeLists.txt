@@ -21,7 +21,7 @@ set(APP_VERSION "0.0.1")
 set(APP_BUILD_NUMBER "1")
 set(APP_COPYRIGHT "Copyright (c) 2025 Scardivar's Games. All rights reserved.")
 
-file(GLOB_RECURSE PROJECT_SOURCES src/*.cpp)
+file(GLOB_RECURSE PROJECT_SOURCES src/main.cpp src/Common/*.cpp src/Examples/*.cpp)
 
 if(NOT APPLE)
     add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
@@ -198,6 +198,13 @@ if(APPLE)
         "-framework MetalKit" 
         "-framework Metal"
     )
+elseif(LINUX)
+    message("Configuring for Linux")
+
+    file(GLOB_RECURSE NATIVE_SOURCES src/Platform/linux/*.cpp src/Renderer/Vulkan/*.cpp)
+    set(NATIVE_HEADERS src/Platform/linux src/Renderer/Vulkan)
+            target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
+        target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
 endif()
 
 add_dependencies(${PROJECT_NAME} ILEN_METAL_COMPILER)
@@ -209,4 +216,6 @@ if(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_MACOS=1;ILEN_SOURCES_FOLDER=\"${CMAKE_SOURCE_DIR}\"")
 elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_MOBILE=1;ILEN_IOS=1")
+elseif(LINUX)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_LINUX=1")
 endif()

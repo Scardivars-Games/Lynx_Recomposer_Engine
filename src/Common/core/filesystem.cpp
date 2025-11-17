@@ -38,13 +38,14 @@ std::filesystem::path getFilePath(ILEN_FILE_TYPE category){
     return FileManager::getApplicationResourcesPath() / resourceSpecificFolder;
 } 
 
+/*
 #if !defined (__APPLE__)
 void FileManager::Init(){
 
     isInited = true;
 }
 #endif
-
+*/
 
 std::string FileManager::readFile(const std::string& filename, ILEN_FILE_TYPE category) {
     auto finalFileRoute = getFilePath(category) / filename;
