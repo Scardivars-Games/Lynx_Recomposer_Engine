@@ -51,6 +51,7 @@ namespace ilen{
         //pGameWindow = new GameWindow(&metadata);
         engineContext->p_gameWindow = IWindow::CreateWindow(metadata);
 
+#if !IGNORE_RENDERING
         ILEN_LOG_P(DEBUG_PREFIX, "Creando la superficie para el dibujo");
         engineContext->p_gameRenderer = IRenderer::CreateRenderer(engineContext->p_gameWindow->getSurface(), ILEN_GPU_GRAPHICS_API_TYPE::Auto);
 
@@ -60,6 +61,7 @@ namespace ilen{
         engineContext->p_shaderManager = std::make_unique<ilen::resources::shaders::ShaderManager>(engineContext.get());
         engineContext->p_materialManager = std::make_unique<ilen::resources::materials::MaterialManager>(engineContext.get());
         engineContext->p_renderPipelineManager = std::make_unique<ilen::resources::render_pipeline::PipelineManager>(engineContext.get());
+
 
         //Registro sistemas.
         //Transform system (space properties of an object)
@@ -113,6 +115,12 @@ namespace ilen{
         engineContext->p_cameraSystem->Init(engineContext.get());
         //RenderDraw System.
         engineContext->p_renderDrawSystem->Init(engineContext.get());
+#endif
+
+#if TEST_ERROR_WINDOW_AT_START
+    ILEN_EXECUTE_ERROR_P("TEST_ERROR_DIALOG", "This is a test dialog screen manually launched. Remove the target compile definition TEST_ERROR_WINDOW_AT_START to reanude normal app work");
+#endif
+
         ilen::time::Time::setNewFrame();
     }
 
@@ -120,7 +128,7 @@ namespace ilen{
         engineContext->p_gameWindow->processEvents();//Actualizamos eventos de la ventana o OS
 
         //ILEN_LOG_P(DEBUG_PREFIX, "Window size, %i x %i", engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight());
-
+#if !IGNORE_RENDERING
         engineContext->p_scriptingSystem->Update(); //Hacemos todas las modificaciones que pida el códigos
         engineContext ->p_scriptingSystem->LateUpdate(); //Hacemos las modificaciones que deben hacerse tras el Update de todos los elementos del juegos
 
@@ -135,6 +143,7 @@ namespace ilen{
             engineContext->p_renderDrawSystem->Update();
             engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
         }
+#endif
         application::Application::stopUntilNextFrame();
         ilen::time::Time::setNewFrame();
     }

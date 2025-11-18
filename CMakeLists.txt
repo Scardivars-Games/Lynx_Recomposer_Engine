@@ -203,8 +203,32 @@ elseif(LINUX)
 
     file(GLOB_RECURSE NATIVE_SOURCES src/Platform/linux/*.cpp src/Renderer/Vulkan/*.cpp)
     set(NATIVE_HEADERS src/Platform/linux src/Renderer/Vulkan)
-            target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
-        target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
+    target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
+
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(XCB REQUIRED xcb)
+    pkg_check_modules(XCB_WM REQUIRED xcb-ewmh xcb-icccm)
+    #pkg_check_modules(XCB_EWMH REQUIRED xcb-ewmh)
+    #pkg_check_modules(XCB_ICCM REQUIRED xcb-iccm)
+
+    target_include_directories(${PROJECT_NAME} PRIVATE ${XCB_INCLUDE_DIRS} ${XCB_EWMH_INCLUDE_DIRS} ${XCB_ICCCM_INCLUDE_DIRS})
+    target_link_directories(${PROJECT_NAME} PRIVATE ${XCB_LIBRARY_DIRS} ${XCB_EWMH_LIBRARY_DIRS} ${XCB_ICCCM_LIBRARY_DIRS})
+    #target_link_libraries(${PROJECT_NAME} PRIVATE ${XCB_LIBRARIES} ${XCB_EWMH_LIBRARIES} ${XCB_ICCCM_LIBRARIES})
+    target_link_libraries(${PROJECT_NAME} PRIVATE xcb xcb-ewmh xcb-icccm)
+    target_compile_options(${PROJECT_NAME} PRIVATE ${XCB_CFLAGS_OTHER})
+
+    set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
+
+    # Ejecutable y DLLs/.so siempre dentro de build/IlusionsEngine/
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
+
+    #iOS need also assets folder in the bundle
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets/"
+    )
 endif()
 
 add_dependencies(${PROJECT_NAME} ILEN_METAL_COMPILER)
@@ -218,4 +242,11 @@ elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_MOBILE=1;ILEN_IOS=1")
 elseif(LINUX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_LINUX=1")
+elseif(WIN32)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_WINDOWS=1")
 endif()
+
+
+#DEFINITIONS PARA PRUEBAS EN EL MOTOR
+target_compile_definitions(${PROJECT_NAME} PRIVATE "IGNORE_RENDERING=1") #Ignora el sistema de renderizado. Util para probar las ventanas sin nada más de por medio
+target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=1") #Lanza una error window al empezar para revisar que se vea correctamente

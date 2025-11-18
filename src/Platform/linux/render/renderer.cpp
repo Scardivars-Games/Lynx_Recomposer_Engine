@@ -1,5 +1,6 @@
 #if ILEN_LINUX
 #include <ilen/render/renderer.h>
+#include <renderer-vulkan.h>
 
 using namespace ilen::render;
 
@@ -13,6 +14,7 @@ std::unique_ptr<IRenderer> IRenderer::CreateRenderer(void* native_surface, ILEN_
     }
 
     actualAPI = api;
-    
+
+    return std::make_unique<VulkanRender>(native_surface);
 }
 #endif

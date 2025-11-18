@@ -56,7 +56,7 @@ namespace ilen::render {
 
             static std::unique_ptr<IRenderer> CreateRenderer(void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api);
             static ILEN_GPU_GRAPHICS_API_TYPE getActualGraphicsAPI() { return actualAPI; }
-    protected:
+        protected:
             static void FinalizeEncoding(IGPUParallelCommandEncoder* commandEncoder) {
                 if (commandEncoder) {
                     commandEncoder->EndEncoding();

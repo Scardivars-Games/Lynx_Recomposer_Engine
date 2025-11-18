@@ -31,43 +31,32 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="65f713f5-b467-48b0-80c3-45e85b716c0e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/include/ilen/core/runtime_options.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/texture.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Renderer/Metal/texture-metal.h" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Renderer/Metal/texture-metal.mm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/codeStyles/Project.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/core/application.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/application.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/core/bitflags.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/bitflags.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/core/filemanager.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/filemanager.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Renderer/Vulkan/renderer-vulkan.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/Renderer/Vulkan/renderer-vulkan.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/7269aea2-686a-49ca-b163-c79e3abf99d5.vsidx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/97ef36d9-05fe-445a-adb0-f767b3f00ec7.vsidx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/9c5a8f90-5007-40f1-b897-423d82058076.vsidx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/b27e8b61-9e27-4f1f-bbf0-8ddc610adc63.vsidx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/.wsuo" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/Browse.VC.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/DocumentLayout.backup.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/DocumentLayout.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine/v18/workspaceFileList.bin" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/ProjectSettings.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/VSWorkspaceState.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/cmake.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/launch.vs.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.vs/slnx.sqlite" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/ilen/core/lifetime.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/lifetime.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/core/time.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/time.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/headers/enumerations.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/headers/enumerations.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/job-system/job-system.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/job-system/job-system.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/parallel-command-encoder.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/parallel-command-encoder.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/render-encoders.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/gpu-interfaces/render-encoders.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/render/render-constants.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/render-constants.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/render/render-draw-system.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/render-draw-system.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/render/render-system.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/render-system.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/include/ilen/render/renderer.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/renderer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Common/ecs/systems/render-draw-system.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Common/ecs/systems/render-draw-system.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Common/resources/mesh-manager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Common/resources/mesh-manager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Examples/triangle.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Examples/triangle.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/macOS/window/window-macos.mm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/buffers-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/buffers-metal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/instance-buffer-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/instance-buffer-metal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/parallel-command-encoder-metal.mm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-encoders-metal.mm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/render-pipelines-metal.mm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/renderer-metal.mm" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.mm" beforeDir="false" afterPath="$PROJECT_DIR$/src/Renderer/Metal/shaders-metal.mm" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Common/core/lifetime.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Common/core/lifetime.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Platform/linux/render/renderer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/render/renderer.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Platform/linux/window/alert-box-linux.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/window/alert-box-linux.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -77,6 +66,12 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock:///dummy.cpp" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="ProjectApplicationVersion">
     <option name="ide" value="CLion" />
@@ -92,38 +87,37 @@
   <component name="ProjectLevelVcsManager">
     <ConfirmationsSetting value="2" id="Add" />
   </component>
+  <component name="ProjectStatusUIService">{
+  &quot;uiKindId&quot;: &quot;Widget&quot;
+}</component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "CMake Application.ilen-engine.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.RadMigrateCodeStyle": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "RunOnceActivity.readMode.enableVisualFormatting": "true",
-    "RunOnceActivity.west.config.association.type.startup.service": "true",
-    "cf.advertisement.text.overridden": "true",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;CMake Application.ilen-engine.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.RadMigrateCodeStyle&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.west.config.association.type.startup.service&quot;: &quot;true&quot;,
+    &quot;cf.advertisement.text.overridden&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/odaniel/work/Ilusions-Engine&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="CMake Application.ilen-engine">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="ilen-engine" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="ilen-engine" TARGET_NAME="ilen-engine" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="ilen-engine" RUN_TARGET_NAME="ilen-engine">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -150,6 +144,19 @@
       <workItem from="1763165471988" duration="574000" />
       <workItem from="1763174293544" duration="2613000" />
       <workItem from="1763208406019" duration="10297000" />
+      <workItem from="1763435678639" duration="2337000" />
+      <workItem from="1763438265862" duration="1075000" />
+      <workItem from="1763468212241" duration="1225000" />
+      <workItem from="1763469476554" duration="127000" />
+      <workItem from="1763469967651" duration="1799000" />
+      <workItem from="1763478574433" duration="907000" />
+      <workItem from="1763481737201" duration="1539000" />
+      <workItem from="1763485765980" duration="2131000" />
+      <workItem from="1763495758887" duration="846000" />
+      <workItem from="1763497370984" duration="1599000" />
+      <workItem from="1763498993379" duration="2588000" />
+      <workItem from="1763501606404" duration="578000" />
+      <workItem from="1763502195873" duration="10000" />
     </task>
     <servers />
   </component>

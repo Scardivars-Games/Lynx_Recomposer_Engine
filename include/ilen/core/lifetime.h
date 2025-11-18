@@ -66,6 +66,7 @@ namespace ilen {
             void update() const; //Ejecuta el loop del motor
             void shutdown() const; //Detiene el motor
             bool isRunning() const;
+            EngineContext* getEngineContext() const { return engineContext.get(); }
         private:
             AppRuntime() = default;
             const static inline char* DEBUG_PREFIX = "APP_RUNTIME";
