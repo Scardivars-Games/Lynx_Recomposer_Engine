@@ -31,32 +31,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="65f713f5-b467-48b0-80c3-45e85b716c0e" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/Renderer/Vulkan/renderer-vulkan.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/Renderer/Vulkan/renderer-vulkan.h" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/compile-linux.sh" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/7269aea2-686a-49ca-b163-c79e3abf99d5.vsidx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/97ef36d9-05fe-445a-adb0-f767b3f00ec7.vsidx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/9c5a8f90-5007-40f1-b897-423d82058076.vsidx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/FileContentIndex/b27e8b61-9e27-4f1f-bbf0-8ddc610adc63.vsidx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/.wsuo" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/Browse.VC.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/DocumentLayout.backup.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine.slnx/v18/DocumentLayout.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/Ilusions-Engine/v18/workspaceFileList.bin" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/ProjectSettings.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/VSWorkspaceState.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/cmake.db" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/launch.vs.json" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.vs/slnx.sqlite" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/core/lifetime.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/core/lifetime.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/include/ilen/render/renderer.h" beforeDir="false" afterPath="$PROJECT_DIR$/include/ilen/render/renderer.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Common/core/lifetime.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Common/core/lifetime.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Platform/linux/render/renderer.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/render/renderer.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Platform/linux/window/alert-box-linux.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/window/alert-box-linux.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/Platform/linux/window/window-linux.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -157,6 +133,8 @@
       <workItem from="1763498993379" duration="2588000" />
       <workItem from="1763501606404" duration="578000" />
       <workItem from="1763502195873" duration="10000" />
+      <workItem from="1763504154182" duration="25000" />
+      <workItem from="1763504204972" duration="1811000" />
     </task>
     <servers />
   </component>
