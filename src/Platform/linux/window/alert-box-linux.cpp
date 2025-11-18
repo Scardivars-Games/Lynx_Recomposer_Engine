@@ -19,7 +19,7 @@ namespace ilen::window::box {
 
     void ShowErrorDialogBox(const std::string& title, const std::string& message) {
         const std::string cmd =
-                    "zenity --error --no-markup --width=800 --height=300 "
+                    "zenity --error --no-markup --width=500 --height=300 "
                     "--title=\"" + title + "\" "
                     "--text=\"" + message + "\" "
                     "2>/dev/null || "                     // si zenity falla → pasa al siguiente
