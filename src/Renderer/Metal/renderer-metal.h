@@ -54,6 +54,7 @@ namespace ilen::render {
         
             std::vector<std::unique_ptr<IGPUTexture>> _sceneTexture;
             std::vector<std::unique_ptr<IGPUTexture>> _depthTexture;
+            std::vector<std::unique_ptr<IGPUTexture>> _drawableTexture;
             std::vector<id<CAMetalDrawable>> _drawables;
 
             void generateNewMetalLibrary(); //Método fallback que busca todos los archivos fuente de .metal y los compila como un único .metallib

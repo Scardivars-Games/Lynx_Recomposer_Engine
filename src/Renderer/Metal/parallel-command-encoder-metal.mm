@@ -6,11 +6,39 @@
 namespace ilen::render {
     MetalParallelCommandEncoder::MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, const IlenParallelEncoderDescriptor& descriptor){
         MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-        /*for(size_t i = 0; i < descriptor.colorAttachments.size(); i++){
-            renderPassDescriptor.colorAttachments[i] =
-        }*/
         
-        _parallelEncoder = [buffer parallelRenderCommandEncoderWithDescriptor:descriptor];
+        //Asignando los color attachment del render pass
+        for(size_t i = 0; i < descriptor.colorAttachments.size(); i++){
+            if(descriptor.colorAttachments[i] != nullptr){
+                id<MTLTexture> texture = (__bridge id<MTLTexture>)descriptor.colorAttachments[i]->texture->getNativeTexture();
+                renderPassDescriptor.colorAttachments[i].texture = texture;
+                auto clearColor = descriptor.colorAttachments[i]->clearColor;
+                renderPassDescriptor.colorAttachments[i].clearColor = MTLClearColor(clearColor.red, clearColor.green, clearColor.blue, 1.0); //Esto debe venir normalmente de la camara.
+                renderPassDescriptor.colorAttachments[i].storeAction = transformEngineToNativeStoreOption(descriptor.colorAttachments[i]->storeOption);
+                renderPassDescriptor.colorAttachments[i].loadAction = transformEngineToNativeLoadOption(descriptor.colorAttachments[i]->loadOption);
+            }
+        }
+        
+        //Asignando el attachment para la profundidad
+        if(descriptor.depthAttachment != nullptr){
+            id<MTLTexture> texture = (__bridge id<MTLTexture>)descriptor.depthAttachment->texture->getNativeTexture();
+            renderPassDescriptor.depthAttachment.texture = texture;
+            renderPassDescriptor.depthAttachment.clearDepth = 1;
+            renderPassDescriptor.depthAttachment.loadAction = transformEngineToNativeLoadOption(descriptor.depthAttachment->loadOption);
+            renderPassDescriptor.depthAttachment.storeAction = transformEngineToNativeStoreOption(descriptor.depthAttachment->storeOption);
+        }
+        
+        //Asignando el attachment para el stencil
+        if(descriptor.stencilAttachment != nullptr){
+            id<MTLTexture> texture = (__bridge id<MTLTexture>)descriptor.stencilAttachment->texture->getNativeTexture();
+            renderPassDescriptor.stencilAttachment.texture = texture;
+            renderPassDescriptor.stencilAttachment.clearStencil = 0;
+            renderPassDescriptor.stencilAttachment.loadAction = transformEngineToNativeLoadOption(descriptor.stencilAttachment->loadOption);
+            renderPassDescriptor.stencilAttachment.storeAction = transformEngineToNativeStoreOption(descriptor.stencilAttachment->storeOption);
+        }
+        
+        _parallelEncoder = [buffer parallelRenderCommandEncoderWithDescriptor:renderPassDescriptor];
+        _parallelEncoder.label = [NSString stringWithUTF8String: descriptor.label];
         [_parallelEncoder retain];
     }
 

@@ -29,6 +29,14 @@ MetalTexture::MetalTexture(const IlenGPUTextureDescriptor& descriptor, MTKView* 
     }
 }
 
+MetalTexture::MetalTexture(id<MTLTexture> givenNativeTexture){
+    _texture = givenNativeTexture;
+    [_texture retain]; //Si no la retengo, al terminar el Drawable, se perderan todas las referencias y se destruira la textura, lo cual hace que crashee el programa al llamar al destructor de esta implementación.
+    
+    _texWidth = static_cast<uint32_t>(givenNativeTexture.width);
+    _texHeight = static_cast<uint32_t>(givenNativeTexture.height);
+}
+
 MetalTexture::~MetalTexture(){
     if(_texture != nullptr){
         [_texture release];
@@ -92,3 +100,4 @@ MTLStorageMode MetalTexture::transformEngineToNativeStorageMode(enumerations::IL
 }
 
 #endif
+

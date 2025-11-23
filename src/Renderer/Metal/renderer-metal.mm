@@ -75,6 +75,7 @@ namespace ilen::render {
             _depthTexture.resize(MAX_FRAMES_IN_FLIGHT);
             _commandBuffer.resize(MAX_FRAMES_IN_FLIGHT);
             _drawables.resize(MAX_FRAMES_IN_FLIGHT);
+            _drawableTexture.resize(MAX_FRAMES_IN_FLIGHT);
             _parallelCommandEncoder.resize(MAX_FRAMES_IN_FLIGHT);
 
             
@@ -114,75 +115,106 @@ namespace ilen::render {
         _ilenMetalLibrary = nil;
     }
 
-    void MetalRender::beginFrame() {
-        
-//        ILEN_LOG("Waitin for frame %i. Start time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
-        dispatch_semaphore_wait(_inFlightSemaphores, DISPATCH_TIME_FOREVER);
-        //ILEN_LOG("Getted frame %i. End time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
+void MetalRender::beginFrame() {
+    
+    //        ILEN_LOG("Waitin for frame %i. Start time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
+    dispatch_semaphore_wait(_inFlightSemaphores, DISPATCH_TIME_FOREVER);
+    //ILEN_LOG("Getted frame %i. End time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
+    
+    _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
+    generateFrameTextures();
+    _instanceBuffer[_actualFrame]->OnBeginFrame();
+    
+    //_currentDrawable = [metalView currentDrawable];
+    
+    /*if(!_currentDrawable){
+     _commandBuffer = nil;
+     [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+     _frameAutoReleasePool = nil;
+     return;
+     }*/
+    
+    //_drawables[_actualFrame] = [metalView currentDrawable];
+    
+    CAMetalLayer* layer = (CAMetalLayer*)[metalView layer];
+    if(layer.drawableSize.width < 1 || layer.drawableSize.height < 1){
+        _commandBuffer[_actualFrame] = nil;
+        _drawables[_actualFrame] = nil;
+        [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+        _frameAutoReleasePool = nil;
+        return;
+    }
+    
+    _drawables[_actualFrame] = [layer nextDrawable];
+    
+    
+    if(!_drawables[_actualFrame]){
+        _commandBuffer[_actualFrame] = nil;
+        [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+        _frameAutoReleasePool = nil;
+        return;
+    }
+    _drawableTexture[_actualFrame] = std::make_unique<MetalTexture>(_drawables[_actualFrame].texture);
+    
+    
+    //Crear un Render Pass por defecto para opacos y depth buffer
+    /*MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+     //Color buffer
+     if(RenderingOptions::isPostProcessEnabled){
+     id<MTLTexture> texture = (__bridge id<MTLTexture>)_sceneTexture[_actualFrame]->getNativeTexture();
+     renderPassDescriptor.colorAttachments[0].texture = texture;
+     if(PostProcessOptions::isMotionBlurEnabled){
+     
+     }
+     }else{
+     renderPassDescriptor.colorAttachments[0].texture = _drawables[_actualFrame].texture;
+     }
+     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+     renderPassDescriptor.colorAttachments[0].clearColor = metalView.clearColor;
+     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+     
+     if(RenderingOptions::isDepthEnabled){
+     //Depth buffer
+     renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+     renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
+     renderPassDescriptor.depthAttachment.clearDepth = 1.0;
+     
+     id<MTLTexture> depthTex = (__bridge id<MTLTexture>)_depthTexture[_actualFrame]->getNativeTexture();
+     renderPassDescriptor.depthAttachment.texture = depthTex;
+     }*/
+    
+        IlenParallelEncoderDescriptor parallelEncoderDescriptor {};
+        parallelEncoderDescriptor.label = "Main Render Pass Encoder";
+        parallelEncoderDescriptor.colorAttachments.resize(3); //Metal soporta hasta 8, pero creo que de momento 3 son más que suficientes.
+        auto colorAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
 
-        _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
-        generateFrameTextures();
-        _instanceBuffer[_actualFrame]->OnBeginFrame();
-        
-        //_currentDrawable = [metalView currentDrawable];
-        
-        /*if(!_currentDrawable){
-            _commandBuffer = nil;
-            [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
-            _frameAutoReleasePool = nil;
-            return;
-        }*/
-        
-        //_drawables[_actualFrame] = [metalView currentDrawable];
-        
-        CAMetalLayer* layer = (CAMetalLayer*)[metalView layer];
-        if(layer.drawableSize.width < 1 || layer.drawableSize.height < 1){
-            _commandBuffer[_actualFrame] = nil;
-            _drawables[_actualFrame] = nil;
-            [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
-            _frameAutoReleasePool = nil;
-            return;
-        }
-        
-        _drawables[_actualFrame] = [layer nextDrawable];
-        
-        
-        if(!_drawables[_actualFrame]){
-            _commandBuffer[_actualFrame] = nil;
-            [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
-            _frameAutoReleasePool = nil;
-            return;
-        }
-        
-        //Crear un Render Pass por defecto para opacos y depth buffer
-        MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-        //Color buffer
         if(RenderingOptions::isPostProcessEnabled){
-            id<MTLTexture> texture = (__bridge id<MTLTexture>)_sceneTexture[_actualFrame]->getNativeTexture();
-            renderPassDescriptor.colorAttachments[0].texture = texture;
+            colorAttach->texture = _sceneTexture[_actualFrame].get();
+
             if(PostProcessOptions::isMotionBlurEnabled){
                 
             }
         }else{
-            renderPassDescriptor.colorAttachments[0].texture = _drawables[_actualFrame].texture;
+            colorAttach->texture = _drawableTexture[_actualFrame].get();
         }
-        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-        renderPassDescriptor.colorAttachments[0].clearColor = metalView.clearColor;
-        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-        
+        colorAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+        colorAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+        colorAttach->clearColor = graphics::Color(metalView.clearColor.red, metalView.clearColor.green, metalView.clearColor.blue);
+        parallelEncoderDescriptor.colorAttachments[0] = std::move(colorAttach);
+
         if(RenderingOptions::isDepthEnabled){
             //Depth buffer
-            renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-            renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
-            renderPassDescriptor.depthAttachment.clearDepth = 1.0;
-            
-            id<MTLTexture> depthTex = (__bridge id<MTLTexture>)_depthTexture[_actualFrame]->getNativeTexture();
-            renderPassDescriptor.depthAttachment.texture = depthTex;
-        }
+            auto depthAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
 
+            depthAttach->texture = _depthTexture[_actualFrame].get();
+            depthAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+            depthAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE;
+            
+            parallelEncoderDescriptor.depthAttachment = std::move(depthAttach);
+        }
                 
         _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
-        _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], renderPassDescriptor);
+        _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], parallelEncoderDescriptor);
     }
 
     void MetalRender::endFrame() {
