@@ -1,6 +1,7 @@
 #pragma once
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
 #include <ilen/render/renderer.h>
+#include <vulkan/vulkan_raii.hpp>
 
 namespace ilen::render {
     class VulkanRender final: public IRenderer {
@@ -22,6 +23,12 @@ namespace ilen::render {
             std::unique_ptr<IGPUParallelCommandEncoder> getParallelCommandEncoder() override;
             void returnParallelCommandEncoder(std::unique_ptr<IGPUParallelCommandEncoder> encoder) override;
             IGPUInstanceBuffer* getInstanceBuffer() override;
+        private:
+            uint8_t MAX_FRAMES_IN_FLIGHT = 3;
+
+        //Todo lo que requiere vulkan para funcionar (Un buen de cosas, AYUDA!!)
+        vk::raii::Context context;
+        vk::raii::Instance instance = nullptr;
     };
 }
 #endif

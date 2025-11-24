@@ -209,8 +209,6 @@ elseif(LINUX)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(XCB REQUIRED xcb)
     pkg_check_modules(XCB_WM REQUIRED xcb-ewmh xcb-icccm)
-    #pkg_check_modules(XCB_EWMH REQUIRED xcb-ewmh)
-    #pkg_check_modules(XCB_ICCM REQUIRED xcb-iccm)
 
     target_include_directories(${PROJECT_NAME} PRIVATE ${XCB_INCLUDE_DIRS} ${XCB_EWMH_INCLUDE_DIRS} ${XCB_ICCCM_INCLUDE_DIRS})
     target_link_directories(${PROJECT_NAME} PRIVATE ${XCB_LIBRARY_DIRS} ${XCB_EWMH_LIBRARY_DIRS} ${XCB_ICCCM_LIBRARY_DIRS})
@@ -224,6 +222,9 @@ elseif(LINUX)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
+
+    find_package(Vulkan REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
 
     #iOS need also assets folder in the bundle
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -241,12 +242,12 @@ if(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
 elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_MOBILE=1;ILEN_IOS=1")
 elseif(LINUX)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_LINUX=1")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_LINUX=1;VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1")
 elseif(WIN32)
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_WINDOWS=1")
 endif()
 
 
 #DEFINITIONS PARA PRUEBAS EN EL MOTOR
-target_compile_definitions(${PROJECT_NAME} PRIVATE "IGNORE_RENDERING=0") #Ignora el sistema de renderizado. Util para probar las ventanas sin nada más de por medio
+target_compile_definitions(${PROJECT_NAME} PRIVATE "IGNORE_RENDERING=1") #Ignora el sistema de renderizado. Util para probar las ventanas sin nada más de por medio
 target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=0") #Lanza una error window al empezar para revisar que se vea correctamente

@@ -51,6 +51,9 @@ namespace ilen::application{
             static std::string getApplicationName() { return s_applicationName; }
             static std::string getApplicationDeveloper() { return s_applicationDeveloper; }
             static std::string getApplicationVersion() { return s_applicationVersion; }
+        static uint8_t getMajorVersion() { return s_majorVersion; }
+        static uint8_t getMinorVersion() { return s_minorVersion; }
+        static uint8_t getPatchVersion() { return s_patchVersion; }
 
             //Pausa la app hasta el siguiente frame
             static void stopUntilNextFrame() {
@@ -71,12 +74,34 @@ namespace ilen::application{
                 s_applicationName = metadata.applicationName;
                 s_applicationVersion = metadata.applicationVersion;
                 s_applicationDeveloper = metadata.applicationDeveloper;
+                std::string stringSplit[3] = {"0", "0", "0"};
+
+                int actualString = 0;
+                int actualSpace = 0;
+                std::string writtedData = "";
+                while (actualString < s_applicationVersion.size()) {
+                    if (s_applicationVersion != ".") {
+                        writtedData += s_applicationVersion[actualString];
+                    }else {
+                        stringSplit[actualSpace] = writtedData;
+                        writtedData = "";
+                        actualSpace++;
+                    }
+                    actualString++;
+                }
+
+                s_majorVersion = std::stoi(stringSplit[0]);
+                s_minorVersion = std::stoi(stringSplit[1]);
+                s_patchVersion = std::stoi(stringSplit[2]);
                 setFrameRate(metadata.applicationFramerate);
             }
         private:
             inline static std::string s_applicationName;
             inline static std::string s_applicationDeveloper;
             inline static std::string s_applicationVersion;
+            inline static uint8_t s_majorVersion = 0;
+            inline static uint8_t s_minorVersion = 0;
+            inline static uint8_t s_patchVersion = 0;
             inline static float s_framerateInMiliseconds = 1.0f / 120; //120 FPS por defecto
     };
 }

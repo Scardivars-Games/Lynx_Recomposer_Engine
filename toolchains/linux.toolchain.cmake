@@ -28,7 +28,7 @@ message(STATUS "Cross-compiling for ${TOOLCHAIN}")
 # ─────────────────────────────────────────────────────────────────
 # This is the only thing that really matters for pkg-config on Ubuntu
 # ─────────────────────────────────────────────────────────────────
-set(CMAKE_SYSROOT "/")                                      # important
+#set(CMAKE_SYSROOT "/")                                      # important
 set(CMAKE_FIND_ROOT_PATH "/usr/${TOOLCHAIN}")               # important
 
 set(CMAKE_C_COMPILER   ${TOOLCHAIN}-gcc)

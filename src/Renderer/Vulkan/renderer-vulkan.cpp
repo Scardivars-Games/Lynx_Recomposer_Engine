@@ -4,6 +4,16 @@
 using namespace ilen::render;
 
 VulkanRender::VulkanRender(void *native_surface){
+    //El objetivo de esto es generar hasta el dispositivo logico de la app, o sea, muchas cosas
+    //Creemos los datos de la instancia
+    vk::ApplicationInfo appInfo {
+        .pApplicationName = application::Application::getApplicationName().c_str(),
+        .applicationVersion = VK_MAKE_VERSION(application::Application::getMajorVersion(), application::Application::getMinorVersion(), application::Application::getPatchVersion()),
+        .pEngineName = "Ilusion's Engine",
+        .engineVersion =  VK_MAKE_VERSION(1,0,0),
+        .apiVersion =  vk::ApiVersion10,
+    };
+
 
 }
 
