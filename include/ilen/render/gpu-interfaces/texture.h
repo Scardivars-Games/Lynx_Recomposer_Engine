@@ -31,9 +31,11 @@ namespace ilen::render {
             virtual ~IGPUTexture() = default;
             virtual void* getNativeTexture() = 0;
             uint32_t getTexWidth() const {return _texWidth;}
-            uint32_t getTexHeight() const {return _texHeight;}
+            uint32_t getTexHeight() const {return _texHeight; }
+            IlenGPUTextureDescriptor getDescriptor() const { return _descriptor;}
         protected:
             uint32_t _texWidth = 0;
             uint32_t _texHeight = 0;
+            IlenGPUTextureDescriptor _descriptor;
     };
 }

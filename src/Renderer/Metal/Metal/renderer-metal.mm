@@ -1,12 +1,12 @@
 #if defined (__APPLE__)
 //Este código es uniforme para todas las plataformas de Apple (macOS y iOS de momento)
-#include "renderer-metal.h"
-#include "buffers-metal.h"
-#include "shaders-metal.h"
-#include "render-pipelines-metal.h"
-#include "parallel-command-encoder-metal.h"
-#include "texture-metal.h"
-#include "instance-buffer-metal.h"
+#include <Metal/renderer-metal.h>
+#include <Metal/buffers-metal.h>
+#include <Metal/shaders-metal.h>
+#include <Metal/render-pipelines-metal.h>
+#include <Metal/parallel-command-encoder-metal.h>
+#include <Metal/texture-metal.h>
+#include <Metal/instance-buffer-metal.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/window/window.h>
 
@@ -156,65 +156,38 @@ void MetalRender::beginFrame() {
     }
     _drawableTexture[_actualFrame] = std::make_unique<MetalTexture>(_drawables[_actualFrame].texture);
     
-    
-    //Crear un Render Pass por defecto para opacos y depth buffer
-    /*MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-     //Color buffer
-     if(RenderingOptions::isPostProcessEnabled){
-     id<MTLTexture> texture = (__bridge id<MTLTexture>)_sceneTexture[_actualFrame]->getNativeTexture();
-     renderPassDescriptor.colorAttachments[0].texture = texture;
-     if(PostProcessOptions::isMotionBlurEnabled){
-     
-     }
-     }else{
-     renderPassDescriptor.colorAttachments[0].texture = _drawables[_actualFrame].texture;
-     }
-     renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-     renderPassDescriptor.colorAttachments[0].clearColor = metalView.clearColor;
-     renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-     
-     if(RenderingOptions::isDepthEnabled){
-     //Depth buffer
-     renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-     renderPassDescriptor.depthAttachment.storeAction = MTLStoreActionDontCare;
-     renderPassDescriptor.depthAttachment.clearDepth = 1.0;
-     
-     id<MTLTexture> depthTex = (__bridge id<MTLTexture>)_depthTexture[_actualFrame]->getNativeTexture();
-     renderPassDescriptor.depthAttachment.texture = depthTex;
-     }*/
-    
-        IlenParallelEncoderDescriptor parallelEncoderDescriptor {};
-        parallelEncoderDescriptor.label = "Main Render Pass Encoder";
-        parallelEncoderDescriptor.colorAttachments.resize(3); //Metal soporta hasta 8, pero creo que de momento 3 son más que suficientes.
-        auto colorAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+    IlenParallelEncoderDescriptor parallelEncoderDescriptor {};
+    parallelEncoderDescriptor.label = "Main Render Pass Encoder";
+    parallelEncoderDescriptor.colorAttachments.resize(3); //Metal soporta hasta 8, pero creo que de momento 3 son más que suficientes.
+    auto colorAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
 
-        if(RenderingOptions::isPostProcessEnabled){
-            colorAttach->texture = _sceneTexture[_actualFrame].get();
+    if(RenderingOptions::isPostProcessEnabled){
+        colorAttach->texture = _sceneTexture[_actualFrame].get();
 
-            if(PostProcessOptions::isMotionBlurEnabled){
-                
-            }
-        }else{
-            colorAttach->texture = _drawableTexture[_actualFrame].get();
-        }
-        colorAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-        colorAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
-        colorAttach->clearColor = graphics::Color(metalView.clearColor.red, metalView.clearColor.green, metalView.clearColor.blue);
-        parallelEncoderDescriptor.colorAttachments[0] = std::move(colorAttach);
-
-        if(RenderingOptions::isDepthEnabled){
-            //Depth buffer
-            auto depthAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
-
-            depthAttach->texture = _depthTexture[_actualFrame].get();
-            depthAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-            depthAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE;
+        if(PostProcessOptions::isMotionBlurEnabled){
             
-            parallelEncoderDescriptor.depthAttachment = std::move(depthAttach);
         }
-                
-        _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
-        _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], parallelEncoderDescriptor);
+    }else{
+        colorAttach->texture = _drawableTexture[_actualFrame].get();
+    }
+    colorAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+    colorAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+    colorAttach->clearColor = graphics::Color(metalView.clearColor.red, metalView.clearColor.green, metalView.clearColor.blue);
+    parallelEncoderDescriptor.colorAttachments[0] = std::move(colorAttach);
+
+    if(RenderingOptions::isDepthEnabled){
+        //Depth buffer
+        auto depthAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+
+        depthAttach->texture = _depthTexture[_actualFrame].get();
+        depthAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+        depthAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE;
+        
+        parallelEncoderDescriptor.depthAttachment = std::move(depthAttach);
+    }
+            
+    _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
+    _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], std::move(parallelEncoderDescriptor));
     }
 
     void MetalRender::endFrame() {
@@ -381,7 +354,7 @@ void MetalRender::generateFrameTextures(){
 }
 
 std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::createNewParallelCommandEncoder(const IlenParallelEncoderDescriptor &descriptor){
-    
+    //Parte de su responsabilidad es asignar las texturas para el nuevo Parallel Encoder Descriptor.
 }
 
 std::unique_ptr<IGPUTexture> MetalRender::createNewPlatformTexture(const IlenGPUTextureDescriptor &descriptor){

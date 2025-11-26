@@ -3,6 +3,7 @@
 #include <ilen/render/gpu-interfaces/render-pipelines.h>
 #include <ilen/render/gpu-interfaces/buffers.h>
 namespace ilen::render {
+    class IGPURenderPipeline;
     class IGPURenderEncoder {
         public:
             virtual ~IGPURenderEncoder() = default;

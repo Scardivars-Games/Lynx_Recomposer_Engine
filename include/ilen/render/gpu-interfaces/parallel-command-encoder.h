@@ -7,6 +7,7 @@
 
 namespace ilen::render {
     class IRenderer;
+    class IGPURenderEncoder;
 
     struct IlenEncoderAttachmentDescriptor {
         IGPUTexture *texture;
@@ -18,12 +19,33 @@ namespace ilen::render {
     struct IlenParallelEncoderDescriptor {
         // Color attachment
         std::vector<std::unique_ptr<IlenEncoderAttachmentDescriptor>> colorAttachments;
-
+        
         // Depth/Stencil
         std::unique_ptr<IlenEncoderAttachmentDescriptor> depthAttachment;
         std::unique_ptr<IlenEncoderAttachmentDescriptor> stencilAttachment;
-
+        
         const char *label = nullptr;
+
+        IlenParallelEncoderDescriptor() = default;
+
+        IlenParallelEncoderDescriptor(IlenParallelEncoderDescriptor&& other) noexcept {
+            label = other.label;
+            colorAttachments = std::move(other.colorAttachments);
+            depthAttachment = std::move(other.depthAttachment);
+            stencilAttachment = std::move(other.stencilAttachment);
+        }
+        
+        IlenParallelEncoderDescriptor& operator=(IlenParallelEncoderDescriptor&& other) noexcept {
+            if(this == &other)
+                return *this;
+            
+            label = other.label;
+            colorAttachments = std::move(other.colorAttachments);
+            depthAttachment = std::move(other.depthAttachment);
+            stencilAttachment = std::move(other.stencilAttachment);
+            
+            return *this;
+        }
     };
 
     // Al inicio de cada frame, la GPU genera uno de esto. Luego cada thread del submision le pide un command encoder
@@ -36,8 +58,10 @@ namespace ilen::render {
         virtual ~IGPUParallelCommandEncoder() = default;
         virtual void SetGlobalBuffers(uint32_t slot, IGPUBuffer *buffer) = 0;
         virtual IGPURenderEncoder *GetThreadEncoder() = 0;
+        virtual IlenParallelEncoderDescriptor* getParallelEncoderDescriptor() { return &_descriptor; }
 
     protected:
         virtual void EndEncoding() = 0; // Indica que debe cerrar el encoding.
+        IlenParallelEncoderDescriptor _descriptor{};
     };
 } // namespace ilen::render

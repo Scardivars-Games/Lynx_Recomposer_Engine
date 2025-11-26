@@ -19,9 +19,6 @@ namespace ilen::render {
             ~MetalTexture() override;
             void* getNativeTexture() override;
         private:
-            MTLPixelFormat transformEngineToNativePixelFormat(enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, MTKView* view);
-            MTLTextureUsage transformEngineToNativeTextureUsage(IlenTextureUsageFlags usage);
-            MTLStorageMode transformEngineToNativeStorageMode(enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE storageMemory);
             id<MTLTexture> _texture = nullptr;
 
             static inline const char* DEBUG_PREFIX = "METAL_TEXTURE";

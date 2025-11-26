@@ -4,7 +4,10 @@
 #include <ilen/graphics/material.h>
 #include <ilen/render/gpu-interfaces/vertex-layouts.h>
 
+#include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
+
 namespace ilen::render {
+    struct IlenParallelEncoderDescriptor;
 
     struct IlenRenderPipelineDescriptor {
         std::string pipelineName = "No Name Pipeline";
@@ -14,6 +17,9 @@ namespace ilen::render {
         std::string fragmentFunctionName = "error_fragment";
         ILEN_GPU_RENDER_QUEUE_TYPE renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
         ILEN_VERTEX_LAYOUT_TYPE vertexLayout = ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_GLOBAL;
+
+        bool isSpecialPipeline = false;
+        IlenParallelEncoderDescriptor* encoderDescriptor = nullptr; //Para obtener como debe construir el constructor
 
         explicit IlenRenderPipelineDescriptor(const graphics::IlenMaterial& material) {
             pipelineName = material.materialName;

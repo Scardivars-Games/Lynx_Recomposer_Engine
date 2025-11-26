@@ -42,6 +42,7 @@ namespace ilen::ecs::systems {
         renderItems.reserve(entities.size());
 
         //ECS no manda entidades a este objeto. Problema de firmas, seguramente.
+        //Corregido :)
         const mat4& viewMatrix = activeCamera->getViewMatrix();
         for (auto const& entity: entities) {
             auto* transform = p_Coordinator->getComponent<TransformComponent>(entity);
@@ -70,13 +71,6 @@ namespace ilen::ecs::systems {
         }
 
         if (renderItems.empty()) {
-            if (core::options::RenderingOptions::isPostProcessEnabled) {
-                IRenderer::FinalizeEncoding(encoderPtr);
-                //Cambiar encoder por el de post process.
-
-            }
-
-
             p_Renderer->returnParallelCommandEncoder(std::move(encoder));
             return;
         }
@@ -198,10 +192,11 @@ namespace ilen::ecs::systems {
         for (auto& future : futures) {
             future.wait();
         }
-        if (core::options::RenderingOptions::isPostProcessEnabled) {
+        /*if (core::options::RenderingOptions::isPostProcessEnabled) {
             //Finalizar encoder, liberar, y asignarlo otro puntero. TODO
-        }
-
+            IRenderer::FinalizeEncoding(encoderPtr);
+        }else {
+        }*/ //Post procesado o no, este Render pass para eficiencia, lo puede reutilizar el sistema de post_procesado. Sino, ya el render normal lo termina :)
 
         p_Renderer->returnParallelCommandEncoder(std::move(encoder));
 

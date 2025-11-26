@@ -1,6 +1,7 @@
 #if defined (__APPLE__)
-#include "render-pipelines-metal.h"
-#include "shaders-metal.h"
+#include <Metal/render-pipelines-metal.h>
+#include <Metal/shaders-metal.h>
+#include <Metal-Common/engine-to-native-converters.h>
 #include <ilen/headers/ilen-logs.h>
 
 #import <Metal/Metal.h>
@@ -11,6 +12,7 @@ namespace ilen::render {
     std::mutex MetalRenderPipeline::_psoMutex;
 
     MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, MTKView* view) : _pso(nil) {
+        using namespace ilen::render::utils::metal;
         @autoreleasepool {
             MTLRenderPipelineDescriptor* pipelineDescriptor = [MTLRenderPipelineDescriptor new];
             
@@ -96,6 +98,26 @@ namespace ilen::render {
                 pipelineDescriptor.stencilAttachmentPixelFormat = view.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
+            }
+            
+            if(descriptor.isSpecialPipeline){
+                if(descriptor.encoderDescriptor == nullptr){
+                    ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Solicitud de creación de un PSO especial sin el descriptor con los datos del encoder.");
+                }
+                
+                //Special Pipelines son aquellos que no escriben en el buffer 0 (dibujado normal) Esto es principalmente para PSO de Post-Procesado
+                pipelineDescriptor.colorAttachments[0].writeMask = MTLColorWriteMaskNone;
+                
+                auto encoderDesc = descriptor.encoderDescriptor;
+                //Empezamos en 1 porque el color 0 siempre esta reservada para el dibujo de la pantalla, y para nada mas :)
+                for(size_t i = 1; i < encoderDesc->colorAttachments.size(); i++){
+                    if(encoderDesc->colorAttachments[i] != nullptr){
+                       auto texFormat =  encoderDesc->colorAttachments[i]->texture->getDescriptor().pixelFormat;
+                        pipelineDescriptor.colorAttachments[i].pixelFormat = transformEngineToNativePixelFormat(texFormat, view);
+                        pipelineDescriptor.colorAttachments[i].writeMask = MTLColorWriteMaskAll;
+                        pipelineDescriptor.colorAttachments[i].blendingEnabled = NO;
+                    }
+                }
             }
             
             NSError* error = nil;

@@ -1,8 +1,8 @@
 #if defined (__APPLE__)
 
-#include "render-encoders-metal.h"
-#include "render-pipelines-metal.h"
-#include "buffers-metal.h"
+#include <Metal/render-encoders-metal.h>
+#include <Metal/render-pipelines-metal.h>
+#include <Metal/buffers-metal.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/render/render-constants.h>
 

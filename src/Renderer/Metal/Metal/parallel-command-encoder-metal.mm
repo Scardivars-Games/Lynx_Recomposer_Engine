@@ -1,10 +1,13 @@
 #if defined (__APPLE__)
 
-#include "parallel-command-encoder-metal.h"
+#include <Metal/parallel-command-encoder-metal.h>
+#include <Metal-Common/engine-to-native-converters.h>
 #include <ilen/headers/ilen-logs.h>
 
 namespace ilen::render {
-    MetalParallelCommandEncoder::MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, const IlenParallelEncoderDescriptor& descriptor){
+    MetalParallelCommandEncoder::MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, IlenParallelEncoderDescriptor&& descriptor){
+        using namespace ilen::render::utils::metal;
+        
         MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
         
         //Asignando los color attachment del render pass
@@ -40,6 +43,8 @@ namespace ilen::render {
         _parallelEncoder = [buffer parallelRenderCommandEncoderWithDescriptor:renderPassDescriptor];
         _parallelEncoder.label = [NSString stringWithUTF8String: descriptor.label];
         [_parallelEncoder retain];
+
+        _descriptor = std::move(descriptor);
     }
 
     MetalParallelCommandEncoder::~MetalParallelCommandEncoder() {
@@ -85,27 +90,6 @@ namespace ilen::render {
                 [_parallelEncoder release];
                 _parallelEncoder = nil;
             }
-        }
-    }
-
-    MTLStoreAction MetalParallelCommandEncoder::transformEngineToNativeStoreOption(enumerations::ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE option){
-        switch (option) {
-            case ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE:
-                return MTLStoreActionStore;
-            case ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DISCARD:
-            case ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE:
-                return MTLStoreActionDontCare;
-        }
-    }
-
-    MTLLoadAction MetalParallelCommandEncoder::transformEngineToNativeLoadOption(enumerations::ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE option){
-        switch (option) {
-            case ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_LOAD:
-                return MTLLoadActionLoad;
-            case ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR:
-                return MTLLoadActionClear;
-            case ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_DONT_CARE:
-                return MTLLoadActionDontCare;
         }
     }
 }

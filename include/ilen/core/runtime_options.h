@@ -5,7 +5,7 @@
 
 namespace ilen::core::options {
     struct RenderingOptions {
-        static inline bool isPostProcessEnabled = false;
+        static inline bool isPostProcessEnabled = true;
         static inline bool isStencilEnabled = false;
         static inline bool isDepthEnabled = false;
         static inline int actualFPS = 120;

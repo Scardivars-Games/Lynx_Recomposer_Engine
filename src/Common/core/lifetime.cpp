@@ -7,7 +7,9 @@
 
 //FOR NO-EDITOR GAME
 #include <ilen-examples/triangle.h>
-//END
+
+#include "ilen/render/post-process-effects/post-process-system.h"
+// END
 
 using namespace ilen::core;
 
@@ -94,6 +96,10 @@ namespace ilen{
         cameraSignature.set(engineContext->p_coordinator->getComponentType<components::CameraComponent>());
         engineContext->p_coordinator->setSystemSignature<systems::CameraSystem>(cameraSignature);
 
+        //Post processing system
+        engineContext->p_postProcessSystem = engineContext->p_coordinator->registerSystem<systems::PostProcessSystem>();
+        engineContext->p_coordinator->setSystemSignature<systems::PostProcessSystem>(renderSignature); //Comparte firma con el sistema de renderizado :)
+
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         auto triangle = engineContext->p_coordinator->createEntity();
@@ -115,6 +121,8 @@ namespace ilen{
         engineContext->p_cameraSystem->Init(engineContext.get());
         //RenderDraw System.
         engineContext->p_renderDrawSystem->Init(engineContext.get());
+        //Post procesad
+        engineContext->p_postProcessSystem->Init(engineContext.get());
 #endif
 
 #if TEST_ERROR_WINDOW_AT_START
@@ -135,12 +143,13 @@ namespace ilen{
         engineContext->p_transformSystem->Update(); //Actualizamos las matrices de transformación de acuerdo a las instrucciones dejadas por el update (componentes de modificacion). y calculamos lo necesario para renderizar
 
         engineContext-> p_renderSystem -> Update(); //Preparamos y obtenemos los objetos que deben ser dibujados
-        engineContext->p_cameraSystem ->Update(engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight()); //Calculamos all de la camara
+        engineContext->p_cameraSystem ->Update(ilen::window::IWindow::getWidth(), ilen::window::IWindow::getHeight()); //Calculamos all de la camara
 
         if(engineContext->p_gameRenderer){
             engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
             //Aquí deberia poblarse el queue de dibujado.
             engineContext->p_renderDrawSystem->Update();
+            engineContext->p_postProcessSystem->Update();
             engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
         }
 #endif

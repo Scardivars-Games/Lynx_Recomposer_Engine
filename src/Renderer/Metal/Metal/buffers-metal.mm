@@ -1,6 +1,6 @@
 #if defined (__APPLE__)
 
-#include "buffers-metal.h"
+#include <Metal/buffers-metal.h>
 #include <ilen/headers/ilen-logs.h>
 #import <Metal/Metal.h>
 

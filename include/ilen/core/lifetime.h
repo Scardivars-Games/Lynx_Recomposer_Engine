@@ -10,13 +10,13 @@
 #include <memory>
 
 
-
 namespace ilen::ecs::systems {
     class RenderSystem;
     class TransformSystem;
     class ScriptingSystem;
     class CameraSystem;
     class RenderDrawSystem;
+    class PostProcessSystem;
 }
 
 namespace ilen::resources {
@@ -57,6 +57,7 @@ namespace ilen {
         std::shared_ptr<ilen::ecs::systems::TransformSystem> p_transformSystem;
         std::shared_ptr<ilen::ecs::systems::ScriptingSystem> p_scriptingSystem;
         std::shared_ptr<ilen::ecs::systems::CameraSystem> p_cameraSystem;
+        std::shared_ptr<ilen::ecs::systems::PostProcessSystem> p_postProcessSystem; //Al final es sistema, porque usa shaders para calcular los nuevos buffers.
     };
 
     class AppRuntime final{
