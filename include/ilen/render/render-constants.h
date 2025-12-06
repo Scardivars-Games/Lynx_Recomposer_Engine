@@ -41,19 +41,40 @@ namespace ilen {
             ILEN_CONST uint32_t TextureBufferSlot_NormalMap = 1;
             ILEN_CONST uint32_t TextureBufferSlot_Metallic = 2;
 
+            //Texturas para PostProcesado (este mismo índice se usara para activar o no el dato en el UberShader de post_procesado)
+            ILEN_CONST uint32_t TextureBufferSlot_Color = 0;
+            ILEN_CONST uint32_t TextureBufferSlot_VelocityBuffer = 1;
+
+            //Render Pass fixed indices
+            ILEN_CONST uint32_t RenderPassAttachment_Color = 0;
+            ILEN_CONST uint32_t RenderPassAttachment_VelocityBuffer = 1;
+
             //Limites y reglas
             ILEN_CONST uint32_t UserBufferStart = 7;
             ILEN_CONST uint32_t UserBufferEnd = 14;
         }
 
         namespace structs {
+            //Unimos las camaras para no tener que crear 2 buffers con datos redundantes.
             struct CameraData {
-                float4x4 viewProjectionMatrix;
+                float4x4 currentViewProjectionMatrix;
+                float4x4 previousViewProjectionMatrix;
             };
 
             struct InstanceData {
                 float4x4 modelMatrix;
             };
+
+            struct InstanceDataForVelocityBuffer {
+                float4x4 actualModelMatrix;
+                float4x4 previousModelMatrix;
+            };
+
+            //Para ser usado en el calculo del velocity buffer para efectos de Post Procesado.
+            /*struct VelocityCameraData {
+                float4x4 currentViewProjectionMatrix;
+                float4x4 previousViewProjectionMatrix;
+            };*/
         }
     }
 }

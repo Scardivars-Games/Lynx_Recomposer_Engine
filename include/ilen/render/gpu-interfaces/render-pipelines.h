@@ -9,6 +9,14 @@
 namespace ilen::render {
     struct IlenParallelEncoderDescriptor;
 
+
+    //Esta estructura incluye que valores deben activarse o no a la hora de construir el PSO que esta en uso.
+    //De momento solo acepta bools
+    struct IlenConstantValuesForPipeline {
+        bool actualValue = false;
+        uint32_t index = 0;
+    };
+
     struct IlenRenderPipelineDescriptor {
         std::string pipelineName = "No Name Pipeline";
         uint32_t vertexShaderID = 4;
@@ -20,8 +28,11 @@ namespace ilen::render {
 
         bool isSpecialPipeline = false;
         IlenParallelEncoderDescriptor* encoderDescriptor = nullptr; //Para obtener como debe construir el constructor
-
-        explicit IlenRenderPipelineDescriptor(const graphics::IlenMaterial& material) {
+        std::vector<IlenConstantValuesForPipeline> constantValuesForPipelines;
+        
+        IlenRenderPipelineDescriptor() = default;
+        
+        IlenRenderPipelineDescriptor(const graphics::IlenMaterial& material) {
             pipelineName = material.materialName;
             vertexShaderID = material.vertexShaderID;
             fragmentShaderID = material.fragmentShaderID;
@@ -54,9 +65,11 @@ namespace ilen::render {
             static void* generateVertexDescriptor(VertexBufferLayout layout);
             virtual void setID(uint16_t id) { m_psoID = id; }
             virtual uint16_t getID() const { return m_psoID; }
-            virtual ILEN_GPU_RENDER_QUEUE_TYPE getRenderQueue() const { return m_renderQueue; }
+            ILEN_GPU_RENDER_QUEUE_TYPE getRenderQueue() const { return m_renderQueue; }
+            const IlenRenderPipelineDescriptor getPSODescriptor() const { return descriptor;}
         protected:
             ILEN_GPU_RENDER_QUEUE_TYPE m_renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
-            uint16_t m_psoID = 0;
+            uint32_t m_psoID = 0;
+            IlenRenderPipelineDescriptor descriptor{};
     };
 }

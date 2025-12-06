@@ -16,7 +16,7 @@ void Triangle::Init() {
 
     TransformComponent transform{};
     transform.position = vec3(0.0f, 0.0f, 0.0f);
-    transform.scale = vec3(1.5f, 1.5f, 1.5f);
+    transform.scale = vec3(1.0f, 1.0f, 1.0f);
     coordinator->addComponent(entity, std::move(transform));
 
     RenderComponent render{};
@@ -29,10 +29,11 @@ void Triangle::Init() {
 void Triangle::Update(){
     using namespace ilen::engine::api;
 //    ILEN_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", ilen::time::Time::getDeltaTime());
-    TransformAPI::Rotate(entity, vec3(0, 0, 360) * ilen::time::Time::getDeltaTime());
+    int zRotate = 360;
 
-    float xAdvance = 10 * ilen::time::Time::getDeltaTime();
+    float xAdvance = 5 * ilen::time::Time::getDeltaTime();
     if(advance > 5 || isRight == false) {
+        zRotate = -360;
         xAdvance *= -1;
         isRight = false;
     }
@@ -41,6 +42,7 @@ void Triangle::Update(){
         isRight = true;
     }
 
+    TransformAPI::Rotate(entity, vec3(0, 0, static_cast<float>(zRotate)) * ilen::time::Time::getDeltaTime());
     TransformAPI::Translate(entity, vec3(xAdvance, 0, 0));
     advance += xAdvance;
 }

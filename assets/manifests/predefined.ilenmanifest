@@ -38,7 +38,17 @@
             "id": 7,
             "name": "basic",
             "path": "shaders/predefined/basic.ilenshader"
+        },
+	    {
+            "id": 8,
+            "name": "post-processing",
+            "path": "shaders/predefined/post-processing.ilenshader"
+        },
+        {
+            "id": 9,
+            "name": "post-processing-calculations",
+            "path": "shaders/predefined/post-processing-calculations.ilenshader"
         }
     ],
-    "totalOfElements": 7
+    "totalOfElements": 9
 }

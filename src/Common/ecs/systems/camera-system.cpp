@@ -16,7 +16,7 @@ namespace ilen::ecs::systems {
 
             render::IlenBufferDescriptor descriptor{};
             descriptor.bufferLabelName = "Camera Buffer for entity " + std::to_string(entity);
-            descriptor.bufferSize = sizeof(mat4);
+            descriptor.bufferSize = sizeof(ilen::render::structs::CameraData);
             descriptor.bufferType = ILEN_RENDER_GPU_BUFFER_UNIFORM;
             descriptor.count = 1; //Solo hay una cámara por buffer
             descriptor.stride = 0; //Misma cosa
@@ -58,9 +58,15 @@ namespace ilen::ecs::systems {
             }
 
             auto viewProjectionMatrix = cameraComponent->projectionMatrix * cameraComponent->viewMatrix;
+            auto previousProjectionMatrix = cameraComponent->viewProjectionMatrix;
             cameraComponent->viewProjectionMatrix = viewProjectionMatrix;
             //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
-            cameraComponent->cameraBuffer->writeDataToBuffer(&viewProjectionMatrix, 0 ,0);
+
+            //Guardando los datos de cámara en su respectivo buffer.
+            ilen::render::structs::CameraData cameraData{};
+            cameraData.currentViewProjectionMatrix = viewProjectionMatrix;
+            cameraData.previousViewProjectionMatrix = previousProjectionMatrix;
+            cameraComponent->cameraBuffer->writeDataToBuffer(&cameraData, 0 ,0);
         }
     }
 

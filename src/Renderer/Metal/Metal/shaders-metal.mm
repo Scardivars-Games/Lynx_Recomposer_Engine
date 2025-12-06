@@ -77,6 +77,35 @@ namespace  ilen::render {
             return newFunctionPtr;
         }
     }
+
+const void* MetalShader::getNativeShaderFromFunctionNameAndUberActivations(std::string functionName, std::vector<IlenConstantValuesForPipeline> activations){
+    @autoreleasepool {
+        std::string finalName = functionName;
+        for(const auto& activation: activations){
+            finalName += " " + std::to_string(activation.index) + ":" + std::to_string(activation.actualValue);
+        }
+        
+        auto it = _shaderFunctions.find(finalName);
+        if (it != _shaderFunctions.end()) {
+            return it->second;
+        }
+        //Si no existe,se genera la libreria y añade
+        MTLFunctionConstantValues* constantValues = [MTLFunctionConstantValues new];
+        for(const auto& activation: activations){
+            [constantValues setConstantValue:&activation.actualValue type:MTLDataTypeBool atIndex:activation.index];
+        }
+        NSError* error = nil;
+        
+        auto newFunction = [_shaderLibrary newFunctionWithName:[NSString stringWithUTF8String:functionName.c_str()] constantValues:constantValues error:&error];
+        if(!newFunction){
+            ILEN_ERROR_P(DEBUG_PREFIX, "La funcion %s no fue encontrada en la biblioteca de Metal. Error: %s", functionName.c_str(), error);
+        }
+        
+        void* newFunctionPtr = (__bridge void*)newFunction;
+        _shaderFunctions.emplace(finalName, newFunctionPtr);
+        return newFunctionPtr;
+    }
+}
 }
 
 

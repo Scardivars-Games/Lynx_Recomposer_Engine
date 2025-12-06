@@ -2,6 +2,8 @@
 
 #include <ilen/render/gpu-interfaces/render-pipelines.h>
 #include <ilen/render/gpu-interfaces/buffers.h>
+#include <ilen/render/gpu-interfaces/texture.h>
+
 namespace ilen::render {
     class IGPURenderPipeline;
     class IGPURenderEncoder {
@@ -17,9 +19,10 @@ namespace ilen::render {
             virtual void SetVertexBuffer(uint32_t slot, IGPUBuffer* buffer) = 0;
             virtual void SetIndexBuffer(IGPUBuffer* buffer) = 0;
             virtual void SetInstancedBuffer(uint32_t slot, IGPUBuffer* buffer) = 0;
+            virtual void SetTexture(uint32_t slot, IGPUTexture* texture) = 0;
 
             virtual void DrawIndexed(uint32_t indexCount) = 0;
-            virtual void DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset) = 0;
+            virtual void DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset, size_t instanceDataSize) = 0;
 
             virtual void EndEncoding() = 0;
     };

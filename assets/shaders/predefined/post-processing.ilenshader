@@ -1,0 +1,5 @@
+{
+    "shader-file-name": "post_processing",
+    "shader-dir" : "predefined/post-processing",
+    "shader-name" : "Post Process Shader - Final Render"
+}

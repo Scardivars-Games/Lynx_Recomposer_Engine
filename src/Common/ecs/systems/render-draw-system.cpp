@@ -38,6 +38,7 @@ namespace ilen::ecs::systems {
         }
         auto encoderPtr = encoder.get();
 
+        lastRenderItems.clear();
         std::vector<RenderItem> renderItems;
         renderItems.reserve(entities.size());
 
@@ -77,6 +78,8 @@ namespace ilen::ecs::systems {
 
         //Ordenar la lista de dibujado
         std::sort(renderItems.begin(), renderItems.end());
+
+        lastRenderItems = renderItems; //Así podemos acceder a la lista lista para dibujar en otras funciones que lo necesiten sin tener que recalcular
 
         //TODO: Implementar soporte para Instanced Rendering, y Frames in flight por parte del Renderer.
         encoder->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->getViewProjectionCameraBuffer());
@@ -162,7 +165,7 @@ namespace ilen::ecs::systems {
                         }
                         auto indexCount = meshPtr->indexCount;
 
-                        cmd->DrawIndexedInstanced(indexCount, totalOfInstance, offset);
+                        cmd->DrawIndexedInstanced(indexCount, totalOfInstance, offset, sizeof(structs::InstanceData));
                     }else {
                         //ILEN_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
                         //Render en bucle
@@ -177,7 +180,7 @@ namespace ilen::ecs::systems {
                             uint32_t offset = instanceBuffer->UploadInstanceData(worldMatrix.data, sizeof(mat4));
                             auto indexCount = meshPtr->indexCount;
 
-                            cmd->DrawIndexedInstanced(indexCount, 1, offset);
+                            cmd->DrawIndexedInstanced(indexCount, 1, offset, sizeof(structs::InstanceData));
                         }
                     }
 

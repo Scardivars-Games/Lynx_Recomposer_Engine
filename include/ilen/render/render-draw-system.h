@@ -26,6 +26,10 @@ namespace ilen::ecs {
     class ECSCoordinator;
 }
 
+namespace ilen::ecs::components {
+    struct RenderItem;
+}
+
 namespace ilen::ecs::systems {
     class CameraSystem;
 
@@ -40,7 +44,7 @@ namespace ilen::ecs::systems {
         public:
             void Init(const ilen::EngineContext* engineContext);
             void Update();
-
+            const std::vector<components::RenderItem>& getLastUsedRenderItemList() const { return lastRenderItems; }
         private:
             static uint64_t GenerateSortKey(const std::shared_ptr<IGPURenderPipeline> &pso, float depth, uint16_t materialRuntimeID, uint8_t drawIndex, uint16_t meshID);
 
@@ -50,6 +54,8 @@ namespace ilen::ecs::systems {
             CameraSystem* p_cameraSystem = nullptr;
             MaterialManager* p_matManager = nullptr;
             MeshManager* p_meshManager = nullptr;
+
+            std::vector<components::RenderItem> lastRenderItems;
 
             uint32_t m_minInstanceRenderingElements = 5; //Si un elemento se repite más de 5 veces se realiza Instance Rendering.
 

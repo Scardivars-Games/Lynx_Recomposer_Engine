@@ -2,6 +2,7 @@
 
 #include <Metal/render-encoders-metal.h>
 #include <Metal/render-pipelines-metal.h>
+#include <Metal/texture-metal.h>
 #include <Metal/buffers-metal.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/render/render-constants.h>
@@ -16,7 +17,7 @@ namespace ilen::render {
 
     MetalRenderEncoder::~MetalRenderEncoder(){
         if(_commandEncoder){
-            ILEN_ERROR_P(DEBUG_PREFIX, "Llamado el destructor de un Render Encoder antes del encoding. Un error impedió completar la codificación.");
+            ILEN_ERROR_P(DEBUG_PREFIX, "Llamado el destructor de un Render Encoder antes del encoding. ¿Mando a finalizar el encoding porque ordeno que el Parallel encoder terminar el trabajo? El endFrame del IRenderer hace automaticamente esto. Si ese no es el caso, el error es desconocido.");
             [_commandEncoder endEncoding];
             [_commandEncoder release];
         }
@@ -65,6 +66,14 @@ namespace ilen::render {
         this->SetVertexBuffer(slot, buffer);
     }
 
+
+    void MetalRenderEncoder::SetTexture(uint32_t slot, IGPUTexture *texture){
+        MetalTexture* nativeTexture = static_cast<MetalTexture*>(texture);
+        id<MTLTexture> metalTexture = (__bridge id<MTLTexture>)nativeTexture->getNativeTexture();
+        
+        [_commandEncoder setFragmentTexture:metalTexture atIndex:slot];
+    }
+
     void MetalRenderEncoder::DrawIndexed(uint32_t indexCount){
         if(!_indexBuffer){
             ILEN_ERROR_P(DEBUG_PREFIX, "Ilen engine necesita un Index Buffer para dibujar!!! Revisar el orden de llamadas para detectar el error.");
@@ -74,13 +83,13 @@ namespace ilen::render {
         [_commandEncoder drawIndexedPrimitives:_primitiveType indexCount:indexCount indexType:_indexType indexBuffer:_indexBuffer indexBufferOffset:0];
     }
 
-    void MetalRenderEncoder::DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset){
+    void MetalRenderEncoder::DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset, size_t instanceDataSize){
         if(!_indexBuffer){
             ILEN_ERROR_P(DEBUG_PREFIX, "Ilen engine necesita un Index Buffer para dibujar!!! Revisar el orden de llamadas para detectar el error.");
             return;
         }
         
-        size_t baseInstance = baseInstanceOffset / sizeof(maths::matrix::mat4);
+        size_t baseInstance = baseInstanceOffset / instanceDataSize;
         [_commandEncoder drawIndexedPrimitives:_primitiveType indexCount:indexCount indexType:_indexType
                                    indexBuffer:_indexBuffer indexBufferOffset:0 instanceCount:instanceCount baseVertex:0 baseInstance:baseInstance];
     }

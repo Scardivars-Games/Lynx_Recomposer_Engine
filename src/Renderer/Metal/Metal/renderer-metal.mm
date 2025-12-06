@@ -21,6 +21,14 @@ namespace ilen::render {
     //TODO: ADD Metal 4 support to use the more efficients encoders!!!
     MetalRender::MetalRender(void* native_surface){
         @autoreleasepool {
+            //Establecer opciones gráficas por defecto
+            IlenGraphicsOptionsFlags defaultOptions = 0;
+            defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS;
+            defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR;
+            
+            GraphicsOptions::graphicsOptionsFlags = defaultOptions;
+            //lastUsedGraphicsOptions = defaultOptions;
+            
             metalView = (__bridge MTKView*)native_surface;
             _device = MTLCreateSystemDefaultDevice();
             if(!_device){
@@ -43,7 +51,7 @@ namespace ilen::render {
             ILEN_LOG("DrawableSize: %.0f x %.0f", metalView.drawableSize.width, metalView.drawableSize.height);
             
             metalView.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
-            metalView.preferredFramesPerSecond = RenderingOptions::actualFPS;
+            metalView.preferredFramesPerSecond = GraphicsOptions::actualFPS;
             _commandQueue = [_device newCommandQueue];
 
             #if TARGET_OS_OSX
@@ -81,7 +89,7 @@ namespace ilen::render {
             
             size_t instanceBufferSize = 4 * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
             for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
-                _instanceBuffer[i] = std::make_unique<MetalInstanceBuffer>(_device, instanceBufferSize);
+                _instanceBuffer[i] = createInstanceBuffer(instanceBufferSize, "Instance Main Ring Buffer -> Frame " + std::to_string(_actualFrame));
             }
             
             _inFlightSemaphores = dispatch_semaphore_create(MAX_FRAMES_IN_FLIGHT);
@@ -90,15 +98,16 @@ namespace ilen::render {
             //Es importante que los command encoder
             
             int totalOfCustomTextures = 0;
-            if(RenderingOptions::isPostProcessEnabled){
+            if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
                 totalOfCustomTextures += MAX_FRAMES_IN_FLIGHT; //Estas texturas son los render target de los Pass Descriptor. La idea es, por cada pass que no dibuje en pantalla, crea las texturas, y luego se usa un índice que viene en el Constructor que doy para saber en que bloque de texturas leer. 0 sería la textura de pantalla (i * 0 = 0), así que es buena idea, y a partir del 1, pues se obtiene el índice de la custom texture.
-                if(PostProcessOptions::isMotionBlurEnabled){
+                if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
                     totalOfCustomTextures += MAX_FRAMES_IN_FLIGHT; //Para almacenar el velocity buffer en al attachment 1.
                 }
             }
             
             _sceneTexture.resize(totalOfCustomTextures);
             generateFrameTextures();
+            regenerateEncoderDescriptor();
         }
     }
 
@@ -156,35 +165,28 @@ void MetalRender::beginFrame() {
     }
     _drawableTexture[_actualFrame] = std::make_unique<MetalTexture>(_drawables[_actualFrame].texture);
     
-    IlenParallelEncoderDescriptor parallelEncoderDescriptor {};
-    parallelEncoderDescriptor.label = "Main Render Pass Encoder";
-    parallelEncoderDescriptor.colorAttachments.resize(3); //Metal soporta hasta 8, pero creo que de momento 3 son más que suficientes.
-    auto colorAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+    if(lastUsedGraphicsOptions != GraphicsOptions::graphicsOptionsFlags){
+        regenerateEncoderDescriptor();
+    }
+    
+    IlenParallelEncoderDescriptor parallelEncoderDescriptor = actualMainDescriptor;
+    
+    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
+        parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_Color]->texture = _sceneTexture[_actualFrame].get();
+        uint32_t actualIndexForNextTexture = MAX_FRAMES_IN_FLIGHT;
 
-    if(RenderingOptions::isPostProcessEnabled){
-        colorAttach->texture = _sceneTexture[_actualFrame].get();
-
-        if(PostProcessOptions::isMotionBlurEnabled){
-            
+        if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
+            parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_VelocityBuffer]->texture = _sceneTexture[_actualFrame + actualIndexForNextTexture].get();
+            actualIndexForNextTexture += MAX_FRAMES_IN_FLIGHT;
         }
     }else{
-        colorAttach->texture = _drawableTexture[_actualFrame].get();
+        parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_Color]->texture = _drawableTexture[_actualFrame].get();
     }
-    colorAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-    colorAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
-    colorAttach->clearColor = graphics::Color(metalView.clearColor.red, metalView.clearColor.green, metalView.clearColor.blue);
-    parallelEncoderDescriptor.colorAttachments[0] = std::move(colorAttach);
-
-    if(RenderingOptions::isDepthEnabled){
-        //Depth buffer
-        auto depthAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
-
-        depthAttach->texture = _depthTexture[_actualFrame].get();
-        depthAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-        depthAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE;
-        
-        parallelEncoderDescriptor.depthAttachment = std::move(depthAttach);
+    
+    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
+        parallelEncoderDescriptor.depthAttachment->texture = _depthTexture[_actualFrame].get();
     }
+    
             
     _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
     _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], std::move(parallelEncoderDescriptor));
@@ -251,7 +253,7 @@ void MetalRender::beginFrame() {
     }
 
     std::shared_ptr<IGPURenderPipeline> MetalRender::createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor &pipelineDescriptor, ilen::resources::shaders::ShaderManager *shaderManager){
-        return std::make_shared<MetalRenderPipeline>(_device, pipelineDescriptor, shaderManager, metalView);
+        return std::make_shared<MetalRenderPipeline>(_device, pipelineDescriptor, shaderManager, metalView, actualMainDescriptor);
     }
 
     std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::getParallelCommandEncoder(){
@@ -282,7 +284,8 @@ void MetalRender::generateFrameTextures(){
         bool haveTextures = _sceneTexture.size() > 0;
         bool haveDepth = _depthTexture.size() > 0;
         
-        if(!RenderingOptions::isPostProcessEnabled && !RenderingOptions::isDepthEnabled && !RenderingOptions::isStencilEnabled){
+        if(!(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) && !(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH)
+           && !(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL)){
             return;
         }
         
@@ -290,7 +293,7 @@ void MetalRender::generateFrameTextures(){
             for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){ //Se calcula con respecto a los Frames in flight por seguridad. Si aquí almaceno referencia a todas las texturas que usa mi motor, usando como distancia lógica los frames in flight, por cada frame in flight, y reglas claras de como generar las texturas, debo ir creándolas
                 
                 int advacedSteps = 0; //Para calcular se deben ser las texturas 0 - 2, o 3 - 5, o 6 - 8
-                if(RenderingOptions::isPostProcessEnabled){
+                if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
                     _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)].reset(); //Para forzar la liberación de cualquier textura de antes.
                     std::string label = "Pre-PostProcess Texture Data - Frame " + std::to_string(i);
                     //Generamos la textura para dibujar
@@ -301,13 +304,13 @@ void MetalRender::generateFrameTextures(){
                     descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN;
                     descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET | ILEN_GPU_TEXTURE_USAGE_SHADER_READ;
                     descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
-                    descriptor.label = label.c_str();
+                    descriptor.label = label;
                     
                     _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)] = createNewPlatformTexture(descriptor);
                     advacedSteps++;
                     
                     //Post process effect requerided images!!!
-                    if(PostProcessOptions::isMotionBlurEnabled){
+                    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
                         //Generate the motion texture
                         _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)].reset(); //Para forzar la liberación de cualquier textura de antes.
 
@@ -319,7 +322,7 @@ void MetalRender::generateFrameTextures(){
                         descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF;
                         descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET | ILEN_GPU_TEXTURE_USAGE_SHADER_READ;
                         descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
-                        descriptor.label = label.c_str();
+                        descriptor.label = label;
                         
                         _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)] = createNewPlatformTexture(descriptor);
                     }
@@ -331,7 +334,7 @@ void MetalRender::generateFrameTextures(){
         
         if((haveDepth && !_depthTexture[0]) || (haveDepth && _depthTexture[0]->getTexWidth() != width && _depthTexture[0]->getTexHeight() != height)){
             for(size_t i = 0; i < _depthTexture.size(); i++){
-                if(RenderingOptions::isDepthEnabled){
+                if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
                     std::string label = "Depth texture - Frame " + std::to_string(i);
 
                     IlenGPUTextureDescriptor descriptor{};
@@ -341,7 +344,7 @@ void MetalRender::generateFrameTextures(){
                     descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH;
                     descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET;
                     descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
-                    descriptor.label = label.c_str();
+                    descriptor.label = label;
                     
                     _depthTexture[i] = createNewPlatformTexture(descriptor);
                 }else{
@@ -353,12 +356,78 @@ void MetalRender::generateFrameTextures(){
     }
 }
 
-std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::createNewParallelCommandEncoder(const IlenParallelEncoderDescriptor &descriptor){
+IGPUTexture* MetalRender::getDrawableTexturePtr(){
+    return _drawableTexture[_actualFrame].get();
+}
+
+std::vector<IGPUTexture*> MetalRender::getAllSceneTexturesPtr() {
+    std::vector<IGPUTexture*> toReturn; //Vector a regresar
+    size_t differentTextures = _sceneTexture.size() / MAX_FRAMES_IN_FLIGHT; //Numero de texturas diferentes
+    toReturn.resize(differentTextures); //Optimización
+    
+    //Por cada textura diferente, mandamos al del frame actual
+    for(size_t i = 0; i < differentTextures; i++){
+        toReturn[i] = _sceneTexture[_actualFrame + (i * MAX_FRAMES_IN_FLIGHT)].get();
+    }
+    
+    return toReturn;
+}
+
+
+std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::createNewParallelCommandEncoder(IlenParallelEncoderDescriptor&& descriptor){
     //Parte de su responsabilidad es asignar las texturas para el nuevo Parallel Encoder Descriptor.
+        //CAUTION: Cuidar todos los objetos que no retornan nada, porque pueden hacer crashear el programa de la nada, como al usar esto.
+    return std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], std::move(descriptor));
 }
 
 std::unique_ptr<IGPUTexture> MetalRender::createNewPlatformTexture(const IlenGPUTextureDescriptor &descriptor){
     return std::make_unique<MetalTexture>(descriptor, metalView, _device);
+}
+
+void MetalRender::regenerateEncoderDescriptor(){
+    IlenParallelEncoderDescriptor parallelEncoderDescriptor {};
+    parallelEncoderDescriptor.label = "Main Render Pass Encoder";
+    parallelEncoderDescriptor.colorAttachments.resize(3); //Metal soporta hasta 8, pero creo que de momento 3 son más que suficientes.
+    auto colorAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+
+    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
+        colorAttach->texture = _sceneTexture[_actualFrame].get();
+        uint32_t actualIndexForNextTexture = MAX_FRAMES_IN_FLIGHT;
+        if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
+            //TODO: asignar la textura para el velocity buffer.
+            auto motionBlurAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+            motionBlurAttach->texture = _sceneTexture[_actualFrame + actualIndexForNextTexture].get();
+            motionBlurAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+            motionBlurAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+            //Porque este encoder no tiene asignado el attachment?? Luego así vienen los errores random.
+            parallelEncoderDescriptor.colorAttachments[ilen::render::slots::RenderPassAttachment_VelocityBuffer] = std::move(motionBlurAttach); // Slot 1 para el Velocity Buffer
+            actualIndexForNextTexture += 3; // Se añade un stride de 3 para los indices de alguna nueva textura especial a añadir.
+            //motionBlurAttach->texture
+        }
+    }else{
+        colorAttach->texture = _drawableTexture[_actualFrame].get();
+    }
+    colorAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+    colorAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+    colorAttach->clearColor = graphics::Color(metalView.clearColor.red, metalView.clearColor.green, metalView.clearColor.blue);
+    parallelEncoderDescriptor.colorAttachments[ilen::render::slots::RenderPassAttachment_Color] = std::move(colorAttach);
+
+    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
+        //Depth buffer
+        auto depthAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+        depthAttach->texture = _depthTexture[_actualFrame].get();
+        depthAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+        depthAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE;
+        
+        parallelEncoderDescriptor.depthAttachment = std::move(depthAttach);
+    }
+    
+    actualMainDescriptor = parallelEncoderDescriptor;
+    lastUsedGraphicsOptions = GraphicsOptions::graphicsOptionsFlags;
+}
+
+std::unique_ptr<IGPUInstanceBuffer> MetalRender::createInstanceBuffer(size_t bufferSize, std::string bufferName){
+    return std::make_unique<MetalInstanceBuffer>(_device, bufferSize, bufferName);
 }
 
     /*
@@ -368,5 +437,4 @@ std::unique_ptr<IGPUTexture> MetalRender::createNewPlatformTexture(const IlenGPU
 }
 
 #endif // defined (__APPLE__)
-
 

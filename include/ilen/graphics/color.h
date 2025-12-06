@@ -24,7 +24,10 @@ namespace ilen::graphics {
 
             return *this;
         }
-        //Métodos para los colores (Lerp, Mix, etc) TODO.
+        bool operator==(const Color & color) const {
+            return red == color.red && blue == color.blue && green == color.green && alpha == color.alpha;
+        };
+        // Métodos para los colores (Lerp, Mix, etc) TODO.
     };
 
     namespace color {

@@ -33,6 +33,10 @@ namespace ilen::resources {
     //ID de datos predefinidos
     static const uint32_t ErrorShaderID = 6;
     static const uint32_t ErrorMaterialID = 4;
+    static const uint32_t QuadMeshID = 2;
+    static const uint32_t PostProcessPresentShaderID = 8;
+    static const uint32_t PostProcessCalculateShaderID = 9;
+
 
     class AssetsManager {
         public:

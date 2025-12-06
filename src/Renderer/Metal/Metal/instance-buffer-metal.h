@@ -10,7 +10,7 @@
 namespace ilen::render {
     class MetalInstanceBuffer final : public IGPUInstanceBuffer {
     public:
-        MetalInstanceBuffer(id<MTLDevice> device, size_t bufferSize);
+        MetalInstanceBuffer(id<MTLDevice> device, size_t bufferSize, const std::string& bufferName);
         ~MetalInstanceBuffer() override;
 
         uint32_t UploadInstanceData(const void *data, size_t size) override;

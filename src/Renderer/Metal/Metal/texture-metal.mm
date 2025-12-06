@@ -23,7 +23,7 @@ MetalTexture::MetalTexture(const IlenGPUTextureDescriptor& descriptor, MTKView* 
         texDescriptor.storageMode = transformEngineToNativeStorageMode(descriptor.memoryProperty);
         
         _texture = [device newTextureWithDescriptor:texDescriptor];
-        _texture.label = [NSString stringWithUTF8String:descriptor.label];
+        _texture.label = [NSString stringWithUTF8String:descriptor.label.c_str()];
         //[_texture retain]; //al ser de un new, ya da una referencia, esto rompe el conteo.
         
         _texWidth = descriptor.width;

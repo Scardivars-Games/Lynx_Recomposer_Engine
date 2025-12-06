@@ -25,7 +25,7 @@ vertex VertexOut basic_vertex(
 ) {
     VertexOut out;
     float4x4 modelMatrix = instanceData[instanceID].modelMatrix;
-    float4x4 vpMatrix = camData->viewProjectionMatrix;
+    float4x4 vpMatrix = camData->currentViewProjectionMatrix;
     out.position = vpMatrix * modelMatrix * float4(in.position, 1.0);
     out.color = in.color;
     out.uv = in.uv;

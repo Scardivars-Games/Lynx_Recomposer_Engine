@@ -16,7 +16,7 @@ namespace ilen::render {
         friend class MetalRender;
 
         public:
-            MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer,IlenParallelEncoderDescriptor&& descriptor);
+            MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, IlenParallelEncoderDescriptor&& descriptor);
             virtual ~MetalParallelCommandEncoder();
             
             void SetGlobalBuffers(uint32_t slot, IGPUBuffer* buffer) override;

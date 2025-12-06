@@ -103,7 +103,7 @@ namespace ilen::enumerations {
     };
 
     //Usos que tendra la textura
-    enum ILEN_GPU_TEXTURE_USAGE_TYPE{
+    enum ILEN_GPU_TEXTURE_USAGE_BIT_FLAGS{
         ILEN_GPU_TEXTURE_USAGE_RENDERTARGET = 1 << 0,
         ILEN_GPU_TEXTURE_USAGE_SHADER_READ = 1 << 1,
         ILEN_GPU_TEXTURE_USAGE_SHADER_WRITE = 1 << 2,
@@ -131,5 +131,16 @@ namespace ilen::enumerations {
         ILEN_GPU_RENDER_PASS_LOAD_OPTION_LOAD, //Carga el valor de la textura
         ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR, //La limpia a un valor por defecto antes de usarla.
         ILEN_GPU_RENDER_PASS_LOAD_OPTION_DONT_CARE, //Me da igual, el driver optimiza
+    };
+
+
+    //Enum para las opciones gráficas. El int establecido es de 16 bits.
+    enum ILEN_GRAPHICS_OPTIONS_BIT_FLAGS {
+        ILEN_GRAPHICS_OPTIONS_USE_DEPTH = 1 << 0,
+        ILEN_GRAPHICS_OPTIONS_USE_STENCIL = 1 << 1,
+        ILEN_GRAPHICS_OPTIONS_USE_MSAA = 1 << 2,
+        ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS = 1 << 10,
+        ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR = 1 << 11,
+        ILEN_GRAPHICS_OPTIONS_USE_BLOOM = 1 << 12,
     };
 }

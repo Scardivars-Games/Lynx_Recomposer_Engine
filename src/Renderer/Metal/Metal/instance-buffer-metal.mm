@@ -4,11 +4,11 @@
 #import <Metal/Metal.h>
 
 namespace ilen::render {
-    MetalInstanceBuffer::MetalInstanceBuffer(id<MTLDevice> device, size_t bufferSize) : _currentOffset(0), _totalSize(bufferSize){
+    MetalInstanceBuffer::MetalInstanceBuffer(id<MTLDevice> device, size_t bufferSize, const std::string& bufferName) : _currentOffset(0), _totalSize(bufferSize){
         IlenBufferDescriptor descriptor;
         descriptor.bufferType = enumerations::ILEN_RENDER_GPU_BUFFER_TYPE::ILEN_RENDER_GPU_BUFFER_UNIFORM;
         descriptor.bufferSize = bufferSize;
-        descriptor.bufferLabelName = "Instance Ring Buffer";
+        descriptor.bufferLabelName = bufferName;
         
         _buffer = std::make_unique<MetalBuffer>(device, descriptor, nullptr, nil);
         _nativeBuffer = (__bridge id<MTLBuffer>)_buffer->getNativeHandle();

@@ -3,16 +3,23 @@
 // defecto los asigna el motor.
 #pragma once
 
+#include <ilen/core/bitflags.h>
+
+//Por razones de eficiencia en Memoria, es mejor mantener todos estos bools como bitflags
 namespace ilen::core::options {
-    struct RenderingOptions {
-        static inline bool isPostProcessEnabled = true;
-        static inline bool isStencilEnabled = false;
-        static inline bool isDepthEnabled = false;
+    struct GraphicsOptions {
+        static inline IlenGraphicsOptionsFlags graphicsOptionsFlags = 0;
         static inline int actualFPS = 120;
+
+        /*static inline bool isPostProcessEnabled = true;
+        static inline bool isStencilEnabled = false;
+        static inline bool isDepthEnabled = false;*/
     };
 
-    struct PostProcessOptions {
+
+
+    /*struct PostProcessOptions {
         static inline bool isMotionBlurEnabled = true;
         static inline bool isBloomEnabled = false;
-    };
+    };*/
 } // namespace ilen::core::options

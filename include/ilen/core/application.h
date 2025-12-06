@@ -45,7 +45,7 @@ namespace ilen::application{
         public:
             static void setFrameRate(int newFramerate) {
                 s_framerateInMiliseconds = 1.0f / newFramerate;
-                ilen::core::options::RenderingOptions::actualFPS = newFramerate;
+                ilen::core::options::GraphicsOptions::actualFPS = newFramerate;
             }
             static float getFrameRate() { return s_framerateInMiliseconds * 1000; }
             static std::string getApplicationName() { return s_applicationName; }

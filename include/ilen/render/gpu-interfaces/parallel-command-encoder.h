@@ -14,6 +14,14 @@ namespace ilen::render {
         graphics::Color clearColor;
         ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE storeOption;
         ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE loadOption;
+
+        bool operator==(const IlenEncoderAttachmentDescriptor &other) const {
+            bool sameTex = *texture == *other.texture;
+            bool sameClear = clearColor == other.clearColor;
+            bool sameLoad = loadOption == other.loadOption;
+            bool sameStore = storeOption == other.storeOption;
+            return sameTex && sameClear && sameLoad && sameStore;
+        }
     };
 
     struct IlenParallelEncoderDescriptor {
@@ -24,7 +32,7 @@ namespace ilen::render {
         std::unique_ptr<IlenEncoderAttachmentDescriptor> depthAttachment;
         std::unique_ptr<IlenEncoderAttachmentDescriptor> stencilAttachment;
         
-        const char *label = nullptr;
+        const char *label = "";
 
         IlenParallelEncoderDescriptor() = default;
 
@@ -46,6 +54,103 @@ namespace ilen::render {
             
             return *this;
         }
+
+        IlenParallelEncoderDescriptor(const IlenParallelEncoderDescriptor& other) {
+            // Copy label (assuming it's a raw pointer, you might need to copy the string if needed)
+            if (other.label) {
+                label = strdup(other.label);  // Or copy to std::string if preferred
+            } else {
+                label = nullptr;
+            }
+
+            // Copy colorAttachments (deep copy of unique_ptrs)
+            colorAttachments.clear();  // Empty the existing vector before copying
+            colorAttachments.resize(other.colorAttachments.size());
+            for (int i =0 ; i < other.colorAttachments.size() ; i++) {
+                if (other.colorAttachments[i] == nullptr) {
+                    this->colorAttachments[i] = nullptr;
+                }else {
+                    colorAttachments[i] = std::make_unique<IlenEncoderAttachmentDescriptor>(*other.colorAttachments[i]);
+                }
+            }
+
+            // Copy depth and stencil attachments (deep copy of unique_ptrs)
+            if (other.depthAttachment) {
+                depthAttachment = std::make_unique<IlenEncoderAttachmentDescriptor>(*other.depthAttachment);
+            } else {
+                depthAttachment = nullptr;
+            }
+
+            if (other.stencilAttachment) {
+                stencilAttachment = std::make_unique<IlenEncoderAttachmentDescriptor>(*other.stencilAttachment);
+            } else {
+                stencilAttachment = nullptr;
+            }
+        }
+
+        IlenParallelEncoderDescriptor& operator=(const IlenParallelEncoderDescriptor& other) {
+            if (this == &other) {
+                return *this;  // Handle self-assignment
+            }
+
+            // Copy label (assuming it's a raw pointer, or use std::string if appropriate)
+            if (other.label) {
+                label = strdup(other.label);  // Or assign to a std::string if preferred
+            } else {
+                label = nullptr;
+            }
+
+            // Copy colorAttachments (deep copy of unique_ptrs)
+            colorAttachments.clear();  // Empty the existing vector before copying
+            colorAttachments.resize(other.colorAttachments.size());
+            for (int i =0 ; i < other.colorAttachments.size() ; i++) {
+                if (other.colorAttachments[i] == nullptr) {
+                    this->colorAttachments[i] = nullptr;
+                }else {
+                    colorAttachments[i] = std::make_unique<IlenEncoderAttachmentDescriptor>(*other.colorAttachments[i]);
+                }
+            }
+
+            // Copy depth and stencil attachments (deep copy of unique_ptrs)
+            if (other.depthAttachment) {
+                depthAttachment = std::make_unique<IlenEncoderAttachmentDescriptor>(*other.depthAttachment);
+            } else {
+                depthAttachment = nullptr;
+            }
+
+            if (other.stencilAttachment) {
+                stencilAttachment = std::make_unique<IlenEncoderAttachmentDescriptor>(*other.stencilAttachment);
+            } else {
+                stencilAttachment = nullptr;
+            }
+
+            return *this;
+        }
+
+
+
+        bool operator==(const IlenParallelEncoderDescriptor &first) const {
+            bool sameSize = colorAttachments.size() == first.colorAttachments.size();
+            bool sameLabel = strcmp(first.label, label) == 0;
+            bool sameAttach = true;
+            size_t nulls = 0;
+            for (int i = 0; i < colorAttachments.size() && sameSize; ++i) {
+                if (colorAttachments[i] != nullptr && first.colorAttachments[i] != nullptr) {
+                    if (*colorAttachments[i] != *first.colorAttachments[i]) {
+                        sameAttach = false;
+                        break;
+                    }
+                }else { nulls++; }
+            }
+
+            if (nulls == colorAttachments.size()) {
+                sameSize = false;
+            }
+            bool sameDepth = depthAttachment == first.depthAttachment;
+            bool sameStencil = stencilAttachment == first.stencilAttachment;
+
+            return sameSize && sameLabel && sameDepth && sameStencil && sameAttach;
+        }
     };
 
     // Al inicio de cada frame, la GPU genera uno de esto. Luego cada thread del submision le pide un command encoder
@@ -58,7 +163,7 @@ namespace ilen::render {
         virtual ~IGPUParallelCommandEncoder() = default;
         virtual void SetGlobalBuffers(uint32_t slot, IGPUBuffer *buffer) = 0;
         virtual IGPURenderEncoder *GetThreadEncoder() = 0;
-        virtual IlenParallelEncoderDescriptor* getParallelEncoderDescriptor() { return &_descriptor; }
+        IlenParallelEncoderDescriptor* getParallelEncoderDescriptor() { return &_descriptor; }
 
     protected:
         virtual void EndEncoding() = 0; // Indica que debe cerrar el encoding.

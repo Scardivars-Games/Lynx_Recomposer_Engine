@@ -11,7 +11,7 @@ namespace ilen::render {
     std::map<VertexBufferLayout, void*> MetalRenderPipeline::m_vertexBufferDescriptors;
     std::mutex MetalRenderPipeline::_psoMutex;
 
-    MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, MTKView* view) : _pso(nil) {
+    MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, MTKView* view, IlenParallelEncoderDescriptor inUseGeneralEncoder) : _pso(nil){
         using namespace ilen::render::utils::metal;
         @autoreleasepool {
             MTLRenderPipelineDescriptor* pipelineDescriptor = [MTLRenderPipelineDescriptor new];
@@ -24,8 +24,16 @@ namespace ilen::render {
                 return;
             }
             
-            id<MTLFunction> vertexFunction = (__bridge id<MTLFunction>)vertexPtr.get()->getNativeShaderFromFunctionName(descriptor.vertexFunctionName);
-            id<MTLFunction> fragmentFunction = (__bridge id<MTLFunction>)fragmentPtr.get()->getNativeShaderFromFunctionName(descriptor.fragmentFunctionName);
+            id<MTLFunction> vertexFunction, fragmentFunction;
+            if(descriptor.constantValuesForPipelines.size() == 0){
+                vertexFunction = (__bridge id<MTLFunction>)vertexPtr.get()->getNativeShaderFromFunctionName(descriptor.vertexFunctionName);
+                fragmentFunction = (__bridge id<MTLFunction>)fragmentPtr.get()->getNativeShaderFromFunctionName(descriptor.fragmentFunctionName);
+            }else{
+                vertexFunction = (__bridge id<MTLFunction>)vertexPtr.get()->getNativeShaderFromFunctionNameAndUberActivations(descriptor.vertexFunctionName, descriptor.constantValuesForPipelines);
+                fragmentFunction = (__bridge id<MTLFunction>)fragmentPtr.get()->getNativeShaderFromFunctionNameAndUberActivations(descriptor.fragmentFunctionName, descriptor.constantValuesForPipelines);
+            }
+            
+
             
             if(!vertexFunction || !fragmentFunction){
                 ILEN_ERROR_P(DEBUG_PREFIX, "Las funciones %s y %s no fueron encontradas en su respectivo shader!!!.", descriptor.vertexFunctionName.c_str(), descriptor.fragmentFunctionName.c_str());
@@ -86,37 +94,45 @@ namespace ilen::render {
                     break;
             }
             //Colores del pixel
-            colorAttach.pixelFormat = view.colorPixelFormat;
+            auto encoderDesc = descriptor.encoderDescriptor;
+            if(descriptor.encoderDescriptor == nullptr){
+                encoderDesc = &inUseGeneralEncoder;
+                //ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Solicitud de creación de un PSO especial sin el descriptor con los datos del encoder.");
+            }
+            if(encoderDesc->colorAttachments.size() > 0){
+                colorAttach.pixelFormat = transformEngineToNativePixelFormat(encoderDesc->colorAttachments[0]->texture->getDescriptor().pixelFormat, view);
+            }else{
+                colorAttach.pixelFormat = MTLPixelFormatInvalid;
+            }
             
-            if(ilen::core::options::RenderingOptions::isDepthEnabled){
+            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
                 pipelineDescriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
             }
             
-            if(ilen::core::options::RenderingOptions::isStencilEnabled){
+            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL){
                 pipelineDescriptor.stencilAttachmentPixelFormat = view.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
             }
+            /* En METAL siempre hay que definir los descriptores, auque el PSO no lo use.
+            if(descriptor.isSpecialPipeline){
+                
+            }*/
             
             if(descriptor.isSpecialPipeline){
-                if(descriptor.encoderDescriptor == nullptr){
-                    ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Solicitud de creación de un PSO especial sin el descriptor con los datos del encoder.");
-                }
-                
                 //Special Pipelines son aquellos que no escriben en el buffer 0 (dibujado normal) Esto es principalmente para PSO de Post-Procesado
                 pipelineDescriptor.colorAttachments[0].writeMask = MTLColorWriteMaskNone;
-                
-                auto encoderDesc = descriptor.encoderDescriptor;
-                //Empezamos en 1 porque el color 0 siempre esta reservada para el dibujo de la pantalla, y para nada mas :)
-                for(size_t i = 1; i < encoderDesc->colorAttachments.size(); i++){
-                    if(encoderDesc->colorAttachments[i] != nullptr){
-                       auto texFormat =  encoderDesc->colorAttachments[i]->texture->getDescriptor().pixelFormat;
-                        pipelineDescriptor.colorAttachments[i].pixelFormat = transformEngineToNativePixelFormat(texFormat, view);
-                        pipelineDescriptor.colorAttachments[i].writeMask = MTLColorWriteMaskAll;
-                        pipelineDescriptor.colorAttachments[i].blendingEnabled = NO;
-                    }
+            }
+            
+            //Empezamos en 1 porque el color 0 siempre esta reservada para el dibujo de la pantalla, y para nada mas :)
+            for(size_t i = 1; i < encoderDesc->colorAttachments.size(); i++){
+                if(encoderDesc->colorAttachments[i] != nullptr){
+                   auto texFormat =  encoderDesc->colorAttachments[i]->texture->getDescriptor().pixelFormat;
+                    pipelineDescriptor.colorAttachments[i].pixelFormat = transformEngineToNativePixelFormat(texFormat, view);
+                    pipelineDescriptor.colorAttachments[i].writeMask = MTLColorWriteMaskAll;
+                    pipelineDescriptor.colorAttachments[i].blendingEnabled = NO;
                 }
             }
             
@@ -125,6 +141,7 @@ namespace ilen::render {
             m_renderQueue = descriptor.renderQueue;
             
             _pso = [device newRenderPipelineStateWithDescriptor:pipelineDescriptor error:&error];
+            this->descriptor = descriptor;
             
             [pipelineDescriptor release];
             
