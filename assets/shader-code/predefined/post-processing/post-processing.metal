@@ -41,7 +41,7 @@ fragment float4 post_processing_fragment(VertexOut in [[stage_in]], texture2d<fl
     half4 velocityH = velocityBuffer.sample(textureSampler, in.uv);
     float2 velocity = float2(velocityH.xy);
     velocity.y = -velocity.y;
-    float velocityScale = 1.0;
+    float velocityScale = 1.5;
     velocity *= velocityScale;
 
     //Amount de blur

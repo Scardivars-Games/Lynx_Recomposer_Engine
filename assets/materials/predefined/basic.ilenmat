@@ -4,5 +4,13 @@
     "fragment-shader-function" : "basic_fragment",
     "vertex-shader-id" : 7,
     "vertex-shader-function" : "basic_vertex",
-    "render-queue" : "Opaque"
+    "render-queue" : "Opaque",
+    "properties" : [
+        {
+            "color-property" : {
+                "name" : "TextureTint",
+                "value" : [0.5, 1.0, 0.5, 1.0]
+            }
+        }
+    ]
 }

@@ -1,6 +1,7 @@
 #pragma once
 //Header con la definición de color que usará ilen-engine
 #include <ilen/maths/vector.h>
+#include <external/json/json.hpp>
 
 namespace ilen::graphics {
     using namespace ilen::maths::vector;
@@ -12,7 +13,7 @@ namespace ilen::graphics {
             struct { float r, g, b, a; };
             struct { float x, y, z, w; };
         };
-        
+
         Color() = default;
         Color(float red, float green, float blue, float alpha = 1.0f) : r(red), g(green), b(blue), a(alpha) { };
         Color(float4 vecData) : r(vecData.r), g(vecData.g), b(vecData.b), a(vecData.a) {};

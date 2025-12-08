@@ -10,6 +10,7 @@
 #include <ilen/resources/assets-elements.h>
 #include <ilen/graphics/material.h>
 #include <ilen/graphics/shader.h>
+#include <ilen/graphics/color.h>
 #include <ilen/core/time.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -47,12 +48,17 @@ const std::string ILEN_MATERIAL_FRAGMENT_SHADER_FUNCTION = "fragment-shader-func
 const std::string ILEN_MATERIAL_RENDER_QUEUE = "render-queue";
 
 //Keys for properties, to be added in the future
+const std::string ILEN_MATERIAL_PROPERTIES_GROUP = "properties";
 const std::string ILEN_MATERIAL_FLOAT_PROPERTY = "float-property";
 const std::string ILEN_MATERIAL_INTEGER_PROPERTY = "int-property";
 const std::string ILEN_MATERIAL_FLOAT2_PROPERTY = "float2-property";
 const std::string ILEN_MATERIAL_FLOAT3_PROPERTY = "float3-property";
 const std::string ILEN_MATERIAL_FLOAT4_PROPERTY = "float4-property";
+const std::string ILEN_MATERIAL_COLOR_PROPERTY = "color-property"; //Necesario, porque color puede admintir propiedades HDR.
 const std::string ILEN_MATERIAL_TEXTURE_PROPERTY = "texture-property"; // Para texturas
+
+const std::string ILEN_MATERIAL_PROPERTY_NAME = "name";
+const std::string ILEN_MATERIAL_PROPERTY_VALUE = "value";
 
 //Necesito una base de datos de extensiones soportadas y que tipo de asset es
 std::unordered_map<std::string, std::string> extensionToAssetType = {
@@ -108,6 +114,34 @@ ilen::graphics::MeshData loadModelData(std::filesystem::path modelPath);
 ilen::job_system::JobSystem jobSystem;
 std::mutex fileWrite;
 
+namespace nlohmann {
+    template <>
+    struct adl_serializer<ilen::graphics::Color> {
+        static void from_json(const json& j, ilen::graphics::Color& c) {
+            // Lógica para Array [r, g, b, a]
+            if (j.is_array()) {
+                if (j.size() >= 3) {
+                    j.at(0).get_to(c.r);
+                    j.at(1).get_to(c.g);
+                    j.at(2).get_to(c.b);
+                }
+                if (j.size() >= 4) {
+                    j.at(3).get_to(c.a);
+                } else {
+                    c.a = 1.0f;
+                }
+            }
+            // Lógica para Objeto {"r": ...}
+            else if (j.is_object()) {
+                j.at("r").get_to(c.r);
+                j.at("g").get_to(c.g);
+                j.at("b").get_to(c.b);
+                if (j.contains("a")) j.at("a").get_to(c.a);
+                else c.a = 1.0f;
+            }
+        }
+    };
+}
 
 namespace ilen::maths::vector {
     // Le enseña a nlohmann/json cómo convertir un array JSON a un ilen::maths::vector
@@ -605,13 +639,15 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             }
 
             // Procesar todas las propiedades con la nueva lógica
-            processScalarProperties<float>(materialJson, ILEN_MATERIAL_FLOAT_PROPERTY, material.properties);
-            processScalarProperties<uint32_t>(materialJson, ILEN_MATERIAL_INTEGER_PROPERTY, material.properties);
-            processScalarProperties<uint32_t>(materialJson, ILEN_MATERIAL_TEXTURE_PROPERTY, material.properties); // Las texturas se guardan como ID (uint32_t)
+            auto propData = materialJson.value(ILEN_MATERIAL_PROPERTIES_GROUP, json::array());
+            processScalarProperties<float>(propData, ILEN_MATERIAL_FLOAT_PROPERTY, material.properties);
+            processScalarProperties<uint32_t>(propData, ILEN_MATERIAL_INTEGER_PROPERTY, material.properties);
+            processScalarProperties<uint32_t>(propData, ILEN_MATERIAL_TEXTURE_PROPERTY, material.properties); // Las texturas se guardan como ID (uint32_t)
 
-            processVectorProperties<ilen::maths::vector::vec2>(materialJson, ILEN_MATERIAL_FLOAT2_PROPERTY, material.properties);
-            processVectorProperties<ilen::maths::vector::vec3>(materialJson, ILEN_MATERIAL_FLOAT3_PROPERTY, material.properties);
-            processVectorProperties<ilen::maths::vector::vec4>(materialJson, ILEN_MATERIAL_FLOAT4_PROPERTY, material.properties);
+            processVectorProperties<ilen::maths::vector::vec2>(propData, ILEN_MATERIAL_FLOAT2_PROPERTY, material.properties);
+            processVectorProperties<ilen::maths::vector::vec3>(propData, ILEN_MATERIAL_FLOAT3_PROPERTY, material.properties);
+            processVectorProperties<ilen::maths::vector::vec4>(propData, ILEN_MATERIAL_FLOAT4_PROPERTY, material.properties);
+            processVectorProperties<ilen::graphics::Color>(propData, ILEN_MATERIAL_COLOR_PROPERTY, material.properties);
 
             //Save and binarize material file
             ilen::binary::headers::IlenMaterialHeader header{};
@@ -803,18 +839,38 @@ void processScalarProperties(const nlohmann::json& jsonData, const std::string& 
     }
 }
 
+
+
 // Función auxiliar para procesar un objeto de propiedades vectoriales (vec2, vec3, Color).
 template<typename VecType>
 void processVectorProperties(const nlohmann::json& jsonData, const std::string& key, std::unordered_map<std::string, ilen::graphics::MaterialProperty>& properties) {
-    if (jsonData.contains(key) && jsonData[key].is_object()) {
-        // Iteramos sobre cada par clave-valor del objeto JSON (ej. "_color": [1, 0, 0])
-        for (auto const& [propName, propValueJson] : jsonData[key].items()) {
-            if (propValueJson.is_array()) {
-                VecType vecValue;
-                // nlohmann::json puede deserializar un array JSON directamente
-                // a una estructura como vec3 o Color si los miembros coinciden.
-                propValueJson.get_to(vecValue);
-                properties[propName] = vecValue;
+    if (!jsonData.is_array()) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "Recibimos un objeto en vez de una lista de propiedades. Revisar el .ilenmat usado");
+        return;
+    }
+
+    for (const auto& item: jsonData) {
+        ILEN_LOG_P(DEBUG_PREFIX, "Objeto válido");
+        if (item.contains(key)) {
+            ILEN_LOG_P(DEBUG_PREFIX, "Contiene llave");
+            const auto& property = item[key];
+
+            if (property.contains(ILEN_MATERIAL_PROPERTY_NAME) && property.contains(ILEN_MATERIAL_PROPERTY_VALUE)) {
+                // DEBUG TEMPORAL
+                if (property.is_array()) {
+                    ILEN_LOG_P(DEBUG_PREFIX, "ERROR INMINENTE: 'property' YA es un array: %s", property.dump().c_str());
+                } else if (property.is_object()) {
+                    ILEN_LOG_P(DEBUG_PREFIX, "INFO: 'property' es un objeto (correcto): %s", property.dump().c_str());
+                } else {
+                    ILEN_LOG_P(DEBUG_PREFIX, "INFO: 'property' es otro tipo: %s", property.dump().c_str());
+                }
+                ILEN_LOG_P(DEBUG_PREFIX, "Contiene elementos deseados");
+                std::string propertyName = property[ILEN_MATERIAL_PROPERTY_NAME].get<std::string>();
+                ILEN_LOG_P(DEBUG_PREFIX, "Leido el nombre %s", propertyName.c_str());
+                VecType value;
+
+                property[ILEN_MATERIAL_PROPERTY_VALUE].get_to(value);
+                properties[propertyName] = value;
             }
         }
     }

@@ -40,9 +40,9 @@ namespace ilen::render {
             metalView.drawableSize = metalView.bounds.size;
             metalView.paused = YES;
             metalView.enableSetNeedsDisplay = YES;
-            metalView.needsDisplay = YES;
             metalView.autoResizeDrawable = YES;
             #if TARGET_OS_OSX
+            metalView.needsDisplay = YES;
             [metalView setNeedsLayout:YES];
             [metalView layoutSubtreeIfNeeded];
             #endif
