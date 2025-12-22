@@ -60,7 +60,7 @@ namespace ilen::render {
         uint8_t getActualNumOfFramesInFlight() const { return MAX_FRAMES_IN_FLIGHT; }
         uint8_t getActualFrameInFlight() const { return _actualFrame; }
 
-            static std::unique_ptr<IRenderer> CreateRenderer(void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api);
+            static std::unique_ptr<IRenderer> CreateRenderer(const void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api);
             static ILEN_GPU_GRAPHICS_API_TYPE getActualGraphicsAPI() { return actualAPI; }
         protected:
             IlenGraphicsOptionsFlags lastUsedGraphicsOptions;

@@ -20,7 +20,7 @@ namespace ilen::window{
             virtual void pollEvents() = 0;
             virtual bool shouldClose() = 0;
             virtual void* getNativeWindow() const = 0;
-            virtual void* getNativeView() const = 0;
+            virtual const void* getNativeView() const = 0;
             virtual bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) = 0;
     };
 
@@ -39,7 +39,7 @@ namespace ilen::window{
             bool shouldClose();
 
             void* getWindow();
-            void* getSurface(); //View en Apple ecosystem.
+            const void* getSurface(); //View en Apple ecosystem.
 
             static std::unique_ptr<IWindow> CreateWindow(const ilen::application::ApplicationMetadata& metadata);
 

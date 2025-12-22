@@ -4,13 +4,17 @@
 #include <algorithm>
 #include <cstring>
 
+#if ILEN_LINUX
 #include <vulkan/vulkan_xcb.h> //Adicionar al TODO de las instancias.
+#endif
 using namespace ilen::render;
 
 std::vector<const char*> instanceExtensions = {
     VK_KHR_SURFACE_EXTENSION_NAME,
     //TODO: Al usar Wayland, comprobar cual extension en especifico es la necesaria.
+#if ILEN_LINUX
     VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+#endif
 };
 
 //Validation layer code
@@ -18,11 +22,34 @@ const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
-VulkanRender::VulkanRender(void *native_surface) {
+VulkanRender::VulkanRender(const void *native_surface) {
 #if ILEN_DEBUG
     enableValidationLayers = true;
     ILEN_WARNING_P(DEBUG_PREFIX, "Validation layers for Vulkan enabled.");
 #endif
+
+    //Obtenemos la version de Vulkan que posee el usuario
+    auto vkEnumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion");  //En caso de ser Vulkan 1.0, cargamos manualmente este dato, para evitar que el loader no lo conozca.
+
+    if(vkEnumerateInstanceVersion){
+        vkEnumerateInstanceVersion(&vulkanTargetVersion);
+    }else{
+        vulkanTargetVersion = vk::ApiVersion10; //Por seguridad
+    }
+
+    if(vulkanTargetVersion >= vk::ApiVersion14){
+        vulkanTargetVersion = vk::ApiVersion14;
+    }else if(vulkanTargetVersion >= vk::ApiVersion13){
+        vulkanTargetVersion = vk::ApiVersion13;
+    }else if(vulkanTargetVersion >= vk::ApiVersion12){
+        vulkanTargetVersion = vk::ApiVersion12;
+    }else if(vulkanTargetVersion >= vk::ApiVersion11){
+        vulkanTargetVersion = vk::ApiVersion11;
+    }else{
+        vulkanTargetVersion = vk::ApiVersion10; //
+    }
+
+    ILEN_LOG_P(DEBUG_PREFIX, "Vulkan Version %i", vulkanTargetVersion);
 
     //El objetivo de esto es generar hasta el dispositivo logico de la app, o sea, muchas cosas
     //Creemos los datos de la instancia
@@ -31,7 +58,7 @@ VulkanRender::VulkanRender(void *native_surface) {
         .applicationVersion = VK_MAKE_VERSION(application::Application::getMajorVersion(), application::Application::getMinorVersion(), application::Application::getPatchVersion()),
         .pEngineName = "Ilusion's Engine",
         .engineVersion =  VK_MAKE_VERSION(1,0,0),
-        .apiVersion =  vk::ApiVersion10,
+        .apiVersion =  vulkanTargetVersion,
     };
 
     //Validation layers if required
@@ -72,10 +99,10 @@ VulkanRender::VulkanRender(void *native_surface) {
     ILEN_LOG_P(DEBUG_PREFIX, "Creación de la instancia de Vulkan correcta");
 
 #if ILEN_DEBUG
-    if (enableValidationLayers) {
+    if (enableValidationLayers == true) {
         vk::DebugUtilsMessageSeverityFlagsEXT severityFlags (vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo |
             vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError);
-        vk::DebugUtilsMessageTypeFlagsEXT messageTypes (vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |
+        vk::DebugUtilsMessageTypeFlagsEXT messageTypes (/*vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral |*/
             vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
 
         vk::DebugUtilsMessengerCreateInfoEXT createDebugUtils {
@@ -95,6 +122,14 @@ VulkanRender::VulkanRender(void *native_surface) {
     }
 
     //Seleccionando dispositivo según capacidad.
+
+    std::vector<const char*> deviceExtension = {
+        vk::KHRSwapchainExtensionName, //Obligatorio
+        vk::KHRSpirv14ExtensionName,
+        vk::KHRSynchronization2ExtensionName,
+        vk::KHRCreateRenderpass2ExtensionName
+    };
+
     std::multimap<int, vk::raii::PhysicalDevice> candidates;
     for (const auto& device : devices) {
         auto deviceProperties = device.getProperties();
@@ -115,11 +150,88 @@ VulkanRender::VulkanRender(void *native_surface) {
         candidates.insert(std::make_pair(score, device));
     }
 
-    if (candidates.rbegin()->first > 0) {
-        physicalDevice = candidates.rbegin()->second;
-    }else {
+    //Comprobamos que nuestras GPU candidates sean viables para el su uso en el motor.
+    for (const auto& device: candidates) {
+        auto queueFamilies = device.second.getQueueFamilyProperties();
+        const auto queueFilter = std::ranges::find_if(queueFamilies, [](vk::QueueFamilyProperties const& qfp) {
+            return (qfp.queueFlags & vk::QueueFlagBits::eGraphics) != static_cast<vk::QueueFlags>(0);
+        });
+
+        bool isUtilGPU = (queueFilter != queueFamilies.end());
+
+        auto extensions = device.second.enumerateDeviceExtensionProperties();
+        bool founded = true;
+
+        for(auto const& extension: deviceExtension){
+            auto extensionIter = std::ranges::find_if(extensions, [extension](auto const& ext){
+                return strcmp(ext.extensionName, extension) == 0;
+            });
+            founded = founded && extensionIter != extensions.end();
+        }
+
+        isUtilGPU = isUtilGPU && founded;
+
+        if (isUtilGPU) {
+            physicalDevice = device.second;
+            break;
+        }
+    }
+
+    if (physicalDevice ==nullptr) {
         ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Fallo la obtención del dispositivo físico válido para el motor");
     }
+
+    //Determinar familias válidas para el uso de Vulkan.
+    std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+
+    auto graphicsQueueFamilyProperty = std::find_if(queueFamilyProperties.begin(), queueFamilyProperties.end(),
+        [](vk::QueueFamilyProperties const& qfp){
+            return qfp.queueFlags & vk::QueueFlagBits::eGraphics;
+        });
+
+    uint32_t graphicsQueueFamily = static_cast<uint32_t>(std::distance(queueFamilyProperties.begin(), graphicsQueueFamilyProperty));
+
+    //Información de las Queues a crear en cada familia para la creación del dispositivo lógico.
+    float queuePriority = 0.5f;
+    vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
+        .queueFamilyIndex = graphicsQueueFamily,
+        .queueCount = 1,
+        .pQueuePriorities = &queuePriority,
+    };
+
+    //Información para crear el dispositivo lógico.
+    vk::DeviceCreateInfo deviceCreateInfo {
+        .pNext = nullptr,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos =  &deviceQueueCreateInfo,
+        .enabledExtensionCount = static_cast<uint32_t>(deviceExtension.size()),
+        .ppEnabledExtensionNames = deviceExtension.data(),
+    };
+
+    //Creación del dispositivo lógico.
+    logicalDevice = vk::raii::Device(physicalDevice, deviceCreateInfo);
+    //Handler del Queueu para los gráficos.
+    graphicsQueue = vk::raii::Queue(logicalDevice, graphicsQueueFamily, 0);
+
+
+    //Genración de la superficie para dibujar.
+#if ILEN_LINUX
+    //Si estamos en XCB
+    auto xcbSurfaceData = static_cast<const ilen::window::XCBSurfaceCreationInfo*>(native_surface);
+    VkXcbSurfaceCreateInfoKHR surfaceCreateInfo{};
+    surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
+    surfaceCreateInfo.connection = xcbSurfaceData->_connection;
+    surfaceCreateInfo.flags = 0;
+    surfaceCreateInfo.window = xcbSurfaceData->_window;
+
+    //Creando superficie XCB
+    VkSurfaceKHR _surface;
+    if(vkCreateXcbSurfaceKHR(*instance, &surfaceCreateInfo, nullptr, &_surface) != VK_SUCCESS){
+        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Error al crear la superficie desde XCB en Linux");
+    }
+
+    surface = vk::raii::SurfaceKHR(instance, _surface);
+#endif
 }
 
 VulkanRender::~VulkanRender() {

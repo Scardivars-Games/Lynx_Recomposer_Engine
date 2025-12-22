@@ -6,7 +6,7 @@ using namespace ilen::render;
 
 ILEN_GPU_GRAPHICS_API_TYPE IRenderer::actualAPI;
 
-std::unique_ptr<IRenderer> IRenderer::CreateRenderer(void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api){
+std::unique_ptr<IRenderer> IRenderer::CreateRenderer(const void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api){
     //This is linux, only can use is Vulkan or OpenGL. Preferred Vulkan than Open GL.
     if(api == ILEN_GPU_GRAPHICS_API_TYPE::Auto){
         api = ILEN_GPU_GRAPHICS_API_TYPE::Vulkan;

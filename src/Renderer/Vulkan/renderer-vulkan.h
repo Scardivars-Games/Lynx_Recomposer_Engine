@@ -3,10 +3,14 @@
 #include <ilen/render/renderer.h>
 #include <vulkan/vulkan_raii.hpp>
 
+#if ILEN_LINUX
+#include <window/window-linux.h>
+#endif
+
 namespace ilen::render {
     class VulkanRender final: public IRenderer {
         public:
-            VulkanRender(void* native_surface);
+            VulkanRender(const void* native_surface);
             ~VulkanRender() override;
             void beginFrame() override;
             void endFrame() override;
@@ -31,14 +35,17 @@ namespace ilen::render {
 
         private:
             uint8_t MAX_FRAMES_IN_FLIGHT = 3;
+            uint32_t vulkanTargetVersion = vk::ApiVersion13; //Apuntar inicialmente a vulkan 1.3
 
             bool enableValidationLayers = false;
 
         //Todo lo que requiere vulkan para funcionar (Un buen de cosas, AYUDA!!)
+        vk::raii::SurfaceKHR surface = nullptr; //Superficie de Vulkan.
         vk::raii::Context context; //Contexto de Vulkan
         vk::raii::Instance instance = nullptr; //Instancia de la app de Vulkan
         vk::raii::PhysicalDevice physicalDevice = nullptr; //Dispositivo Físico (GPU) a usar.
         vk::raii::Device logicalDevice = nullptr; //Abstracción del dispositivo para ser usado por el motor.
+        vk::raii::Queue graphicsQueue = nullptr; //Queue que se encargara de encolar el trabajo de gráficos.
 #if ILEN_DEBUG
       vk::raii::DebugUtilsMessengerEXT debugUtilsMessenger = nullptr;
         static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity, vk::DebugUtilsMessageTypeFlagsEXT messageType,

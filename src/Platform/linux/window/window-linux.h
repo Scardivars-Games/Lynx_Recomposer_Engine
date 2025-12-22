@@ -7,15 +7,20 @@
 #include <xcb/xcb.h>
 
 namespace ilen::window {
+    struct XCBSurfaceCreationInfo {
+        xcb_window_t _window;
+        xcb_connection_t* _connection;
+    };
+
     //X11 implementation using modern XCB
     class WindowsNativeLinuxXCB final : public WindowNative {
         public:
             WindowsNativeLinuxXCB(const ilen::application::ApplicationMetadata& metadata);
             ~WindowsNativeLinuxXCB() override;
             void pollEvents() override;
-            bool shouldClose() override {return m_shouldClose; };
-            void* getNativeView() const override { return reinterpret_cast<void*>(static_cast<uintptr_t>(m_window)); };
-            void* getNativeWindow() const override {return m_connection; };
+            bool shouldClose() override {return m_shouldClose; }
+            const void* getNativeView() const override;
+            void* getNativeWindow() const override {return m_connection; }
             bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) override;
     private:
         void applyWindowProperties(uint32_t properties);
@@ -34,6 +39,8 @@ namespace ilen::window {
         std::atomic<bool> m_resized = false;
         uint32_t m_width = 0;
         uint32_t m_height = 0;
+
+        XCBSurfaceCreationInfo surfaceInfo; //Necesario para pasar la estructura a Vulkan.
 
         static inline const char* DEBUG_PREFIX = "LINUX_XCB_WINDOW";
     };

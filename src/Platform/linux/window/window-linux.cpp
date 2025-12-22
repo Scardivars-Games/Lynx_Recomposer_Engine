@@ -109,6 +109,9 @@ WindowsNativeLinuxXCB::WindowsNativeLinuxXCB(const ilen::application::Applicatio
 
     m_width = metadata.startWidth;
     m_height = metadata.startHeight;
+
+    surfaceInfo._connection = m_connection;
+    surfaceInfo._window = m_window;
 }
 
 WindowsNativeLinuxXCB::~WindowsNativeLinuxXCB() {
@@ -234,5 +237,8 @@ bool WindowsNativeLinuxXCB::checkWindowResize(uint32_t &outWidth, uint32_t &outH
     return false;
 }
 
+const void* WindowsNativeLinuxXCB::getNativeView() const{
+    return static_cast<const void*>(&surfaceInfo);
+}
 
 #endif

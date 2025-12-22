@@ -42,7 +42,7 @@ namespace ilen::window
         return nullptr;
     }
 
-    void* IWindow::getSurface()
+    const void* IWindow::getSurface()
     {
         if (p_windowNative)
         {
