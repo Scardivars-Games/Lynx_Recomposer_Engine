@@ -36,6 +36,8 @@ namespace ilen::render {
         private:
             uint8_t MAX_FRAMES_IN_FLIGHT = 3;
             uint32_t vulkanTargetVersion = vk::ApiVersion13; //Apuntar inicialmente a vulkan 1.3
+            uint32_t graphicsQueueFamily = UINT32_MAX;
+            uint32_t presentQueueFamily = UINT32_MAX;
 
             bool enableValidationLayers = false;
 
@@ -46,11 +48,21 @@ namespace ilen::render {
         vk::raii::PhysicalDevice physicalDevice = nullptr; //Dispositivo Físico (GPU) a usar.
         vk::raii::Device logicalDevice = nullptr; //Abstracción del dispositivo para ser usado por el motor.
         vk::raii::Queue graphicsQueue = nullptr; //Queue que se encargara de encolar el trabajo de gráficos.
+        vk::raii::Queue presentQueue = nullptr;
 #if ILEN_DEBUG
-      vk::raii::DebugUtilsMessengerEXT debugUtilsMessenger = nullptr;
+        vk::raii::DebugUtilsMessengerEXT debugUtilsMessenger = nullptr;
         static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity, vk::DebugUtilsMessageTypeFlagsEXT messageType,
         const vk::DebugUtilsMessengerCallbackDataEXT* pCallbackData, void*);
+
+        void setVulkanDebugCalls();
 #endif
+
+        //Private functions of the implementation, to make more specific functions
+        void createVulkanInstance();
+        void createVulkanSurface(const void* native_surface);
+        void selectVulkanPhysicalDevice();
+        void createVulkanLogicalDevice();
+        void setVulkanQueueFamilies();
     };
 }
 #endif
