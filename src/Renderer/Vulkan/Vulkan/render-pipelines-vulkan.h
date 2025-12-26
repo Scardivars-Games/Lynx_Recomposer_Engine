@@ -17,7 +17,7 @@ namespace ilen::render {
         const void* getNativeRenderPipeline() const override;
 
         static size_t getFormatSize(ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE format);
-        static vk::Format getMTLFormat(ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE format);
+        static vk::Format getVertexFormat(ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE format);
     private:
         vk::raii::PipelineLayout _pso = nullptr;
         static std::map<VertexBufferLayout, void*> _vertexBufferDescriptors;
