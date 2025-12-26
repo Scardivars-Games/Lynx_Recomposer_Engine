@@ -45,6 +45,9 @@ VulkanRender::VulkanRender(const void *native_surface) {
     createVulkanSurface(native_surface);
     selectVulkanPhysicalDevice();
     createVulkanLogicalDevice();
+    createSwapchain();
+    createVulkanImageViews();
+    ILEN_LOG_P(DEBUG_PREFIX, "Inicialización de Vulkan completada de forma exitosa.");
 }
 
 void VulkanRender::createVulkanInstance(){
@@ -267,6 +270,97 @@ void VulkanRender::createVulkanLogicalDevice(){
     presentQueue = vk::raii::Queue(logicalDevice, presentQueueFamily, 0);
 }
 
+vk::SurfaceFormatKHR selectSurfaceFormat(std::vector<vk::SurfaceFormatKHR> formats) {
+    for (const auto& availableFormat: formats) {
+        if (availableFormat.format == vk::Format::eB8G8R8A8Srgb && availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear){
+            return availableFormat;
+        }
+    }
+
+    return formats[0];
+}
+
+vk::PresentModeKHR selectPresentMode(std::vector<vk::PresentModeKHR> presentModes) {
+    //Mailbox consume mucha energia. En caso de estar en ahoro de energia en moviles, este debería FIFO.
+    for (const auto& availablePresentMode: presentModes) {
+        if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
+            return availablePresentMode;
+        }
+    }
+
+    return vk::PresentModeKHR::eFifo; //Este es el unico que Vulkan asegura
+}
+
+vk::Extent2D selectSwapExtent(const vk::SurfaceCapabilitiesKHR& capabilities) {
+    if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+        return capabilities.currentExtent;
+    }
+
+    auto height =  ilen::window::IWindow::getHeight();
+    auto width = ilen::window::IWindow::getWidth();
+
+    return {
+        std::clamp<uint32_t>(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+        std::clamp<uint32_t>(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
+    };
+}
+
+void VulkanRender::createSwapchain() {
+    auto surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(surface);
+    std::vector<vk::SurfaceFormatKHR> availableFormats = physicalDevice.getSurfaceFormatsKHR(surface);
+    std::vector<vk::PresentModeKHR> availablePresentModes = physicalDevice.getSurfacePresentModesKHR(surface);
+
+    //Seleccionar un formato de color para la superficie, de preferecia 32 bits de profundidad, SRGB
+    auto selectedFormat = selectSurfaceFormat(availableFormats);
+    auto selectedPresentMode = selectPresentMode(availablePresentModes);
+    auto selectedExtent = selectSwapExtent(surfaceCapabilities);
+
+    auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
+    minImageCount = (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount) ?
+        surfaceCapabilities.maxImageCount : minImageCount;
+
+    vk::SwapchainCreateInfoKHR swapChainCreateInfo {};
+    swapChainCreateInfo.surface = surface;
+    swapChainCreateInfo.minImageCount = minImageCount;
+    swapChainCreateInfo.imageFormat = selectedFormat.format;
+    swapChainCreateInfo.imageColorSpace = selectedFormat.colorSpace;
+    swapChainCreateInfo.imageExtent = selectedExtent;
+    swapChainCreateInfo.imageArrayLayers = 1; //Esto siempre es 1, a menos que se necesiten más capas por imagen, para una app 3D estereoscópico, por ejemplo
+    swapChainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment; //TODO: En Post-Procesado esto debe ser cambiado por VK_IMAGE_USAGE_TRANSFER_DST_BIT. La configuración actual es solo cuando se renderiza directamente a pantalla
+    swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform;
+    swapChainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+    swapChainCreateInfo.presentMode = selectedPresentMode;
+    swapChainCreateInfo.clipped = true;
+    swapChainCreateInfo.oldSwapchain = nullptr;
+
+    uint32_t queueFamilyIndexes[] = {graphicsQueueFamily, presentQueueFamily};
+
+    //Si la familia de presentación y gráficos son diferentes, tenemos que permitir que el Swapchain intercambie la imagen entre familias.
+    if (graphicsQueueFamily != presentQueueFamily) {
+        swapChainCreateInfo.imageSharingMode = vk::SharingMode::eConcurrent;
+        swapChainCreateInfo.queueFamilyIndexCount = 2;
+        swapChainCreateInfo.pQueueFamilyIndices = queueFamilyIndexes;
+    }else {
+        swapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
+        swapChainCreateInfo.queueFamilyIndexCount = 0;
+        swapChainCreateInfo.pQueueFamilyIndices = nullptr;
+    }
+
+    swapchain = vk::raii::SwapchainKHR(logicalDevice, swapChainCreateInfo);
+    swapchainImages = swapchain.getImages();
+
+    swapchainExtent = selectedExtent;
+    swapchainImageFormat = selectedFormat.format;
+}
+
+void VulkanRender::createVulkanImageViews() {
+    swapchainTextures.resize(swapchainImages.size());
+
+    for (size_t i = 0; i < swapchainImages.size(); i++) {
+        swapchainTextures[i] = std::make_unique<VulkanTexture>(swapchainImages[i], swapchainImageFormat, logicalDevice);
+    }
+}
+
 VulkanRender::~VulkanRender() {
 
 }
@@ -292,7 +386,7 @@ std::shared_ptr<IGPURenderPipeline> VulkanRender::createRenderPipeline(const ile
 }
 
 std::shared_ptr<IShader> VulkanRender::createShader(const ilen::graphics::IlenShader &shaderDescriptor){
-
+    return std::make_shared<VulkanShader>(shaderDescriptor, logicalDevice);
 }
 
 void VulkanRender::endEncoding(IGPUParallelCommandEncoder *encoder){

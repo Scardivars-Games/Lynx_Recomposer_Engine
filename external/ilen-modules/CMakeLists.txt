@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include_directories(${PARENT_INCLUDE_DIR})
 
 add_executable(ILEN_METAL_COMPILER modules/ilen_metal_compiler.cpp)
+add_executable(ILEN_SLANG_COMPILER modules/ilen_slang_converter.cpp)
 add_executable(ILEN_FILE_BINARIZATION
         modules/ilen_file_binarization.cpp
         modules/common/logs.cpp
@@ -43,5 +44,11 @@ add_subdirectory(external/assimp)
 
 target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE assimp)
 
+target_compile_definitions(ILEN_SLANG_COMPILER PRIVATE "MODULE_SOURCE_FOLDER=\"${CMAKE_SOURCE_DIR}\"")
+
+add_custom_command(TARGET ILEN_SLANG_COMPILER POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/external/slang" "$<TARGET_FILE_DIR:ILEN_SLANG_COMPILER>/slang"
+)
 install(TARGETS ILEN_METAL_COMPILER DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_FILE_BINARIZATION DESTINATION executable/$<CONFIG>)
+install(TARGETS ILEN_SLANG_COMPILER DESTINATION executable/$<CONFIG>)
