@@ -1,6 +1,6 @@
 #if ILEN_LINUX
+#include <../../../Renderer/Vulkan/Vulkan/renderer-vulkan.h>
 #include <ilen/render/renderer.h>
-#include <renderer-vulkan.h>
 
 using namespace ilen::render;
 

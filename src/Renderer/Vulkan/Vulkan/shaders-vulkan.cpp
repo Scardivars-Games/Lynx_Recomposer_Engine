@@ -1,5 +1,5 @@
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <shaders-vulkan.h>
+#include <../shaders-vulkan.h>
 #include <ilen/core/filemanager.h>
 
 #include <ilen/headers/ilen-logs.h>
@@ -72,7 +72,7 @@ const ilen::graphics::IlenShader& VulkanShader::getShaderMetadata() const {
 const void* VulkanShader::getNativeShaderFromFunctionName(std::string functionName){
     auto it = _shaderStageFunctions.find(functionName);
     if (it != _shaderStageFunctions.end()) {
-        return it->second;
+        return &it->second;
     }
     //Si no existe, se genera la libreria y añade
     vk::PipelineShaderStageCreateInfo newShaderStage{};
@@ -107,7 +107,7 @@ const void* VulkanShader::getNativeShaderFromFunctionName(std::string functionNa
     newShaderStage.pName = functionName.c_str();
 
     _shaderStageFunctions.emplace(functionName, newShaderStage);
-    return newShaderStage;
+    return &_shaderStageFunctions[functionName];
 }
 
 const void* VulkanShader::getNativeShaderFromFunctionNameAndUberActivations(std::string functionName, std::vector<IlenConstantValuesForPipeline> activations){

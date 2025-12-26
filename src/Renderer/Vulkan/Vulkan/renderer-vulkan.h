@@ -4,8 +4,8 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <ilen/window/window.h>
 
-#include<texture-vulkan.h>
-#include <shaders-vulkan.h>
+#include <Vulkan/shaders-vulkan.h>
+#include <Vulkan/texture-vulkan.h>
 
 #if ILEN_LINUX
 #include <window/window-linux.h>
