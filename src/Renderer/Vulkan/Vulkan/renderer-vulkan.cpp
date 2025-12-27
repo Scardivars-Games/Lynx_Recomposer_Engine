@@ -382,7 +382,7 @@ std::unique_ptr<IGPUTexture> VulkanRender::createNewPlatformTexture(const IlenGP
 }
 
 std::shared_ptr<IGPURenderPipeline> VulkanRender::createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor &pipelineDescriptor, ilen::resources::shaders::ShaderManager *shaderManager){
-
+    return std::make_shared<VulkanRenderPipeline>(logicalDevice, pipelineDescriptor, shaderManager, swapchainExtent, actualMainDescriptor);
 }
 
 std::shared_ptr<IShader> VulkanRender::createShader(const ilen::graphics::IlenShader &shaderDescriptor){

@@ -1,0 +1,2 @@
+En Render Pipeline implementación por API:
+- El proceso de Blending que sea uno solo compartido por todas las apis (así se evita reescribir toda la lógica por cada API). Esto incluye nuevos converters para las operaciones de Blend.

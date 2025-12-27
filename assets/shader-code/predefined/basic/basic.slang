@@ -1,9 +1,9 @@
 //Estructuras
 struct VertexIn {
-    float3 position: POSITION;
-    float4 color: COLOR0;
-    float2 uv: TEXCOORD0;
-    float3 normal: NORMAL;
+    [vk::location(0)] float3 position: POSITION;
+    [vk::location(1)] float4 color: COLOR0;
+    [vk::location(2)] float2 uv: TEXCOORD0;
+    [vk::location(3)] float3 normal: NORMAL;
 };
 
 struct VertexOut {

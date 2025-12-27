@@ -29,7 +29,8 @@ namespace ilen::render {
         bool isSpecialPipeline = false;
         IlenParallelEncoderDescriptor* encoderDescriptor = nullptr; //Para obtener como debe construir el constructor
         std::vector<IlenConstantValuesForPipeline> constantValuesForPipelines;
-        
+        std::vector<structs::GlobalUniformIdentifier> psoGlobalUniformIdentifiers = {structs::NOT_DEFINED}; //Necesario para añdir los uniforms globales al shader.
+
         IlenRenderPipelineDescriptor() = default;
         
         IlenRenderPipelineDescriptor(const graphics::IlenMaterial& material) {

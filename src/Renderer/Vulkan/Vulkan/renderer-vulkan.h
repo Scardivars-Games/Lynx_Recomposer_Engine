@@ -6,6 +6,7 @@
 
 #include <Vulkan/shaders-vulkan.h>
 #include <Vulkan/texture-vulkan.h>
+#include <Vulkan/render-pipelines-vulkan.h>
 
 #if ILEN_LINUX
 #include <window/window-linux.h>

@@ -70,6 +70,36 @@ namespace ilen {
                 float4x4 previousModelMatrix;
             };
 
+            //A partir de aqui se definen metadatos para ser consumidos por ciertas APIs. Metal no requiere esto, por lo que en macOS no se añade
+            enum GlobalUniformIdentifier {
+                CAMERA_DATA,
+                INSTANCE_DATA,
+                INSTANCE_DATA_FOR_VELOCITY_BUFFER,
+                NOT_DEFINED, //Para forzar al usuario a definir este dato. Vital para el motor.
+            };
+
+            enum ILEN_VULKAN_DESCRIPTOR_TYPE {
+                ILEN_VULKAN_DESCRIPTOR_UNIFORM_BUFFER,
+                ILEN_VULKAN_DESCRIPTOR_STORAGE_BUFFER,
+            };
+
+            struct GlobalUniformsMetadata {
+                GlobalUniformIdentifier identifier;
+                uint32_t bindingSlot;
+                uint32_t setSlot;
+                size_t size;
+                ILEN_VULKAN_DESCRIPTOR_TYPE type;
+            };
+
+            inline std::vector<GlobalUniformsMetadata> getGlobalShaderStructs() {
+                return {
+                        {CAMERA_DATA, slots::GlobalBufferSlot_Camera, 0, sizeof(CameraData), ILEN_VULKAN_DESCRIPTOR_UNIFORM_BUFFER},
+                        {INSTANCE_DATA, slots::RenderBufferSlot_InstanceModel, 0, sizeof(InstanceData), ILEN_VULKAN_DESCRIPTOR_STORAGE_BUFFER},
+                        {INSTANCE_DATA_FOR_VELOCITY_BUFFER, slots::RenderBufferSlot_InstanceModel, 0, sizeof(InstanceDataForVelocityBuffer), ILEN_VULKAN_DESCRIPTOR_STORAGE_BUFFER},
+                    };
+            }
+
+
             //Para ser usado en el calculo del velocity buffer para efectos de Post Procesado.
             /*struct VelocityCameraData {
                 float4x4 currentViewProjectionMatrix;
