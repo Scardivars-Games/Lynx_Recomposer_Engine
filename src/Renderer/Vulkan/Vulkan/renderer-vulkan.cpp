@@ -26,7 +26,10 @@ const std::vector<const char*> validationLayers = {
        //Seleccionando dispositivo según capacidad.
 std::vector<const char*> deviceExtension = {
         vk::KHRSwapchainExtensionName, //Obligatorio
-        vk::KHRSpirv14ExtensionName,
+        vk::KHRSpirv14ExtensionName, //De momento, también
+};
+
+std::vector<const char*> optionalDeviceExtensions {
         vk::KHRSynchronization2ExtensionName,
         vk::KHRCreateRenderpass2ExtensionName
 };
@@ -51,6 +54,8 @@ VulkanRender::VulkanRender(const void *native_surface) {
 }
 
 void VulkanRender::createVulkanInstance(){
+    lastUsedGraphicsOptions = ilen::core::options::GraphicsOptions::graphicsOptionsFlags;
+
     //Obtenemos la version de Vulkan que posee el usuario
     auto vkEnumerateInstanceVersion = (PFN_vkEnumerateInstanceVersion)vkGetInstanceProcAddr(nullptr, "vkEnumerateInstanceVersion");  //En caso de ser Vulkan 1.0, cargamos manualmente este dato, para evitar que el loader no lo conozca.
 
@@ -190,6 +195,25 @@ void VulkanRender::selectVulkanPhysicalDevice(){
         }
 
         isUtilGPU = isUtilGPU && founded;
+
+        //Comprobando extensiones opcionales
+        //vk::KHRSynchronization2ExtensionName,
+        //vk::KHRCreateRenderpass2ExtensionName
+        
+        for(auto const& extension: optionalDeviceExtensions){
+            auto extensionIter = std::ranges::find_if(extensions, [extension](auto const& ext){
+                return strcmp(ext.extensionName, extension) == 0;
+            });
+            if(extensionIter != extensions.end()){
+                if(extension == vk::KHRCreateRenderpass2ExtensionName){
+                    availableOptionalFeatures | VK_FEATURE_RENDER_PASS2;
+                    deviceExtension.push_back(vk::KHRCreateRenderpass2ExtensionName);
+                }else if(extension == vk::KHRSynchronization2ExtensionName){
+                    availableOptionalFeatures | VK_FEATURE_SYNC2;
+                    deviceExtension.push_back(vk::KHRSynchronization2ExtensionName);
+                }
+            }
+        }
 
         if (isUtilGPU) {
             physicalDevice = device.second;
@@ -366,7 +390,141 @@ VulkanRender::~VulkanRender() {
 }
 
 void VulkanRender::beginFrame(){
+    //Los vk::RenderPass no se deben hacer cada frame, sino una vez por cada configuración de renderizado, y enviarlo al generar los PSO, en vez de mi struct interno.
+    generateRenderPasses();
+}
 
+void VulkanRender::generateRenderPasses(){
+    //Primero vemos si existe el Render Pass principal, y si es necesario recrearlo.
+    using namespace ilen::window;
+
+    const bool recreateSwapchain = (swapchainExtent.width != IWindow::getWidth() || swapchainExtent.height != IWindow::getHeight());
+    const bool modifiedGraphicsOptions = (lastUsedGraphicsOptions != ilen::core::options::GraphicsOptions::graphicsOptionsFlags);
+
+    if(renderPass == nullptr || recreateSwapchain || modifiedGraphicsOptions){
+        if(recreateSwapchain){
+            createSwapchain();
+        }
+        if(modifiedGraphicsOptions){
+            lastUsedGraphicsOptions = ilen::core::options::GraphicsOptions::graphicsOptionsFlags;
+        }
+
+
+        std::vector<vulkan::VulkanAttachmentData> attachData;
+        //creando el render pass.
+        if(lastUsedGraphicsOptions & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
+            vulkan::VulkanAttachmentData colorAttach;
+            colorAttach.format =  swapchainImageFormat;
+            colorAttach.initialLayout = vk::ImageLayout::eUndefined;
+            colorAttach.samples = vk::SampleCountFlagBits::e1;
+            colorAttach.loadOp = vk::AttachmentLoadOp::eClear;
+            colorAttach.storeOp = vk::AttachmentStoreOp::eStore;
+            colorAttach.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+            colorAttach.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+            colorAttach.finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+            colorAttach.attachSlot = slots::RenderPassAttachment_Color;
+            attachData.push_back(colorAttach);
+
+            if(lastUsedGraphicsOptions & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
+                vulkan::VulkanAttachmentData velocityBufferAttach;
+                velocityBufferAttach.format = vulkan::utils::transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF, swapchainImageFormat);
+                velocityBufferAttach.initialLayout = vk::ImageLayout::eUndefined;
+                velocityBufferAttach.samples = vk::SampleCountFlagBits::e1;
+                velocityBufferAttach.loadOp = vk::AttachmentLoadOp::eClear;
+                velocityBufferAttach.storeOp = vk::AttachmentStoreOp::eStore;
+                velocityBufferAttach.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+                velocityBufferAttach.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+                velocityBufferAttach.finalLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+                velocityBufferAttach.attachSlot = slots::RenderPassAttachment_VelocityBuffer;
+
+                attachData.push_back(velocityBufferAttach);
+            }
+        }else{
+            vulkan::VulkanAttachmentData colorAttach;
+            colorAttach.format =  swapchainImageFormat;
+            colorAttach.initialLayout = vk::ImageLayout::eUndefined;
+            colorAttach.samples = vk::SampleCountFlagBits::e1;
+            colorAttach.loadOp = vk::AttachmentLoadOp::eClear;
+            colorAttach.storeOp = vk::AttachmentStoreOp::eStore;
+            colorAttach.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+            colorAttach.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+            colorAttach.finalLayout = vk::ImageLayout::ePresentSrcKHR;
+            colorAttach.attachSlot = slots::RenderPassAttachment_Color;
+            attachData.push_back(colorAttach);
+        }
+
+        if(vulkanTargetVersion >= vk::ApiVersion12){
+            //Usamos Render Pass 2
+            std::vector<vk::AttachmentDescription2> finalAttachData;
+            std::vector<vk::AttachmentReference2> attachReference;
+            finalAttachData.resize(8);
+
+            for(auto& attach: attachData){
+                finalAttachData[attach.attachSlot] = attach.getV2Descriptor();
+                attachReference.push_back(attach.getV2Reference());
+            }
+
+            vk::SubpassDescription2 subpass{};
+            subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+            subpass.colorAttachmentCount = attachReference.size();
+            subpass.pColorAttachments = attachReference.data();
+
+            vk::RenderPassCreateInfo2 renderPassCreateInfo{};
+            renderPassCreateInfo.attachmentCount = finalAttachData.size();
+            renderPassCreateInfo.pAttachments = finalAttachData.data();
+            renderPassCreateInfo.subpassCount = 1;
+            renderPassCreateInfo.pSubpasses = &subpass;
+
+            renderPass = vk::raii::RenderPass(logicalDevice, renderPassCreateInfo);
+        }else if(availableOptionalFeatures & VULKAN_OPTIONAL_FEATURES_BIT_FLAG::VK_FEATURE_RENDER_PASS2){
+            //Usamos Render Pass 2 KHR
+            std::vector<vk::AttachmentDescription2KHR> finalAttachData;
+            std::vector<vk::AttachmentReference2KHR> attachReference;
+            finalAttachData.resize(8);
+
+            for(auto& attach: attachData){
+                finalAttachData[attach.attachSlot] = attach.getV2Descriptor();
+                attachReference.push_back(attach.getV2Reference());
+            }
+
+            vk::SubpassDescription2KHR subpass{};
+            subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+            subpass.colorAttachmentCount = attachReference.size();
+            subpass.pColorAttachments = attachReference.data();
+
+            vk::RenderPassCreateInfo2KHR renderPassCreateInfo{};
+            renderPassCreateInfo.attachmentCount = finalAttachData.size();
+            renderPassCreateInfo.pAttachments = finalAttachData.data();
+            renderPassCreateInfo.subpassCount = 1;
+            renderPassCreateInfo.pSubpasses = &subpass;
+
+            renderPass = vk::raii::RenderPass(logicalDevice, renderPassCreateInfo);
+        }else{
+            //Usar V1
+                        //Usamos Render Pass 2
+            std::vector<vk::AttachmentDescription> finalAttachData;
+            std::vector<vk::AttachmentReference> attachReference;
+            finalAttachData.resize(8);
+
+            for(auto& attach: attachData){
+                finalAttachData[attach.attachSlot] = attach.getV1Descriptor();
+                attachReference.push_back(attach.getV1Reference());
+            }
+
+            vk::SubpassDescription subpass{};
+            subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
+            subpass.colorAttachmentCount = attachReference.size();
+            subpass.pColorAttachments = attachReference.data();
+
+            vk::RenderPassCreateInfo renderPassCreateInfo{};
+            renderPassCreateInfo.attachmentCount = finalAttachData.size();
+            renderPassCreateInfo.pAttachments = finalAttachData.data();
+            renderPassCreateInfo.subpassCount = 1;
+            renderPassCreateInfo.pSubpasses = &subpass;
+
+            renderPass = vk::raii::RenderPass(logicalDevice, renderPassCreateInfo);
+        }
+    }
 }
 
 void VulkanRender::endFrame() {
@@ -382,7 +540,7 @@ std::unique_ptr<IGPUTexture> VulkanRender::createNewPlatformTexture(const IlenGP
 }
 
 std::shared_ptr<IGPURenderPipeline> VulkanRender::createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor &pipelineDescriptor, ilen::resources::shaders::ShaderManager *shaderManager){
-    return std::make_shared<VulkanRenderPipeline>(logicalDevice, pipelineDescriptor, shaderManager, swapchainExtent, actualMainDescriptor);
+    return std::make_shared<VulkanRenderPipeline>(logicalDevice, pipelineDescriptor, shaderManager, swapchainExtent, actualMainDescriptor, renderPass);
 }
 
 std::shared_ptr<IShader> VulkanRender::createShader(const ilen::graphics::IlenShader &shaderDescriptor){

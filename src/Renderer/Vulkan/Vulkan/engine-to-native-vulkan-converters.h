@@ -4,7 +4,7 @@
 #include <ilen/core/bitflags.h>
 #include <vulkan/vulkan.hpp>
 
-namespace ilen::render::utils::vulkan {
+namespace ilen::render::vulkan::utils {
     //Conversores
     vk::Format transformEngineToNativePixelFormat(enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, vk::Format presentFormat);
     vk::ImageUsageFlags transformEngineToNativeImageUsage(IlenTextureUsageFlags usage);

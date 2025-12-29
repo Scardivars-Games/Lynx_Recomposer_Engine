@@ -9,7 +9,6 @@ build-linux-x86_64
 .vs
 .cache
 .DS_Store
-.vscode
 .ilen-bin-data
 cmake-build-debug
 cmake-build-release

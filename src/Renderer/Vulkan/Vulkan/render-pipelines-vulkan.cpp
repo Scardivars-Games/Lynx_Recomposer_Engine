@@ -9,7 +9,38 @@ std::map<VulkanDescriptorSetKey, vk::DescriptorSetLayout> VulkanRenderPipeline::
 std::map<VulkanPipelineLayoutkey, vk::PipelineLayout> VulkanRenderPipeline::_pipelineLayouts;
 std::mutex VulkanRenderPipeline::_psoMutex;
 
-VulkanRenderPipeline::VulkanRenderPipeline(vk::raii::Device& device, const IlenRenderPipelineDescriptor& descriptor, resources::shaders::ShaderManager* shaderManager, vk::Extent2D swapchainExtent, IlenParallelEncoderDescriptor inUseGeneralEncoder) {
+VulkanRenderPipeline::VulkanRenderPipeline(vk::raii::Device& device, const IlenRenderPipelineDescriptor& descriptor, resources::shaders::ShaderManager* shaderManager, vk::Extent2D swapchainExtent, IlenParallelEncoderDescriptor inUseGeneralEncoder, vk::raii::RenderPass& renderPass) {
+    //Shaders
+    auto vertexPtr = shaderManager->getShaderData(descriptor.vertexShaderID).lock();
+    auto fragmentPtr = shaderManager->getShaderData(descriptor.fragmentShaderID).lock();
+    
+    if(!vertexPtr || !fragmentPtr){
+        ILEN_ERROR_P(DEBUG_PREFIX, "No fue posible obtener los shader con ID %i(vertex) y %i(fragment). Nombre de la Pipeline: %s", descriptor.vertexShaderID, descriptor.fragmentShaderID, descriptor.pipelineName.c_str());
+        return;
+    }
+    
+    const vk::PipelineShaderStageCreateInfo* vertexFunction;
+    const vk::PipelineShaderStageCreateInfo* fragmentFunction;
+
+    if(descriptor.constantValuesForPipelines.size() == 0){
+        vertexFunction = static_cast<const vk::PipelineShaderStageCreateInfo*>(vertexPtr.get()->getNativeShaderFromFunctionName(descriptor.vertexFunctionName));
+        fragmentFunction = static_cast<const vk::PipelineShaderStageCreateInfo*>(fragmentPtr.get()->getNativeShaderFromFunctionName(descriptor.fragmentFunctionName));
+    }/*else{
+        vertexFunction = (__bridge id<MTLFunction>)vertexPtr.get()->getNativeShaderFromFunctionNameAndUberActivations(descriptor.vertexFunctionName, descriptor.constantValuesForPipelines);
+        fragmentFunction = (__bridge id<MTLFunction>)fragmentPtr.get()->getNativeShaderFromFunctionNameAndUberActivations(descriptor.fragmentFunctionName, descriptor.constantValuesForPipelines);
+    }*/
+
+    std::vector<vk::PipelineShaderStageCreateInfo> shaderStages = {
+        *vertexFunction,
+        *fragmentFunction,
+    };
+    
+    if(!vertexFunction || !fragmentFunction){
+        ILEN_ERROR_P(DEBUG_PREFIX, "Las funciones %s y %s no fueron encontradas en su respectivo shader!!!.", descriptor.vertexFunctionName.c_str(), descriptor.fragmentFunctionName.c_str());
+        return;
+    }
+    
+    
     //Estructura de los vertices del PSO
     VertexBufferLayout layout;
     switch (descriptor.vertexLayout) {
@@ -92,6 +123,7 @@ VulkanRenderPipeline::VulkanRenderPipeline(vk::raii::Device& device, const IlenR
         //ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Solicitud de creación de un PSO especial sin el descriptor con los datos del encoder.");
     }
 
+    vk::PipelineDepthStencilStateCreateInfo depthStencilCreateInfo{};
     //TODO: Adaptar esto de Metal para Vulkan. Depth and Stencil Attachments
     /*
         if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
@@ -143,6 +175,25 @@ VulkanRenderPipeline::VulkanRenderPipeline(vk::raii::Device& device, const IlenR
     _psoDescriptor = descriptor;
 
     auto pipelineLayout = getCachedPipelineLayout();
+
+    //Creando ahora si el PSO
+    vk::GraphicsPipelineCreateInfo createInfo{};
+    createInfo.stageCount = shaderStages.size();
+    createInfo.pStages = shaderStages.data();
+    createInfo.pVertexInputState = vertexInputInfo;
+    createInfo.pInputAssemblyState = &inputAssembly;
+    createInfo.pViewportState = &viewportState;
+    createInfo.pRasterizationState = &rasterization;
+    createInfo.pMultisampleState = &multisampling;
+    createInfo.pDepthStencilState = &depthStencilCreateInfo;
+    createInfo.pColorBlendState = &pipelineColorBlendStateCreateInfo;
+    createInfo.layout = pipelineLayout;
+    createInfo.renderPass = renderPass;
+    createInfo.subpass = 0;
+    createInfo.basePipelineHandle = nullptr;
+    createInfo.basePipelineIndex = -1;
+
+    _pso = vk::raii::Pipeline(device, nullptr, createInfo);
 }
 
 void* IGPURenderPipeline::generateVertexDescriptor(VertexBufferLayout layout) {

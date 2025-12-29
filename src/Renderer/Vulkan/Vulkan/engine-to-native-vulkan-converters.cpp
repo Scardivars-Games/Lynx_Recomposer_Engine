@@ -1,10 +1,9 @@
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
 #include <Vulkan/engine-to-native-vulkan-converters.h>
 
-using namespace ilen::render::utils::vulkan;
 using namespace ilen::enumerations;
 
-vk::Format transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format,
+vk::Format ilen::render::vulkan::utils::transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format,
                                                                 vk::Format presentFormat) {
     switch (format) {
         case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN:
@@ -32,7 +31,7 @@ vk::Format transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE
     }
 }
 
-vk::ImageUsageFlags transformEngineToNativeImageUsage(IlenTextureUsageFlags usage){
+vk::ImageUsageFlags ilen::render::vulkan::utils::transformEngineToNativeImageUsage(IlenTextureUsageFlags usage){
     vk::ImageUsageFlags returnUsage;
 
     //BitFlags operations:

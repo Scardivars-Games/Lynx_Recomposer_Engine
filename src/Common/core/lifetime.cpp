@@ -3,12 +3,12 @@
 #include <ilen/resources/assets-manager.h>
 #include <ilen/headers/ecs-systems.h>
 #include <ilen/job-system/job-system.h>
-
+#include <ilen/render/post-process-effects/post-process-system.h>
+#include <ilen/core/runtime_options.h>
 
 //FOR NO-EDITOR GAME
 #include <ilen-examples/triangle.h>
 
-#include "ilen/render/post-process-effects/post-process-system.h"
 // END
 
 using namespace ilen::core;
@@ -21,6 +21,14 @@ namespace ilen{
 
     //Inicializa la aplicación!!!
     void AppRuntime::init(const application::ApplicationMetadata& metadata){
+        //Establecer opciones gráficas por defecto
+        IlenGraphicsOptionsFlags defaultOptions = 0;
+        defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS;
+        defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR;
+        
+        ilen::core::options::GraphicsOptions::graphicsOptionsFlags = defaultOptions;
+
+
         engineContext = std::make_unique<EngineContext>();
 
         using namespace ilen::ecs;

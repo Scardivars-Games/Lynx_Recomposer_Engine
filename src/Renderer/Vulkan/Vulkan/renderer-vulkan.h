@@ -7,12 +7,21 @@
 #include <Vulkan/shaders-vulkan.h>
 #include <Vulkan/texture-vulkan.h>
 #include <Vulkan/render-pipelines-vulkan.h>
+#include <Vulkan/version-adapters-vulkan.h>
+#include <Vulkan/engine-to-native-vulkan-converters.h>
 
 #if ILEN_LINUX
 #include <window/window-linux.h>
 #endif
 
 namespace ilen::render {
+    using VulkanOptionalFeaturesFlags = uint32_t;
+    enum VULKAN_OPTIONAL_FEATURES_BIT_FLAG {
+        VK_FEATURE_RENDER_PASS2 = 1 << 0,
+        VK_FEATURE_SYNC2 = 1 << 1,
+    };
+
+
     class VulkanRender final: public IRenderer {
         public:
             VulkanRender(const void* native_surface);
@@ -45,6 +54,7 @@ namespace ilen::render {
             uint32_t presentQueueFamily = UINT32_MAX;
             vk::Format swapchainImageFormat = vk::Format::eUndefined;
             vk::Extent2D swapchainExtent;
+            VulkanOptionalFeaturesFlags availableOptionalFeatures;
 
             bool enableValidationLayers = false;
 
@@ -59,6 +69,8 @@ namespace ilen::render {
             vk::raii::SwapchainKHR swapchain = VK_NULL_HANDLE; //Swapchain de la app
             std::vector<vk::Image> swapchainImages; //Esta son las únicas Imagenes (texturas) que mantenemos en el formato nativo de Vulkan en vez de en el propio del motor, al ser las que se presentan en pantalla.
             std::vector<std::unique_ptr<IGPUTexture>> swapchainTextures; //Version del motor de las texturas del swapchain de Vulkan, para uso interno del motor. Estas devuelven un VkImageView en su funcion de retorno del handler.
+            vk::raii::RenderPass renderPass = nullptr; //Render Pass principal del juego.
+            vk::raii::RenderPass postProcessRenderPass = nullptr; //Render Pass para post-procesado.
 #if ILEN_DEBUG
             vk::raii::DebugUtilsMessengerEXT debugUtilsMessenger = nullptr;
             static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(vk::DebugUtilsMessageSeverityFlagBitsEXT messageSeverity, vk::DebugUtilsMessageTypeFlagsEXT messageType,
@@ -75,6 +87,7 @@ namespace ilen::render {
             void setVulkanQueueFamilies();
             void createSwapchain(); //Función privada que configura las opciones de la superficie para crear el swapchain.
             void createVulkanImageViews();
+            void generateRenderPasses();
     };
 }
 #endif

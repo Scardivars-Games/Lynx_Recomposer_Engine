@@ -21,12 +21,6 @@ namespace ilen::render {
     //TODO: ADD Metal 4 support to use the more efficients encoders!!!
     MetalRender::MetalRender(void* native_surface){
         @autoreleasepool {
-            //Establecer opciones gráficas por defecto
-            IlenGraphicsOptionsFlags defaultOptions = 0;
-            defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS;
-            defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR;
-            
-            GraphicsOptions::graphicsOptionsFlags = defaultOptions;
             //lastUsedGraphicsOptions = defaultOptions;
             
             metalView = (__bridge MTKView*)native_surface;

@@ -45,7 +45,7 @@ namespace ilen::render {
 
     class VulkanRenderPipeline final: public IGPURenderPipeline {
     public:
-        explicit VulkanRenderPipeline(vk::raii::Device& device, const IlenRenderPipelineDescriptor& descriptor, resources::shaders::ShaderManager* shaderManager, vk::Extent2D swapchainExtent, IlenParallelEncoderDescriptor inUseGeneralEncoder);
+        explicit VulkanRenderPipeline(vk::raii::Device& device, const IlenRenderPipelineDescriptor& descriptor, resources::shaders::ShaderManager* shaderManager, vk::Extent2D swapchainExtent, IlenParallelEncoderDescriptor inUseGeneralEncoder, vk::raii::RenderPass& renderPass);
         //~VulkanRenderPipeline() override;
         const void* getNativeRenderPipeline() const override;
 
@@ -56,7 +56,7 @@ namespace ilen::render {
         vk::PipelineLayout getCachedPipelineLayout();
 
         vk::Device* device = nullptr;
-        vk::raii::PipelineLayout _pso = nullptr;
+        vk::raii::Pipeline _pso = nullptr;
         static std::map<VertexBufferLayout, std::unique_ptr<VulkanVertexInputResources>> _vertexBufferDescriptors;
         static std::map<VulkanBindingKey, vk::DescriptorSetLayoutBinding> _layoutBindings;
         static std::map<VulkanDescriptorSetKey, vk::DescriptorSetLayout> _descriptorSetLayouts;
