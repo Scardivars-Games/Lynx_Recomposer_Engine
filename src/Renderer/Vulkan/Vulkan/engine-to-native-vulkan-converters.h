@@ -8,6 +8,7 @@ namespace ilen::render::vulkan::utils {
     //Conversores
     vk::Format transformEngineToNativePixelFormat(enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, vk::Format presentFormat);
     vk::ImageUsageFlags transformEngineToNativeImageUsage(IlenTextureUsageFlags usage);
+    vk::BufferUsageFlags transformEngineToNativeBufferUsage(enumerations::ILEN_RENDER_GPU_BUFFER_TYPE bufferType);
 }
 
 #endif

@@ -47,4 +47,19 @@ vk::ImageUsageFlags ilen::render::vulkan::utils::transformEngineToNativeImageUsa
     return returnUsage;
 }
 
+vk::BufferUsageFlags ilen::render::vulkan::utils::transformEngineToNativeBufferUsage(enumerations::ILEN_RENDER_GPU_BUFFER_TYPE bufferType){
+    switch (bufferType)
+    {
+        case ILEN_RENDER_GPU_BUFFER_INDEX:
+            return vk::BufferUsageFlagBits::eIndexBuffer;
+        case ILEN_RENDER_GPU_BUFFER_VERTEX:
+            return vk::BufferUsageFlagBits::eVertexBuffer;
+        case ILEN_RENDER_GPU_BUFFER_UNIFORM:
+            return vk::BufferUsageFlagBits::eUniformBuffer;
+        default:
+            return vk::BufferUsageFlagBits::eUniformBuffer;
+    }
+}
+
+
 #endif

@@ -238,6 +238,15 @@ void VulkanRender::setVulkanQueueFamilies(){
     auto graphicsIndex = static_cast<uint32_t>(std::distance(queueFamilyProperties.begin(), graphicsQueueFamilyProperty));
 
     auto presentIndex = physicalDevice.getSurfaceSupportKHR(graphicsIndex, *surface) ? graphicsIndex : UINT32_MAX;
+    
+    uint32_t transfernIndex = -1;
+    for(size_t i = 0; i < queueFamilyProperties.size(); i++){
+        auto flags = queueFamilyProperties[i].queueFlags;
+        if(flags & vk::QueueFlagBits::eTransfer){
+            transfernIndex = i;
+            break;
+        }
+    }
 
     if(presentIndex == UINT32_MAX){
         //Graphics queue no soporta presentación
@@ -261,6 +270,7 @@ void VulkanRender::setVulkanQueueFamilies(){
 
     graphicsQueueFamily = graphicsIndex;
     presentQueueFamily = presentIndex;
+    transferQueueFamily = transfernIndex;
 }
 
 void VulkanRender::createVulkanLogicalDevice(){
@@ -272,17 +282,43 @@ void VulkanRender::createVulkanLogicalDevice(){
 
     //Información de las Queues a crearen cada familia para la creación del dispositivo lógico.
     float queuePriority = 0.5f;
-    vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
-            .queueFamilyIndex = graphicsQueueFamily,
-            .queueCount = 1,
-            .pQueuePriorities = &queuePriority,
-    };
+    std::vector<vk::DeviceQueueCreateInfo> deviceQueueCreateInfo;
+
+    if((graphicsQueueFamily == presentQueueFamily) && (graphicsQueueFamily == transferQueueFamily)){
+        vk::DeviceQueueCreateInfo graphicsQueueCreateInfo{
+                .queueFamilyIndex = graphicsQueueFamily,
+                .queueCount = 1,
+                .pQueuePriorities = &queuePriority,
+        };
+        deviceQueueCreateInfo = { graphicsQueueCreateInfo };
+    }else{
+        vk::DeviceQueueCreateInfo graphicsQueueCreateInfo{
+                .queueFamilyIndex = graphicsQueueFamily,
+                .queueCount = 1,
+                .pQueuePriorities = &queuePriority,
+        };
+
+        vk::DeviceQueueCreateInfo presentQueueCreateInfo{
+                .queueFamilyIndex = presentQueueFamily,
+                .queueCount = 1,
+                .pQueuePriorities = &queuePriority,
+        };
+
+        vk::DeviceQueueCreateInfo transferQueueCreateInfo{
+                .queueFamilyIndex = transferQueueFamily,
+                .queueCount = 1,
+                .pQueuePriorities = &queuePriority,
+        };
+
+        deviceQueueCreateInfo = {graphicsQueueCreateInfo, presentQueueCreateInfo, transferQueueCreateInfo};
+    }
+
 
            //Información para crear el dispositivo lógico.
     vk::DeviceCreateInfo deviceCreateInfo {
             .pNext = nullptr,
-            .queueCreateInfoCount = 1,
-            .pQueueCreateInfos =  &deviceQueueCreateInfo,
+            .queueCreateInfoCount = deviceQueueCreateInfo.size(),
+            .pQueueCreateInfos =  deviceQueueCreateInfo.data(),
             .enabledExtensionCount = static_cast<uint32_t>(deviceExtension.size()),
             .ppEnabledExtensionNames = deviceExtension.data(),
     };
@@ -292,6 +328,7 @@ void VulkanRender::createVulkanLogicalDevice(){
     //Handler del Queueu para los gráficos.
     graphicsQueue = vk::raii::Queue(logicalDevice, graphicsQueueFamily, 0);
     presentQueue = vk::raii::Queue(logicalDevice, presentQueueFamily, 0);
+    transferQueue = vk::raii::Queue(logicalDevice, transferQueueFamily, 0);
 }
 
 vk::SurfaceFormatKHR selectSurfaceFormat(std::vector<vk::SurfaceFormatKHR> formats) {
@@ -386,7 +423,7 @@ void VulkanRender::createVulkanImageViews() {
 }
 
 VulkanRender::~VulkanRender() {
-
+    logicalDevice.waitIdle();
 }
 
 void VulkanRender::beginFrame(){
@@ -532,7 +569,13 @@ void VulkanRender::endFrame() {
 }
 
 std::shared_ptr<IGPUBuffer> VulkanRender::createBuffer(const IlenBufferDescriptor &descriptor, const void *data){
+    vk::CommandPoolCreateInfo poolInfo{};
+    poolInfo.flags = vk::CommandPoolCreateFlagBits::eTransient;
+    poolInfo.queueFamilyIndex = transferQueueFamily;
 
+    vk::CommandPool commandPool = logicalDevice.createCommandPool(poolInfo);
+    
+    return std::make_shared<VulkanBuffer>(vulkanTargetVersion, logicalDevice, physicalDevice, commandPool, transferQueue, descriptor, data);
 }
 
 std::unique_ptr<IGPUTexture> VulkanRender::createNewPlatformTexture(const IlenGPUTextureDescriptor &descriptor){
@@ -590,8 +633,10 @@ std::vector<IGPUTexture*> VulkanRender::getAllSceneTexturesPtr(){
     switch (messageSeverity) {
         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eError:
             ILEN_ERROR_P(VALIDATION_PREFIX.c_str(), pCallbackData->pMessage);
+            break;
         case vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning:
             ILEN_WARNING_P(VALIDATION_PREFIX.c_str(), pCallbackData->pMessage);
+            break;
         default:
             ILEN_LOG_P(VALIDATION_PREFIX.c_str(), pCallbackData->pMessage);
     }

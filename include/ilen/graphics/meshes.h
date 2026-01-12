@@ -27,6 +27,10 @@ namespace ilen::graphics {
         std::shared_ptr<render::IGPUBuffer> vertexBuffer;
         std::shared_ptr<render::IGPUBuffer> indexBuffer;
         uint32_t indexCount = 0;
+
+        //Necesario para hacer batching de vertices, debido a Vulkan, y pudiendose implementar en otras APIs
+        uint32_t vertexBufferStartOffset = 0;
+        uint32_t indexBufferStartOffset = 0;
     };
 }
 

@@ -10,7 +10,7 @@ std::map<VulkanPipelineLayoutkey, vk::PipelineLayout> VulkanRenderPipeline::_pip
 std::mutex VulkanRenderPipeline::_psoMutex;
 
 VulkanRenderPipeline::VulkanRenderPipeline(vk::raii::Device& device, const IlenRenderPipelineDescriptor& descriptor, resources::shaders::ShaderManager* shaderManager, vk::Extent2D swapchainExtent, IlenParallelEncoderDescriptor inUseGeneralEncoder, vk::raii::RenderPass& renderPass) {
-    //Shaders
+    //Shadersf
     auto vertexPtr = shaderManager->getShaderData(descriptor.vertexShaderID).lock();
     auto fragmentPtr = shaderManager->getShaderData(descriptor.fragmentShaderID).lock();
     

@@ -11,6 +11,7 @@ namespace ilen::core::options {
         static inline IlenGraphicsOptionsFlags graphicsOptionsFlags = 0;
         static inline int actualFPS = 120;
         static inline int instanceBufferSizeInMB = 4; //4MB tamaño por defecto para los instance buffer.
+        static inline int generalBufferSizeInMB = 64; //Los buffers de vertices, indices, etc, se crearan usando bloques de 64MB por defecto.
         //A partir de aquí es codigo viejo. Estos bools ahora son un bitflag, que se configura al crear el render (es la responsibilidad del render iniciar las flags)
         /*static inline bool isPostProcessEnabled = true;
         static inline bool isStencilEnabled = false;

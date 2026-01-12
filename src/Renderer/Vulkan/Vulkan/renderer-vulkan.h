@@ -9,6 +9,8 @@
 #include <Vulkan/render-pipelines-vulkan.h>
 #include <Vulkan/version-adapters-vulkan.h>
 #include <Vulkan/engine-to-native-vulkan-converters.h>
+#include <Vulkan/buffers-vulkan.h>
+#include <Vulkan/instance-buffer-vulkan.h>
 
 #if ILEN_LINUX
 #include <window/window-linux.h>
@@ -24,6 +26,7 @@ namespace ilen::render {
 
     class VulkanRender final: public IRenderer {
         public:
+            uint32_t vulkanTargetVersion = vk::ApiVersion13; //Apuntar inicialmente a vulkan 1.3
             VulkanRender(const void* native_surface);
             ~VulkanRender() override;
             void beginFrame() override;
@@ -49,9 +52,9 @@ namespace ilen::render {
 
         private:
             uint8_t MAX_FRAMES_IN_FLIGHT = 3;
-            uint32_t vulkanTargetVersion = vk::ApiVersion13; //Apuntar inicialmente a vulkan 1.3
             uint32_t graphicsQueueFamily = UINT32_MAX;
             uint32_t presentQueueFamily = UINT32_MAX;
+            uint32_t transferQueueFamily = UINT32_MAX;
             vk::Format swapchainImageFormat = vk::Format::eUndefined;
             vk::Extent2D swapchainExtent;
             VulkanOptionalFeaturesFlags availableOptionalFeatures;
@@ -66,6 +69,7 @@ namespace ilen::render {
             vk::raii::Device logicalDevice = nullptr; //Abstracción del dispositivo para ser usado por el motor.
             vk::raii::Queue graphicsQueue = nullptr; //Queue que se encargara de encolar el trabajo de gráficos.
             vk::raii::Queue presentQueue = nullptr; //Queue de presentación (normalmente es el mismo de gráficos).
+            vk::raii::Queue transferQueue = nullptr;
             vk::raii::SwapchainKHR swapchain = VK_NULL_HANDLE; //Swapchain de la app
             std::vector<vk::Image> swapchainImages; //Esta son las únicas Imagenes (texturas) que mantenemos en el formato nativo de Vulkan en vez de en el propio del motor, al ser las que se presentan en pantalla.
             std::vector<std::unique_ptr<IGPUTexture>> swapchainTextures; //Version del motor de las texturas del swapchain de Vulkan, para uso interno del motor. Estas devuelven un VkImageView en su funcion de retorno del handler.
