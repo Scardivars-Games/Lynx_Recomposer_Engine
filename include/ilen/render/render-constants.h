@@ -90,7 +90,7 @@ namespace ilen {
                 size_t size;
                 ILEN_VULKAN_DESCRIPTOR_TYPE type;
             };
-
+#if !__METAL_VERSION__
             inline std::vector<GlobalUniformsMetadata> getGlobalShaderStructs() {
                 return {
                         {CAMERA_DATA, slots::GlobalBufferSlot_Camera, 0, sizeof(CameraData), ILEN_VULKAN_DESCRIPTOR_UNIFORM_BUFFER},
@@ -98,6 +98,7 @@ namespace ilen {
                         {INSTANCE_DATA_FOR_VELOCITY_BUFFER, slots::RenderBufferSlot_InstanceModel, 0, sizeof(InstanceDataForVelocityBuffer), ILEN_VULKAN_DESCRIPTOR_STORAGE_BUFFER},
                     };
             }
+#endif
 
 
             //Para ser usado en el calculo del velocity buffer para efectos de Post Procesado.

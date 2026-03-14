@@ -9,8 +9,8 @@
 #include <ilen/window/window.h>
 #include <thread>
 #include <memory>
-
-#include "runtime_options.h"
+#include <ilen/headers/ilen-logs.h>
+#include <ilen/core/runtime_options.h>
 
 namespace ilen::application{
     struct ApplicationMetadata {
@@ -93,6 +93,7 @@ namespace ilen::application{
                 s_majorVersion = std::stoi(stringSplit[0]);
                 s_minorVersion = std::stoi(stringSplit[1]);
                 s_patchVersion = std::stoi(stringSplit[2]);
+                ILEN_LOG_P("APPLICATION_CONFIG", "Actual framerate: %i", metadata.applicationFramerate);
                 setFrameRate(metadata.applicationFramerate);
             }
         private:

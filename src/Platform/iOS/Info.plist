@@ -72,6 +72,10 @@
 	<array>
 		<string>AppIcon</string>
 	</array>
+	<!--Habilita los 120 FPS en iOS-->
+	<key>CADisableMinimumFrameDurationOnPhone</key><true/>
+	<!--Soporte a Game Mode en iOS/macOS-->
+	<key>LSSupportsGameMode</key><true/> 
 </dict>
 </plist>
 

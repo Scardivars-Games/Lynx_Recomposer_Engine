@@ -26,5 +26,7 @@
     <string>AppIcon</string>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
+    <!--Soporte a Game Mode en iOS/macOS-->
+    <key>LSSupportsGameMode</key><true/>
 </dict>
 </plist>

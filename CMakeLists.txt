@@ -141,6 +141,8 @@ if(APPLE)
             XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
             )
 
+            target_compile_options(${PROJECT_NAME} PRIVATE "-fno-objc-arc")
+
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
             ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk iphoneos $<$<CONFIG:Debug>:--add-debug>

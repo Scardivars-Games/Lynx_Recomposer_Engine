@@ -23,7 +23,7 @@ namespace ilen::render {
             id<MTLLibrary> _ilenMetalLibrary;
             MTKView* metalView;
 
-            MetalRender(void* native_surface);
+            MetalRender(const void* native_surface);
 
             ~MetalRender() override;
 

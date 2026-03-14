@@ -13,10 +13,18 @@
 -(void)layoutSubviews{
     [super layoutSubviews];
     if(self.owner){
-        CGSize newPixelSize = self.drawableSize;
-           
-        auto newWidth = (uint32_t)newPixelSize.width;
-        auto newHeight = (uint32_t)newPixelSize.height;
+        //CGSize newPixelSize = self.drawableSize;
+        CGFloat scale = [[UIScreen mainScreen] nativeScale];
+        
+        //Esto es para ver si se puede usar la resolución Retina de la pantalla de iPhone, y no la basura de resolución que usa Points.
+        if(self.contentScaleFactor != scale){
+            self.contentScaleFactor = scale;
+        }
+        
+        CGSize size = self.bounds.size;
+        
+        auto newWidth = (uint32_t)(size.width * scale);
+        auto newHeight = (uint32_t)(size.height * scale);
         
         if(newWidth != ilen::window::IWindow::getWidth() || newHeight != ilen::window::IWindow::getHeight()){
             self.owner->actualWidth = newWidth;
@@ -46,14 +54,25 @@ namespace ilen::window{
         
         nativeWindow = (__bridge UIWindow*)metadata.iOSUIWindow;
         
+        /*
         CGRect frame = [[UIScreen mainScreen] bounds];
         IlenMTKView* ilenView = [[IlenMTKView alloc] initWithFrame:frame];
+        ilenView.owner = this;*/
+        
+        UIScreen *mainScreen = [UIScreen mainScreen];
+        CGFloat screenScale = mainScreen.nativeScale;
+        CGRect frame = mainScreen.bounds;
+        
+        IlenMTKView* ilenView = [[IlenMTKView alloc] initWithFrame:frame];
+        ilenView.contentScaleFactor = screenScale;
+        ilenView.layer.contentsScale = screenScale;
         ilenView.owner = this;
         
         nativeView = ilenView;
         
         nativeView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         
+        ilenView.drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
         
         rootViewController = [[UIViewController alloc] init];
         rootViewController.view = nativeView;

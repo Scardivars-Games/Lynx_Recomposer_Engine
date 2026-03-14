@@ -19,7 +19,7 @@ namespace ilen::render {
     using namespace ilen::core::options;
 
     //TODO: ADD Metal 4 support to use the more efficients encoders!!!
-    MetalRender::MetalRender(void* native_surface){
+    MetalRender::MetalRender(const void* native_surface){
         @autoreleasepool {
             //lastUsedGraphicsOptions = defaultOptions;
             

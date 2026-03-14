@@ -61,6 +61,15 @@
     }
     
     self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop)];
+    
+    //Para dar soporte a 120 HZ en ProDisplay
+    if(@available(iOS 15.0, *)){
+        CAFrameRateRange countPerSecond = CAFrameRateRangeMake(10, 120, 120);
+        self.displayLink.preferredFrameRateRange = countPerSecond;
+    }else{
+        self.displayLink.preferredFramesPerSecond = 120;
+    }
+    
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
 }
 
