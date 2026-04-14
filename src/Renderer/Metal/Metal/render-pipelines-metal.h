@@ -6,19 +6,20 @@
 #include <ilen/render/gpu-interfaces/render-pipelines.h>
 #include <ilen/headers/enumerations.h>
 #include <ilen/resources/shaders-manager.h>
+#include <Metal-Common/common-Structures-Metal.h>
 #include <mutex>
 
 @protocol MTLDevice;
 @protocol MTLVertexDescriptor; // OK to forward declare for pointers
 @protocol MTLRenderPipelineState;
-@class MTKView;
 
 namespace ilen::render {
     using namespace ilen::enumerations;
+    using namespace ilen::render::utils::metal;
 
     class MetalRenderPipeline final: public IGPURenderPipeline {
         public:
-            explicit MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, MTKView* view, IlenParallelEncoderDescriptor inUseGeneralEncoder);
+            explicit MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, IlenParallelEncoderDescriptor inUseGeneralEncoder, MetalViewPredefinedValues predefinedVal);
             ~MetalRenderPipeline() override;
             const void* getNativeRenderPipeline() const override;
 

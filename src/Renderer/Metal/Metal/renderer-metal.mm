@@ -12,7 +12,7 @@
 
 #include <TargetConditionals.h>
 
-#import <MetalKit/MetalKit.h>
+#import <QuartzCore/QuartzCore.h>
 #import <Metal/Metal.h>
 
 namespace ilen::render {
@@ -23,13 +23,19 @@ namespace ilen::render {
         @autoreleasepool {
             //lastUsedGraphicsOptions = defaultOptions;
             
-            metalView = (__bridge MTKView*)native_surface;
-            _device = MTLCreateSystemDefaultDevice();
+#ifdef ILEN_MACOS
+            _metalView = (__bridge NSView*)native_surface;
+#elif defined ILEN_IOS
+            _metalView = (__bridge UIView*)native_surface;
+#endif
+            _metalLayer = (CAMetalLayer*)_metalView.layer;
+            _device = _metalLayer.device;
             if(!_device){
                 //Es imposible crear el dispositivo de Metal!!! (Fallback a OpenGL)
                 ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se logro crear el contexto de Metal. Dispositivo inválido");
             }
-            metalView.device = _device;
+            /*Irrelevante ahora que usamos CAMetalLayer
+             metalView.device = _device;
             metalView.framebufferOnly = NO;
             metalView.drawableSize = metalView.bounds.size;
             metalView.paused = YES;
@@ -39,19 +45,23 @@ namespace ilen::render {
             metalView.needsDisplay = YES;
             [metalView setNeedsLayout:YES];
             [metalView layoutSubtreeIfNeeded];
-            #endif
+             
+             metalView.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
+             metalView.preferredFramesPerSecond = GraphicsOptions::actualFPS;
+            #endif*/
             
-            ILEN_LOG("Device: %p", metalView.device);
-            ILEN_LOG("DrawableSize: %.0f x %.0f", metalView.drawableSize.width, metalView.drawableSize.height);
+            ILEN_LOG("Device: %p", _metalLayer.device);
+            ILEN_LOG("DrawableSize: %.0f x %.0f", _metalLayer.drawableSize.width, _metalLayer.drawableSize.height);
             
-            metalView.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
-            metalView.preferredFramesPerSecond = GraphicsOptions::actualFPS;
+           
             _commandQueue = [_device newCommandQueue];
-
+            
+            _predefinedValues.screenPixelFormat = _metalLayer.pixelFormat;
+            _predefinedValues.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
             #if TARGET_OS_OSX
-            metalView.clearColor = MTLClearColor(0.1, 0.1, 0.2, 1.0);
+            _predefinedValues.clearColor = MTLClearColor(0.1, 0.1, 0.2, 1.0);
             #elif TARGET_OS_IOS
-            metalView.clearColor = MTLClearColor(0.5, 0.2, 0.2, 1.0);
+            _predefinedValues.clearColor = MTLClearColor(0.5, 0.2, 0.2, 1.0);
             #endif //TARGET_OS_IOS
             
             #if ILEN_MACOS
@@ -139,8 +149,8 @@ void MetalRender::beginFrame() {
     
     //_drawables[_actualFrame] = [metalView currentDrawable];
     
-    CAMetalLayer* layer = (CAMetalLayer*)[metalView layer];
-    if(layer.drawableSize.width < 1 || layer.drawableSize.height < 1){
+    //CAMetalLayer* layer = (CAMetalLayer*)[metalView layer];
+    if(_metalLayer.drawableSize.width < 1 || _metalLayer.drawableSize.height < 1){
         _commandBuffer[_actualFrame] = nil;
         _drawables[_actualFrame] = nil;
         [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
@@ -148,7 +158,7 @@ void MetalRender::beginFrame() {
         return;
     }
     
-    _drawables[_actualFrame] = [layer nextDrawable];
+    _drawables[_actualFrame] = [_metalLayer nextDrawable];
     
     
     if(!_drawables[_actualFrame]){
@@ -247,7 +257,7 @@ void MetalRender::beginFrame() {
     }
 
     std::shared_ptr<IGPURenderPipeline> MetalRender::createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor &pipelineDescriptor, ilen::resources::shaders::ShaderManager *shaderManager){
-        return std::make_shared<MetalRenderPipeline>(_device, pipelineDescriptor, shaderManager, metalView, actualMainDescriptor);
+        return std::make_shared<MetalRenderPipeline>(_device, pipelineDescriptor, shaderManager, actualMainDescriptor, _predefinedValues);
     }
 
     std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::getParallelCommandEncoder(){
@@ -375,7 +385,7 @@ std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::createNewParallelComman
 }
 
 std::unique_ptr<IGPUTexture> MetalRender::createNewPlatformTexture(const IlenGPUTextureDescriptor &descriptor){
-    return std::make_unique<MetalTexture>(descriptor, metalView, _device);
+    return std::make_unique<MetalTexture>(descriptor, _predefinedValues, _device);
 }
 
 void MetalRender::regenerateEncoderDescriptor(){
@@ -403,7 +413,7 @@ void MetalRender::regenerateEncoderDescriptor(){
     }
     colorAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
     colorAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
-    colorAttach->clearColor = graphics::Color(metalView.clearColor.red, metalView.clearColor.green, metalView.clearColor.blue);
+    colorAttach->clearColor = graphics::Color(_predefinedValues.clearColor.red, _predefinedValues.clearColor.green, _predefinedValues.clearColor.blue);
     parallelEncoderDescriptor.colorAttachments[ilen::render::slots::RenderPassAttachment_Color] = std::move(colorAttach);
 
     if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){

@@ -4,11 +4,12 @@
 #include <ilen/headers/enumerations.h>
 
 #import <Cocoa/Cocoa.h>
+#import <QuartzCore/CAMetalLayer.h>
 
 #ifdef __OBJC__
 @class AppDelegate;
 @class NSWindow;
-@class MTKView;
+@class NSView;
 #endif
 
 
@@ -29,7 +30,7 @@ namespace ilen::window
 
             //Métodos públicos (antiguo)
             NSWindow* nativeWindow = nil;
-            MTKView* nativeView = nil;
+            NSView* nativeView = nil;
             bool closeRequested = false;
             AppDelegate* appDelegate = nil;
         

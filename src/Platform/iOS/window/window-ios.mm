@@ -1,35 +1,42 @@
 #if defined (__APPLE__) && ILEN_IOS
 #include <window/window-ios.h>
 #import <UIKit/UIKit.h>
-#import <MetalKit/MetalKit.h>
+#import <QuartzCore/QuartzCore.h>
 #include <ilen/headers/core.h>
 
-@interface IlenMTKView : MTKView
+@interface IlenView : UIView
 @property (nonatomic, assign) ilen::window::WindowNativeIOS* owner;
 @end
 
-@implementation IlenMTKView
+@implementation IlenView
+
++ (Class)layerClass {
+    return [CAMetalLayer class];
+}
+
+- (instancetype)initWithFrame:(CGRect)frame{
+    if(self = [super initWithFrame:frame]){
+        self.contentScaleFactor = [UIScreen mainScreen].scale;
+    }
+    return self;
+}
 
 -(void)layoutSubviews{
     [super layoutSubviews];
     if(self.owner){
-        //CGSize newPixelSize = self.drawableSize;
+        CAMetalLayer *metalLayer = (CAMetalLayer *)self.layer;
         CGFloat scale = [[UIScreen mainScreen] nativeScale];
-        
-        //Esto es para ver si se puede usar la resolución Retina de la pantalla de iPhone, y no la basura de resolución que usa Points.
         if(self.contentScaleFactor != scale){
             self.contentScaleFactor = scale;
         }
-        
         CGSize size = self.bounds.size;
-        
-        auto newWidth = (uint32_t)(size.width * scale);
-        auto newHeight = (uint32_t)(size.height * scale);
-        
+        uint32_t newWidth = (uint32_t)(size.width * scale);
+        uint32_t newHeight = (uint32_t)(size.height * scale);
+        // Keep CAMetalLayer's drawableSize in sync as well
+        metalLayer.drawableSize = CGSizeMake(newWidth, newHeight);
         if(newWidth != ilen::window::IWindow::getWidth() || newHeight != ilen::window::IWindow::getHeight()){
             self.owner->actualWidth = newWidth;
             self.owner->actualHeight = newHeight;
-            
             self.owner->_windowChanged.store(true);
         }
     }
@@ -63,8 +70,8 @@ namespace ilen::window{
         CGFloat screenScale = mainScreen.nativeScale;
         CGRect frame = mainScreen.bounds;
         
-        IlenMTKView* ilenView = [[IlenMTKView alloc] initWithFrame:frame];
-        ilenView.contentScaleFactor = screenScale;
+        //IlenMTKView* ilenView = [[IlenMTKView alloc] initWithFrame:frame];
+        IlenView* ilenView = [[IlenView alloc] initWithFrame:frame];
         ilenView.layer.contentsScale = screenScale;
         ilenView.owner = this;
         
@@ -72,7 +79,7 @@ namespace ilen::window{
         
         nativeView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         
-        ilenView.drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
+        ((CAMetalLayer *)ilenView.layer).drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
         
         rootViewController = [[UIViewController alloc] init];
         rootViewController.view = nativeView;
@@ -80,7 +87,7 @@ namespace ilen::window{
         nativeWindow.rootViewController = rootViewController;
         [nativeWindow makeKeyAndVisible];
         
-        CGSize initialPixelSize = nativeView.drawableSize;
+        CGSize initialPixelSize = ((CAMetalLayer *)ilenView.layer).drawableSize;
         actualWidth = (uint32_t)initialPixelSize.width;
         actualHeight = (uint32_t)initialPixelSize.height;
         _windowChanged.store(true); //Para que en el primer frame actualiz
@@ -111,3 +118,5 @@ GameWindow::GameWindow(void* metadata){
     s_pNative = new WindowNative_iOS(meta->iOSUIWindow);
 }*/
 #endif
+
+

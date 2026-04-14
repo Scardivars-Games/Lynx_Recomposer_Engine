@@ -1,21 +1,21 @@
 #if defined (__APPLE__)
 #include <Metal/texture-metal.h>
 #include <Metal-Common/engine-to-native-converters.h>
+#include <Metal-Common/common-Structures-Metal.h>
 
 #import <Metal/Metal.h>
-#import <MetalKit/MetalKit.h>
 
 using namespace ilen::enumerations;
 
 namespace ilen::render {
-MetalTexture::MetalTexture(const IlenGPUTextureDescriptor& descriptor, MTKView* view, id<MTLDevice> device){
+MetalTexture::MetalTexture(const IlenGPUTextureDescriptor& descriptor, MetalViewPredefinedValues predefinedVal, id<MTLDevice> device){
     using namespace ilen::render::utils::metal;
     @autoreleasepool {
         if(descriptor.presentation == ILEN_GPU_TEXTURE_PRESENTATION_TYPE::ILEN_GPU_TEXTURE_PRESENTATION_PRESENT){
             ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Receibed the order to generate a Present Texture. By engine filosophy in Metal, before texture creation, you check if is a Present texture, and if it is true, you asign a CAMetalLayer from the view instead.");
         }
         
-        MTLPixelFormat format = transformEngineToNativePixelFormat(descriptor.pixelFormat, view);
+        MTLPixelFormat format = transformEngineToNativePixelFormat(descriptor.pixelFormat, predefinedVal.screenPixelFormat);
         bool mipMaps = descriptor.mipLevels > 1;
         
         MTLTextureDescriptor* texDescriptor = [MTLTextureDescriptor texture2DDescriptorWithPixelFormat:format width:descriptor.width height:descriptor.height mipmapped:mipMaps];

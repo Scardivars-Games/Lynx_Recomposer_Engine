@@ -2,8 +2,8 @@
 #if defined (__APPLE__) && ILEN_IOS
 #include <ilen/window/window.h>
 
+@class UIView;
 @class UIWindow;
-@class MTKView;
 @class UIViewController;
 
 namespace ilen::window
@@ -22,7 +22,7 @@ namespace ilen::window
         
             //Metodos públicos de la implementación
             UIWindow* nativeWindow = nullptr;
-            MTKView* nativeView = nullptr;
+            UIView* nativeView = nullptr;
             UIViewController* rootViewController = nullptr;
             
             std::atomic<bool> _windowChanged;

@@ -4,10 +4,10 @@
 
 using namespace ilen::enumerations;
 
-MTLPixelFormat ilen::render::utils::metal::transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, MTKView* view){
+MTLPixelFormat ilen::render::utils::metal::transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, MTLPixelFormat viewFormat){
     switch (format) {
         case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN:
-            return view.colorPixelFormat;
+            return viewFormat;
         case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH:
             return MTLPixelFormatDepth32Float;
         case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_STENCIL:

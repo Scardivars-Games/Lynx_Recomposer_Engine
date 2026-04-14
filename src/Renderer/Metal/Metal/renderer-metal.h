@@ -4,14 +4,22 @@
 #include <ilen/render/renderer.h>
 #include <memory>
 #include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
+#include <Metal-Common/common-Structures-Metal.h>
 #include <dispatch/dispatch.h>
+
+#if defined ILEN_MACOS
+#import <Cocoa/Cocoa.h>
+#elif defined ILEN_IOS
+#import <UIKit/UIKit.h>
+#endif
 
 @protocol MTLDevice;
 @protocol MTLCommandQueue;
 @protocol MTLLibrary;
 @protocol MTLCommandBuffer;
 @protocol MTLRenderCommandEncoder;
-@class MTKView;
+@class CAMetalLayer;
+@class NSView;
 @protocol CAMetalDrawable;
 @protocol MTLTexture;
 
@@ -21,7 +29,12 @@ namespace ilen::render {
             id<MTLDevice> _device;
             id<MTLCommandQueue> _commandQueue;
             id<MTLLibrary> _ilenMetalLibrary;
-            MTKView* metalView;
+#ifdef ILEN_MACOS
+            NSView* _metalView;
+#elif defined ILEN_IOS
+        UIView* _metalView;
+#endif
+            CAMetalLayer* _metalLayer;
 
             MetalRender(const void* native_surface);
 
@@ -62,6 +75,9 @@ namespace ilen::render {
 
             void generateNewMetalLibrary(); //Método fallback que busca todos los archivos fuente de .metal y los compila como un único .metallib
             void generateFrameTextures();
+        
+            //MTLClearColor _renderingClearColor;
+            ilen::render::utils::metal::MetalViewPredefinedValues _predefinedValues;
     };
 }
 

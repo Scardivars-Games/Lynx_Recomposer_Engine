@@ -260,6 +260,8 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
         //Subimos cada valor.
         constants.push_back(valueForMotionBlur);
     }
+    
+    
 
     //TODO: Las funciones y los id de shader no son los correctos en este caso. Ajustar en el futuro
     IlenMaterial postProcessMat{};

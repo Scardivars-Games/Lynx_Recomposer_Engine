@@ -5,16 +5,18 @@
 #include <ilen/headers/enumerations.h>
 #include <cstdint>
 #include <ilen/headers/ilen-logs.h>
+#include <Metal-Common/common-Structures-Metal.h>
 
 #import<Metal/Metal.h>
 
 @protocol MTLTexture;
-@class MTKView;
 
 namespace ilen::render {
+    using namespace ilen::render::utils::metal;
+
     class MetalTexture final: public IGPUTexture {
         public:
-            MetalTexture(const IlenGPUTextureDescriptor& descriptor, MTKView* view, id<MTLDevice> device);
+            MetalTexture(const IlenGPUTextureDescriptor& descriptor,  MetalViewPredefinedValues predefinedVal, id<MTLDevice> device);
             MetalTexture(id<MTLTexture> givenNativeTexture); //Necesario para por ejemplo, usar la textura del CAMetalLayer sin tener que hacer el código del inicio del frame un infierno.
             ~MetalTexture() override;
             void* getNativeTexture() override;

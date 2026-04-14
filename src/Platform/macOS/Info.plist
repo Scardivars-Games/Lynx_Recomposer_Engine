@@ -28,5 +28,7 @@
     <string>AppIcon</string>
     <!--Soporte a Game Mode en iOS/macOS-->
     <key>LSSupportsGameMode</key><true/>
+    <!--Esto supuestamente permite usar resolucion retina en macOS-->
+    <key>NSHighResolutionCapable</key><true/>
 </dict>
 </plist>

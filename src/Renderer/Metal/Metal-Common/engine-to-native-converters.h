@@ -5,11 +5,10 @@
 #include <ilen/core/bitflags.h>
 
 #import <Metal/Metal.h>
-#import <MetalKit/MetalKit.h>
 
 namespace ilen::render::utils::metal {
     //Convertes required for textures
-    MTLPixelFormat transformEngineToNativePixelFormat(enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, MTKView* view);
+    MTLPixelFormat transformEngineToNativePixelFormat(enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, MTLPixelFormat viewFormat);
     MTLTextureUsage transformEngineToNativeTextureUsage(IlenTextureUsageFlags usage);
     MTLStorageMode transformEngineToNativeStorageMode(enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE storageMemory);
 

@@ -11,9 +11,10 @@ namespace ilen::render {
     std::map<VertexBufferLayout, void*> MetalRenderPipeline::m_vertexBufferDescriptors;
     std::mutex MetalRenderPipeline::_psoMutex;
 
-    MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, MTKView* view, IlenParallelEncoderDescriptor inUseGeneralEncoder) : _pso(nil){
+    MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, IlenParallelEncoderDescriptor inUseGeneralEncoder, MetalViewPredefinedValues predefinedVal) : _pso(nil){
         using namespace ilen::render::utils::metal;
         @autoreleasepool {
+            
             MTLRenderPipelineDescriptor* pipelineDescriptor = [MTLRenderPipelineDescriptor new];
             
             auto vertexPtr = shaderManager->getShaderData(descriptor.vertexShaderID).lock();
@@ -100,19 +101,19 @@ namespace ilen::render {
                 //ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Solicitud de creación de un PSO especial sin el descriptor con los datos del encoder.");
             }
             if(encoderDesc->colorAttachments.size() > 0){
-                colorAttach.pixelFormat = transformEngineToNativePixelFormat(encoderDesc->colorAttachments[0]->texture->getDescriptor().pixelFormat, view);
+                colorAttach.pixelFormat = transformEngineToNativePixelFormat(encoderDesc->colorAttachments[0]->texture->getDescriptor().pixelFormat, predefinedVal.screenPixelFormat);
             }else{
                 colorAttach.pixelFormat = MTLPixelFormatInvalid;
             }
             
             if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
-                pipelineDescriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat;
+                pipelineDescriptor.depthAttachmentPixelFormat = predefinedVal.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
             }
             
             if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL){
-                pipelineDescriptor.stencilAttachmentPixelFormat = view.depthStencilPixelFormat;
+                pipelineDescriptor.stencilAttachmentPixelFormat = predefinedVal.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
             }
@@ -130,7 +131,7 @@ namespace ilen::render {
             for(size_t i = 1; i < encoderDesc->colorAttachments.size(); i++){
                 if(encoderDesc->colorAttachments[i] != nullptr){
                    auto texFormat =  encoderDesc->colorAttachments[i]->texture->getDescriptor().pixelFormat;
-                    pipelineDescriptor.colorAttachments[i].pixelFormat = transformEngineToNativePixelFormat(texFormat, view);
+                    pipelineDescriptor.colorAttachments[i].pixelFormat = transformEngineToNativePixelFormat(texFormat, predefinedVal.screenPixelFormat);
                     pipelineDescriptor.colorAttachments[i].writeMask = MTLColorWriteMaskAll;
                     pipelineDescriptor.colorAttachments[i].blendingEnabled = NO;
                 }

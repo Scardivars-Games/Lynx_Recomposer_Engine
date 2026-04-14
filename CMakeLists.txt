@@ -121,7 +121,6 @@ if(APPLE)
         target_link_libraries(${PROJECT_NAME} PRIVATE 
             "-framework Foundation" 
             "-framework UIKit"
-            "-framework QuartzCore"
         )
         set_target_properties(${PROJECT_NAME} PROPERTIES        
             XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
@@ -162,7 +161,11 @@ if(APPLE)
 
         target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
         target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
-        target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Cocoa")
+
+        target_link_libraries(${PROJECT_NAME} PRIVATE
+            "-framework Cocoa"
+            )
+
         set_target_properties(${PROJECT_NAME} PROPERTIES      
             BUNDLE TRUE  
             XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
@@ -201,6 +204,7 @@ if(APPLE)
     target_link_libraries(${PROJECT_NAME} PRIVATE
         "-framework MetalKit" 
         "-framework Metal"
+        "-framework QuartzCore"
     )
 elseif(LINUX)
     message("Configuring for Linux")
