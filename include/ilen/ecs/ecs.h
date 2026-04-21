@@ -51,8 +51,8 @@ namespace ilen::ecs {
 
             //Sistema
             template<typename T>
-            std::shared_ptr<T> registerSystem() {
-                return systemManager -> registerSystem<T>();
+            std::shared_ptr<T> registerSystem(SystemPhase phase, int prioriy) {
+                return systemManager -> registerSystem<T>(phase, prioriy);
             }
 
             template<typename T>
@@ -67,6 +67,23 @@ namespace ilen::ecs {
                 signature.set(componentManager->getComponentType<T>(), false);
                 entityManager->setSignature(entity, signature);
                 systemManager->entitySignatureChanged(entity, signature);
+            }
+
+            template<typename T>
+            std::shared_ptr<T> getSystem() {
+                return systemManager->getSystem<T>();
+            }
+
+            std::vector<std::shared_ptr<ISystem>> getAllSystems(){
+                return systemManager->getAllSystems();
+            }
+
+            void sortSystems(){
+                systemManager->sortSystems();
+            }
+
+            std::vector<std::shared_ptr<ISystem>> getSystemsByPhase(SystemPhase phase){
+                return systemManager->getSystemByPhase(phase);
             }
         
         private:

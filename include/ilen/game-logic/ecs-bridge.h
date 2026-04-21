@@ -1,6 +1,8 @@
 //Une la lógica de un GameObject con su respectiva Entidad en el ECS.
 #pragma once
 
+#if !ILEN_ONLY_ECS
+
 #include <memory>
 #include <functional>
 #include <ilen/game-logic/game-object.h>
@@ -19,3 +21,5 @@ namespace ilen::ecs::components {
         }
     };
 }
+
+#endif //!ILEN_ONLY_ECS

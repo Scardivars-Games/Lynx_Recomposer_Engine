@@ -7,11 +7,8 @@
 #include <ilen/render/gpu-interfaces/shaders.h>
 #include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
 #include <ilen/render/gpu-interfaces/instance-buffer.h>
-#include <ilen/render/render-draw-system.h>
 #include <ilen/graphics/shader.h>
 #include <ilen/core/runtime_options.h>
-
-#include "render-draw-system.h"
 
 namespace ilen::graphics
 {

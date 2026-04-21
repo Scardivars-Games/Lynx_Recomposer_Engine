@@ -1,7 +1,8 @@
 #include <ilen/transform/transform-system.h>
 
+
 namespace ilen::ecs::systems {
-    void TransformSystem::Init(ilen::EngineContext *engineContext) {
+    void TransformSystem::Init(const ilen::EngineContext *engineContext) {
         p_Coordinator = engineContext->p_coordinator.get();
         p_jobSystem = engineContext->p_jobSystem.get();
 

@@ -1,4 +1,5 @@
 #include <ilen/resources/mesh-manager.h>
+#include <ilen/core/engine-context.h>
 
 namespace ilen::resources::mesh {
     MeshManager::MeshManager(EngineContext* engineContext){

@@ -2,7 +2,10 @@
 #include <ilen/render/render-constants.h>
 #include <ilen/core/runtime_options.h>
 #include <ilen/transform/transform-component.h>
-
+#include <ilen/core/engine-context.h>
+#include <ilen/render/renderer.h>
+#include <ilen/render/render-component.h>
+#include <ilen/camera/camera-system.h>
 
 namespace ilen::ecs::systems {
 
@@ -13,9 +16,11 @@ namespace ilen::ecs::systems {
         p_Coordinator = engineContext->p_coordinator.get();
         p_JobSystem = engineContext->p_jobSystem.get();
         p_Renderer = engineContext->p_gameRenderer.get();
-        p_cameraSystem = engineContext->p_cameraSystem.get();
         p_matManager = engineContext->p_materialManager.get();
         p_meshManager = engineContext->p_meshManager.get();
+//      p_cameraSystem = engineContext->p_cameraSystem.get();
+        p_cameraSystem = p_Coordinator->getSystem<CameraSystem>().get();
+
     }
 
     void RenderDrawSystem::Update() {

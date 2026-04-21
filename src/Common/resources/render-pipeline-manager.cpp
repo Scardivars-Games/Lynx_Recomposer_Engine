@@ -1,4 +1,6 @@
 #include <ilen/resources/render-pipeline-manager.h>
+#include <ilen/core/engine-context.h>
+
 
 namespace ilen::resources::render_pipeline {
     PipelineManager::PipelineManager(EngineContext* context) {

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <ilen/ecs/system.h>
-#include <ilen/core/lifetime.h>
 #include <ilen/render/gpu-interfaces/render-pipelines.h>
 #include <ilen/job-system/job-system.h>
+#include <ilen/ecs/system_registry.h>
 
 namespace ilen {
     struct EngineContext;
@@ -28,6 +28,7 @@ namespace ilen::ecs {
 
 namespace ilen::ecs::components {
     struct RenderItem;
+    struct RenderComponent;
 }
 
 namespace ilen::ecs::systems {
@@ -40,10 +41,10 @@ namespace ilen::ecs::systems {
     //using namespace ilen::resources::render_pipeline;
 
 
-    class RenderDrawSystem final: public ilen::ecs::System {
+    class RenderDrawSystem final: public ilen::ecs::ISystem {
         public:
-            void Init(const ilen::EngineContext* engineContext);
-            void Update();
+            void Init(const ilen::EngineContext* engineContext) override;
+            void Update() override;
             const std::vector<components::RenderItem>& getLastUsedRenderItemList() const { return lastRenderItems; }
         private:
             static uint64_t GenerateSortKey(const std::shared_ptr<IGPURenderPipeline> &pso, float depth, uint16_t materialRuntimeID, uint8_t drawIndex, uint16_t meshID);
@@ -62,3 +63,6 @@ namespace ilen::ecs::systems {
             static inline const char* DEBUG_PREFIX = "RENDER_DRAW_SYSTEM";
     };
 }
+
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::RenderDrawSystem, ilen::ecs::SystemPhase::Render, 0)
+REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::RenderDrawSystem, ilen::ecs::components::RenderComponent)

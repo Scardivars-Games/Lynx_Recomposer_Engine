@@ -1,5 +1,8 @@
 #include <ilen/render/post-process-effects/post-process-system.h>
 #include <ilen/core/runtime_options.h>
+#include <ilen/core/engine-context.h>
+#include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
+#include <ilen/render/render-draw-system.h>
 
 using namespace ilen::ecs::systems;
 using namespace ilen::maths::matrix;
@@ -10,15 +13,18 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
     renderer = engineContext->p_gameRenderer.get();
     shaderManager = engineContext->p_shaderManager.get();
     meshManager = engineContext->p_meshManager.get();
-    drawSystem = engineContext->p_renderDrawSystem.get();
+    //drawSystem = engineContext->p_renderDrawSystem.get();
+    //cameraSystem = engineContext->p_cameraSystem.get();
     jobSystem = engineContext->p_jobSystem.get();
-    cameraSystem = engineContext->p_cameraSystem.get();
+    drawSystem = coordinator->getSystem<RenderDrawSystem>().get();
+    cameraSystem = coordinator->getSystem<CameraSystem>().get();
+
 
     //Todo, crear los PSO especiales para el post-procesado, según esten en uso o no. (Completado, creo)
     //De momento, creo que un unico PSO para postprocesado debe ser suficiente.
     auto postProcessPSO = GenerateNewPSO();
 
-    IlenParallelEncoderDescriptor temporalDescriptor {};
+    ilen::render::IlenParallelEncoderDescriptor temporalDescriptor {};
     postProcessPSO[0].encoderDescriptor = &temporalDescriptor; // Inicia el motor, no se sabe que post procesados hay en memoria.
 
     encoderToPostProcessPSO.second = renderer->createRenderPipeline(postProcessPSO[0], shaderManager);

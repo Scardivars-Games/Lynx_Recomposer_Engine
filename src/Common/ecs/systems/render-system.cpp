@@ -1,7 +1,9 @@
 #include <ilen/render/render-system.h>
+#include <ilen/core/engine-context.h>
+
 
 namespace ilen::ecs::systems {
-    void RenderSystem::Init(EngineContext *engineContext) {
+    void RenderSystem::Init(const EngineContext *engineContext) {
         p_jobSystemInstance = engineContext->p_jobSystem.get();
         p_meshManager = engineContext->p_meshManager.get();
         p_Coordinator = engineContext->p_coordinator.get();

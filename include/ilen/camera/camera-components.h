@@ -3,6 +3,7 @@
 #include <ilen/headers/enumerations.h>
 #include <ilen/camera/camera-system.h>
 #include <ilen/headers/maths.h>
+#include <ilen/render/gpu-interfaces/buffers.h>
 
 namespace ilen::ecs::systems {
     class CameraSystem;

@@ -2,6 +2,7 @@
 #include <ilen/ecs/system.h>
 #include <ilen/core/lifetime.h>
 #include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
+#include <ilen/render/gpu-interfaces/instance-buffer.h>
 #include <ilen/maths/matrix.h>
 #include <ilen/transform/transform-component.h>
 
@@ -27,12 +28,12 @@ namespace ilen::resources {
 }
 
 namespace  ilen::ecs::systems {
-    class PostProcessSystem final: public System {
+    class PostProcessSystem final: public ISystem {
     public:
-        void Init(const EngineContext * engineContext);
-        void Update();
+        void Init(const EngineContext * engineContext) override;
+        void Update() override;
     private:
-        static std::vector<IlenRenderPipelineDescriptor> GenerateNewPSO(); //Retorna los datos para generar el PSO de calculo y de dibujo final.
+        static std::vector<render::IlenRenderPipelineDescriptor> GenerateNewPSO(); //Retorna los datos para generar el PSO de calculo y de dibujo final.
         ECSCoordinator* coordinator = nullptr;
         job_system::JobSystem* jobSystem = nullptr;
         render::IRenderer* renderer = nullptr;
@@ -43,11 +44,14 @@ namespace  ilen::ecs::systems {
 
         std::pair<render::IlenParallelEncoderDescriptor, std::shared_ptr<render::IGPURenderPipeline>> encoderToPostProcessPSO; //Este PSO es el que se ejecuta por cada objeto y su objetivo es poblar con datos las texturas
         std::shared_ptr<render::IGPURenderPipeline> postProcessPresentPSO; //Este PSO es el que se usa para dibujar el present en pantalla al final.
-        std::weak_ptr<MeshGPULink> quadGPUMesh; // Por optimización, usamos directamente el mesh que tenemos definido, evitando tener 2 buffers idénticos en la GPU.
-        std::vector<std::unique_ptr<IGPUInstanceBuffer>> postProcessInstanceBuffer;
+        std::weak_ptr<components::MeshGPULink> quadGPUMesh; // Por optimización, usamos directamente el mesh que tenemos definido, evitando tener 2 buffers idénticos en la GPU.
+        std::vector<std::unique_ptr<render::IGPUInstanceBuffer>> postProcessInstanceBuffer;
 
         std::unordered_map<Entity, components::TransformComponent> previousTransforms;
 
         const char* DEBUG_PREFIX = "POST_PROCESSING_SYSTEM";
     };
 }
+
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::PostProcessSystem, ilen::ecs::SystemPhase::Render, 1);
+REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::PostProcessSystem, ilen::ecs::components::RenderComponent);

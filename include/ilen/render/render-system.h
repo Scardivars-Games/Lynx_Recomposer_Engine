@@ -30,10 +30,10 @@ namespace ilen::ecs::systems {
     using namespace ilen::job_system;    
     using namespace ilen::core;    
 
-    class RenderSystem final: public ilen::ecs::System {
+    class RenderSystem final: public ilen::ecs::ISystem {
         public:
-            void Init(EngineContext* engineContext);
-            void Update();
+            void Init(const EngineContext* engineContext) override;
+            void Update() override;
         private:
             ECSCoordinator* p_Coordinator = nullptr;
             JobSystem* p_jobSystemInstance = nullptr;
@@ -49,3 +49,6 @@ namespace ilen::ecs::systems {
             const char* DEBUG_PREFIX = "RENDER_SYSTEM";
     };
 }
+
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::RenderSystem, ilen::ecs::SystemPhase::PreRender, 2)
+REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::RenderSystem, ilen::ecs::components::RenderComponent)

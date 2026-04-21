@@ -1,5 +1,7 @@
 #pragma once
 
+#if !ILEN_ONLY_ECS
+
 #include <ilen/headers/gameobject.h>
 #include <ilen/headers/core.h>
 #include <ilen-public/API/transform.h>
@@ -18,3 +20,4 @@ namespace ilen::game{
     };
 }
 
+#endif //!ILEN_ONLY_ECS

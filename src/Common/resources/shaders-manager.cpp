@@ -1,5 +1,6 @@
 #include <ilen/resources/shaders-manager.h>
 #include <ilen/headers/ilen-logs.h>
+#include <ilen/core/engine-context.h>
 
 std::unordered_map<uint32_t, ilen::graphics::IlenShader> shaderTest;
 

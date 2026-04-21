@@ -18,6 +18,11 @@ namespace ilen::core::options {
         static inline bool isDepthEnabled = false;*/
     };
 
+    //Opciones generales del motor
+    struct GeneralEngineOptions {
+        static inline double PhysicsUpdateTime = 60.0; //Se actualizan las físicas 60 veces por segundo. 
+    };
+
 
 
     /*struct PostProcessOptions {

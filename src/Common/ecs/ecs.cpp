@@ -82,3 +82,29 @@ void SystemManager::entitySignatureChanged(Entity entity, Signature newSignature
         }
     }
 }
+
+std::vector<std::shared_ptr<ISystem>> SystemManager::getAllSystems() {
+    std::vector<std::shared_ptr<ISystem>> list;
+    for(auto const& pair : systems){
+        list.push_back(pair.second);
+    }
+
+    return list;
+}
+
+void SystemManager::sortSystems(){
+    for(auto& [phase, list] : systemExecutionOrder){
+        std::sort(list.begin(), list.end(), [](const SystemConfig& a, const SystemConfig& b){
+            return a.priority < b.priority;
+        });
+    }
+}
+
+std::vector<std::shared_ptr<ISystem>> SystemManager::getSystemByPhase(SystemPhase phase){
+    std::vector<std::shared_ptr<ISystem>> result;
+    for(auto const& config: systemExecutionOrder[phase]){
+        result.push_back(config.system);
+    }
+
+    return result;
+}

@@ -1,5 +1,7 @@
 #pragma once
 
+#if !ILEN_ONLY_ECS
+
 #include <ilen/ecs/ecs.h>
 
 namespace ilen::game {
@@ -20,3 +22,5 @@ namespace ilen::game {
             ilen::ecs::ECSCoordinator* coordinator = nullptr;
     };
 };
+
+#endif //!ILEN_ONLY_ECS

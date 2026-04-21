@@ -96,7 +96,7 @@ namespace ilen::window{
     void WindowNativeIOS::pollEvents() {}
     bool WindowNativeIOS::shouldClose() {return false; }
     void* WindowNativeIOS::getNativeWindow() const { return (__bridge void*)nativeWindow; }
-    void* WindowNativeIOS::getNativeView() const { return (__bridge void*)nativeView; }
+    const void* WindowNativeIOS::getNativeView() const { return (__bridge void*)nativeView; }
 
     bool WindowNativeIOS::checkWindowResize(uint32_t &outWidth, uint32_t &outHeight){
         if(!_windowChanged.load()){

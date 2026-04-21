@@ -57,12 +57,28 @@ namespace ilen::application{
 
             //Pausa la app hasta el siguiente frame
             static void stopUntilNextFrame() {
+                //Algunos macros para usar caracteristicas de la CPU para ahorrar energia sin cederle el hilo al procesador.
+                #if defined(__aarch64__) || defined(_M_ARM64)
+                    #define CPU_RELAX() __asm__ volatile("yield" ::: "memory") //Apple/ARM
+                #elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+                    #include <immintin.h>     
+                    #define CPU_RELAX() __mm_pause(); //Intel/AMD
+                #else
+                    #define CPU_RELAX(); //Fallback
+                #endif
+
                 const auto wakeTime = ilen::time::Time::getWakeTime(s_framerateInMiliseconds);
-                std::chrono::duration<double, std::milli> margin(1);
-                std::this_thread::sleep_until(wakeTime - margin);
+                std::chrono::duration<double, std::milli> margin(2.5);
+
+                //Dormir la CPU hasta justo antes de ser necesaria.
+                if(std::chrono::high_resolution_clock::now() < (wakeTime - margin)){
+                    std::this_thread::sleep_until(wakeTime - margin);
+                }
+            
 
                 while(std::chrono::high_resolution_clock::now() < wakeTime) {
-                    std::this_thread::yield(); //Dejamos el thread disponible para otras apps.
+                    //std::this_thread::yield(); //Dejamos el thread disponible para otras apps.
+                    CPU_RELAX(); //Mantenemos al hilo, pero sin cederlo al sistema
                 } //Lopeamos la app, así gastamos una cantidad menor de recursos y obtenemos un framerate más perfecto
             }
             

@@ -2,6 +2,11 @@
 #include <ilen/transform/transform-system.h>
 #include <ilen/camera/camera-components.h>
 #include <ilen/headers/ilen-logs.h>
+#include <ilen/core/engine-context.h>
+#include <ilen/render/render-constants.h>
+#include <ilen/render/renderer.h>
+#include <ilen/window/window.h>
+
 
 namespace ilen::ecs::systems {
     using namespace ilen::ecs::components;
@@ -24,8 +29,11 @@ namespace ilen::ecs::systems {
         }
     }
 
-    void CameraSystem::Update(uint32_t viewportWidth, uint32_t viewportHeight) {
+    void CameraSystem::Update() {
         auto actualGraphicsAPI = ilen::render::IRenderer::getActualGraphicsAPI();
+        
+        auto viewportHeight = ilen::window::IWindow::getHeight();
+        auto viewportWidth = ilen::window::IWindow::getWidth();
         if (viewportHeight == 0|| viewportWidth == 0) {
             return; //Si el tamaño de la ventana es 0, no se puede hacer ningún calculo para la cámara.
         }

@@ -5,10 +5,12 @@
 #include <ilen/job-system/job-system.h>
 #include <ilen/render/post-process-effects/post-process-system.h>
 #include <ilen/core/runtime_options.h>
+#include <ilen/core/engine-context.h>
+#include <ilen/ecs/system_registry.h>
 
 //FOR NO-EDITOR GAME
+#include <ilen-examples/gravity.h>
 #include <ilen-examples/triangle.h>
-
 // END
 
 using namespace ilen::core;
@@ -72,7 +74,7 @@ namespace ilen{
         engineContext->p_materialManager = std::make_unique<ilen::resources::materials::MaterialManager>(engineContext.get());
         engineContext->p_renderPipelineManager = std::make_unique<ilen::resources::render_pipeline::PipelineManager>(engineContext.get());
 
-
+/*
         //Registro sistemas.
         //Transform system (space properties of an object)
         engineContext->p_transformSystem = engineContext->p_coordinator->registerSystem<systems::TransformSystem>();
@@ -107,19 +109,40 @@ namespace ilen{
         //Post processing system
         engineContext->p_postProcessSystem = engineContext->p_coordinator->registerSystem<systems::PostProcessSystem>();
         engineContext->p_coordinator->setSystemSignature<systems::PostProcessSystem>(renderSignature); //Comparte firma con el sistema de renderizado :)
+*/
+        ILEN_LOG_P(DEBUG_PREFIX, "REGISTRANDO SYSTEMAS NATIVOS DEL MOTOR");
+        for(auto& registerCallback: ilen::ecs::SystemRegistry::GetRegistrators()){
+            registerCallback(engineContext.get());
+        }
+
+#if !ILEN_ONLY_ECS
+        //Guardamos una referencia al puntero de scripting
+        scriptingSystemPtr = engineContext->p_coordinator->getSystem<ilen::ecs::systems::ScriptingSystem>();
 
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
-        auto triangle = engineContext->p_coordinator->createEntity();
-        components::ScriptingBridgeComponent scripting{};
-        scripting.bind<ilen::game::Triangle>(); //Indicamos que tipo de script corresponde a este scripting.
-        engineContext->p_coordinator->addComponent(triangle, std::move(scripting));
-        auto falseCamera = engineContext->p_coordinator->createEntity();
-        components::ScriptingBridgeComponent bridge2{};
-        bridge2.bind<ilen::game::FalseCamera>();
-        engineContext->p_coordinator->addComponent(falseCamera, std::move(bridge2));
+        //RotateCube Test
+        auto cube_rotate = engineContext->p_coordinator->createEntity();
+        components::ScriptingBridgeComponent cubeScript_Rotate{};
+        cubeScript_Rotate.bind<ilen::game::Triangle>();
+        engineContext->p_coordinator->addComponent(cube_rotate, std::move(cubeScript_Rotate));
 
-        
+        //GravityTest :)
+        auto cube_gravity = engineContext->p_coordinator->createEntity();
+        components::ScriptingBridgeComponent cubeScript_Gravity{};
+        cubeScript_Gravity.bind<ilen::game::Cube>(); //Indicamos que tipo de script corresponde a este scripting.
+        engineContext->p_coordinator->addComponent(cube_gravity, std::move(cubeScript_Gravity));
+        auto camera_gravity = engineContext->p_coordinator->createEntity();
+        components::ScriptingBridgeComponent cameraScript_gravity{};
+        cameraScript_gravity.bind<ilen::game::GravityCamera>();
+        engineContext->p_coordinator->addComponent(camera_gravity, std::move(cameraScript_gravity));
+#endif
+
+        ILEN_LOG_P(DEBUG_PREFIX, "INICIALIZANDO SYSTEMAS NATIVOS DEL MOTOR");
+        for(auto& system: engineContext->p_coordinator->getAllSystems()){
+            system->Init(engineContext.get());
+        }
+        /*
         engineContext->p_transformSystem->Init(engineContext.get());
         //Inicializamos los scripts.
         engineContext->p_scriptingSystem->Init(engineContext.get());
@@ -130,7 +153,7 @@ namespace ilen{
         //RenderDraw System.
         engineContext->p_renderDrawSystem->Init(engineContext.get());
         //Post procesad
-        engineContext->p_postProcessSystem->Init(engineContext.get());
+        engineContext->p_postProcessSystem->Init(engineContext.get());*/
 #endif
 
 #if TEST_ERROR_WINDOW_AT_START
@@ -141,7 +164,72 @@ namespace ilen{
     }
 
     void AppRuntime::update() const {
-        engineContext->p_gameWindow->processEvents();//Actualizamos eventos de la ventana o OS
+        ilen::time::Time::setNewFrame();
+
+        //Gestionamos primero el tiempo para ejecutar el fixed update.
+        static double accumulator = 0.0;
+        const double fixedMethodTime = 1.0 / ilen::core::options::GeneralEngineOptions::PhysicsUpdateTime;
+
+        double frameTime = ilen::time::Time::getDeltaTime();
+
+        if(frameTime > 0.25) frameTime = 0.25; //Esto es para evitar si hay lag, no calcular millones de pasos de física.
+
+        accumulator += frameTime;
+
+        //Procesamos eventos del OS
+        engineContext->p_gameWindow->processEvents();
+
+#if !IGNORE_RENDERING
+        //Calculamos el FIXED Update
+        while(accumulator >= fixedMethodTime){
+            #if !ILEN_ONLY_ECS
+                if(scriptingSystemPtr) scriptingSystemPtr->FixedUpdate();
+            #endif //ILEN_ONLY_ECS
+            for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::FixedUpdate)){
+                system->Update();
+            }
+
+            accumulator -= fixedMethodTime;
+        }
+
+        //Calculos los objetos con un Update que no sean fijos en la pipeline
+        for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::VariableUpdate)){
+                system->Update();
+        }
+
+        //Late update del sistema de scripting
+        #if !ILEN_ONLY_ECS
+                if(scriptingSystemPtr) scriptingSystemPtr->LateUpdate();
+        #endif //ILEN_ONLY_ECS
+
+        //Calculamos los updates de los datos necesarios antes de renderizar
+        for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::PreRender)){
+                system->Update();
+        }
+        
+        //Renderizado        
+        if(engineContext->p_gameRenderer){
+            engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
+            //Aquí deberia poblarse el queue de dibujado.
+            for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::Render)){
+                    system->Update();
+            }
+            engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
+        }
+#endif //IGNORE_RENDERING
+
+#if !ILEN_IOS //Si estamos en iOS, no es necesario esto, creo?
+        application::Application::stopUntilNextFrame();
+#endif
+        //Calculamos el FIXED Update
+        /*while(accumulator >= fixedMethodTime){
+            for(auto& system : engineContext->p_coordinator->getSyste)
+
+            accumulator -= fixedMethodTime;
+        }*/
+
+        //OLD UPDATWE
+        /*        engineContext->p_gameWindow->processEvents();//Actualizamos eventos de la ventana o OS
 
         //ILEN_LOG_P(DEBUG_PREFIX, "Window size, %i x %i", engineContext->p_gameWindow->getWidth(), engineContext->p_gameWindow->getHeight());
 #if !IGNORE_RENDERING
@@ -161,8 +249,11 @@ namespace ilen{
             engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
         }
 #endif
+
+#if !ILEN_IOS //Si estamos en iOS, no es necesario esto, creo?
         application::Application::stopUntilNextFrame();
-        ilen::time::Time::setNewFrame();
+#endif
+        ilen::time::Time::setNewFrame();*/
     }
 
     void AppRuntime::shutdown() const {

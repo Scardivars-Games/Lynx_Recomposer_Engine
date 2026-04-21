@@ -3,14 +3,15 @@
 #include <ilen/ecs/ecs.h>
 #include <ilen/ecs/system.h>
 #include <ilen/ecs/types.h>
-#include <ilen/core/lifetime.h>
 #include <ilen/camera/camera-components.h>
+#include <ilen/ecs/system_registry.h>
+
 
 namespace ilen::ecs::systems {
-    class CameraSystem: public ilen::ecs::System {
+    class CameraSystem: public ilen::ecs::ISystem {
         public:
-            void Init(const EngineContext* engineContext);
-            void Update(uint32_t viewportWidth, uint32_t viewportHeight);
+            void Init(const EngineContext* engineContext) override;
+            void Update() override;
 
             const components::CameraComponent* getMainCamera() const;
         private:
@@ -19,3 +20,7 @@ namespace ilen::ecs::systems {
             components::CameraComponent* m_mainCamera = nullptr;
     };
 }
+
+
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::CameraSystem, ilen::ecs::SystemPhase::PreRender, 10)
+REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::CameraSystem, ilen::ecs::components::CameraComponent)

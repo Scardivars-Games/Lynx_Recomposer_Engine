@@ -259,3 +259,4 @@ endif()
 #DEFINITIONS PARA PRUEBAS EN EL MOTOR
 target_compile_definitions(${PROJECT_NAME} PRIVATE "IGNORE_RENDERING=0") #Ignora el sistema de renderizado. Util para probar las ventanas sin nada más de por medio
 target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=0") #Lanza una error window al empezar para revisar que se vea correctamente
+target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_ONLY_ECS=0") #Desactiva el sistema de scripting del motor, forzando a ser solamente ECS.

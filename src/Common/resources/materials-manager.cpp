@@ -3,6 +3,8 @@
 //
 
 #include <ilen/resources/materials-manager.h>
+#include <ilen/core/engine-context.h>
+
 
 namespace ilen::resources::materials {
     MaterialManager::MaterialManager(EngineContext *context) {

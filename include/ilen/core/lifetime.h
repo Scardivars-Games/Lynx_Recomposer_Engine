@@ -19,47 +19,8 @@ namespace ilen::ecs::systems {
     class PostProcessSystem;
 }
 
-namespace ilen::resources {
-    class AssetsManager;
-    namespace mesh {
-        class MeshManager;
-    }
-    namespace shaders {
-        class ShaderManager;
-    }
-    namespace materials {
-        class MaterialManager;
-    }
-    namespace render_pipeline {
-        class PipelineManager;
-    }
-}
-
 
 namespace ilen {
-    //Almacena todos los punteros necesarios para el funcionamiento correcto del motor. Se debe crear al lado de los metadatos del motor
-    struct EngineContext{
-        std::unique_ptr<ilen::job_system::JobSystem> p_jobSystem;
-        std::unique_ptr<window::IWindow> p_gameWindow;
-        std::unique_ptr<render::IRenderer> p_gameRenderer;
-        std::unique_ptr<ilen::ecs::ECSCoordinator> p_coordinator;
-
-        //Resources Managers
-        std::unique_ptr<ilen::resources::AssetsManager> p_assetsManager;
-        std::unique_ptr<ilen::resources::mesh::MeshManager> p_meshManager;
-        std::unique_ptr<ilen::resources::shaders::ShaderManager> p_shaderManager;
-        std::unique_ptr<ilen::resources::materials::MaterialManager> p_materialManager;
-        std::unique_ptr<ilen::resources::render_pipeline::PipelineManager> p_renderPipelineManager;
-
-        //ECS Systems (shared ptrs)
-        std::shared_ptr<ilen::ecs::systems::RenderSystem> p_renderSystem;
-        std::shared_ptr<ilen::ecs::systems::RenderDrawSystem> p_renderDrawSystem;
-        std::shared_ptr<ilen::ecs::systems::TransformSystem> p_transformSystem;
-        std::shared_ptr<ilen::ecs::systems::ScriptingSystem> p_scriptingSystem;
-        std::shared_ptr<ilen::ecs::systems::CameraSystem> p_cameraSystem;
-        std::shared_ptr<ilen::ecs::systems::PostProcessSystem> p_postProcessSystem; //Al final es sistema, porque usa shaders para calcular los nuevos buffers.
-    };
-
     class AppRuntime final{
         public:
             static AppRuntime& getInstance();
@@ -72,5 +33,8 @@ namespace ilen {
             AppRuntime() = default;
             const static inline char* DEBUG_PREFIX = "APP_RUNTIME";
             std::unique_ptr<EngineContext> engineContext;
+#if !ILEN_ONLY_ECS
+            std::shared_ptr<ilen::ecs::systems::ScriptingSystem> scriptingSystemPtr = nullptr;
+#endif
     };
 }

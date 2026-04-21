@@ -1,3 +1,5 @@
+#if !ILEN_ONLY_ECS
+
 #include <ilen-examples/triangle.h>
 
 using namespace ilen::game;
@@ -15,8 +17,8 @@ void Triangle::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = vec3(0.0f, 0.0f, 0.0f);
-    transform.scale = vec3(1.0f, 1.0f, 1.0f);
+    transform.position = vec3(0.0f, 0.0f, -1.0f);
+    transform.scale = vec3(0.7f, 0.7f, 0.7f);
     coordinator->addComponent(entity, std::move(transform));
 
     RenderComponent render{};
@@ -60,3 +62,5 @@ void FalseCamera::Init() {
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->addComponent(entity, std::move(camera));
 }
+
+#endif //!ILEN_ONLY_ECS

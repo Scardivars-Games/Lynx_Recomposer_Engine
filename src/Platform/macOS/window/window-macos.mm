@@ -204,7 +204,7 @@ namespace ilen::window {
     }
 
     void* WindowNativeMacOS::getNativeWindow() const  { return (__bridge void*)nativeWindow; }
-    void* WindowNativeMacOS::getNativeView() const  { return (__bridge void*)nativeView; }
+    const void* WindowNativeMacOS::getNativeView() const  { return (__bridge void*)nativeView; }
 }
 
 #endif

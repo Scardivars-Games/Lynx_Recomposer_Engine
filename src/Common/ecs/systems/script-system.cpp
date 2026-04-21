@@ -1,7 +1,11 @@
+#if !ILEN_ONLY_ECS
+
 #include <ilen/game-logic/script-system.h>
+#include <ilen/core/engine-context.h>
+
 
 namespace ilen::ecs::systems {
-    void ScriptingSystem::Init(EngineContext *engineContext) {
+    void ScriptingSystem::Init(const EngineContext *engineContext) {
         m_Coordinator = engineContext->p_coordinator.get();
 
         for(auto const& entity: entities){
@@ -18,7 +22,7 @@ namespace ilen::ecs::systems {
     }
 
 
-    void ScriptingSystem::Update() const {
+    void ScriptingSystem::Update() {
         for(auto const& entity: entities){
             auto scriptComponent = m_Coordinator->getComponent<ilen::ecs::components::ScriptingBridgeComponent>(entity);
             if(scriptComponent->instance){
@@ -45,3 +49,5 @@ namespace ilen::ecs::systems {
         }
     }
 }
+
+#endif //!ILEN_ONLY_ECS

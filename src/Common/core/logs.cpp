@@ -67,5 +67,6 @@ namespace ilen::internal{
         std::lock_guard<std::mutex> lock(logMutex);
         std::cerr << "\033[31m [FATAL_ERROR"<< preparatePrefix(std::string(prefijo)) << "] \033[0m" << content << std::endl;
         ilen::window::box::ShowErrorDialogBox("FATAL ERROR", content);
+        //throw ilen::core::BasicException(content, prefijo);
     }
 }

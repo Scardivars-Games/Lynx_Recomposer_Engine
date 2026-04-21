@@ -17,7 +17,7 @@ namespace ilen::window
             void pollEvents() override;
             bool shouldClose() override;
             void* getNativeWindow() const override;
-            void* getNativeView() const override;
+            const void* getNativeView() const override;
             bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) override;
         
             //Metodos públicos de la implementación
