@@ -122,10 +122,14 @@ namespace ilen{
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        auto cube_rotate = engineContext->p_coordinator->createEntity();
-        components::ScriptingBridgeComponent cubeScript_Rotate{};
-        cubeScript_Rotate.bind<ilen::game::Triangle>();
-        engineContext->p_coordinator->addComponent(cube_rotate, std::move(cubeScript_Rotate));
+        int elementosPrueba = 50;
+
+        for (int i = 0; i < elementosPrueba; i++) {
+                auto entity = engineContext->p_coordinator->createEntity();
+                components::ScriptingBridgeComponent script{};
+                script.bind<ilen::game::Triangle>();
+                engineContext->p_coordinator->addComponent(entity, std::move(script));
+        }
 
         //GravityTest :)
         auto cube_gravity = engineContext->p_coordinator->createEntity();
@@ -137,10 +141,13 @@ namespace ilen{
         cameraScript_gravity.bind<ilen::game::GravityCamera>();
         engineContext->p_coordinator->addComponent(camera_gravity, std::move(cameraScript_gravity));
 #endif
+        //El init de los script generar actualmente componentes, por eso es necesario que sea primero.
+        scriptingSystemPtr->Init(engineContext.get());
 
         ILEN_LOG_P(DEBUG_PREFIX, "INICIALIZANDO SYSTEMAS NATIVOS DEL MOTOR");
         for(auto& system: engineContext->p_coordinator->getAllSystems()){
-            system->Init(engineContext.get());
+                if(system.get() == scriptingSystemPtr.get()) continue;
+                system->Init(engineContext.get());
         }
         /*
         engineContext->p_transformSystem->Init(engineContext.get());

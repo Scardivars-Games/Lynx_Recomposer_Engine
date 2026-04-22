@@ -47,7 +47,8 @@ namespace  ilen::ecs::systems {
         std::weak_ptr<components::MeshGPULink> quadGPUMesh; // Por optimización, usamos directamente el mesh que tenemos definido, evitando tener 2 buffers idénticos en la GPU.
         std::vector<std::unique_ptr<render::IGPUInstanceBuffer>> postProcessInstanceBuffer;
 
-        std::unordered_map<Entity, components::TransformComponent> previousTransforms;
+        std::unordered_map<Entity, maths::matrix::mat4> previousTransforms;
+        std::mutex previousTransformMutex;
 
         const char* DEBUG_PREFIX = "POST_PROCESSING_SYSTEM";
     };

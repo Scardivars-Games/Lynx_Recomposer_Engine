@@ -25,45 +25,43 @@ vertex VertexOut post_processing_vertex(VertexIn in [[stage_in]], uint instanceI
     return out;
 }
 
-fragment float4 post_processing_fragment(VertexOut in [[stage_in]], texture2d<float> colorTexture [[texture(slots::TextureBufferSlot_Color)]],
-    texture2d<half> velocityBuffer [[texture(slots::TextureBufferSlot_VelocityBuffer)]]){
+fragment float4 post_processing_fragment(VertexOut in [[stage_in]],
+    texture2d<float> colorTexture [[texture(slots::TextureBufferSlot_Color)]],
+    texture2d<half> velocityBuffer [[texture(slots::TextureBufferSlot_VelocityBuffer)]]) {
+
     constexpr sampler textureSampler(mag_filter::linear, min_filter::linear, address::clamp_to_edge);
     float4 color = colorTexture.sample(textureSampler, in.uv);
 
-    if(!hasMotionBlur){
+    if (!hasMotionBlur) {
         return color;
     }
 
-    float4 finalColor = color;
-
-    //Codigo para el motion Blur.
-    //color = velocityBuffer.sample(textureSampler, in.uv);
     half4 velocityH = velocityBuffer.sample(textureSampler, in.uv);
     float2 velocity = float2(velocityH.xy);
-    velocity.y = -velocity.y;
+    //velocity.y = -velocity.y;
+
     float velocityScale = 1.5;
     velocity *= velocityScale;
 
-    //Amount de blur
     float blurAmount = length(velocity);
 
-    const int MAX_SAMPLES = 16;
-    int sampleCount = int(clamp(blurAmount * 1000.0f, 1.0f, float(MAX_SAMPLES)));
-
-    if(sampleCount <= 1) {
-        return finalColor;
+    // Sin blur si el movimiento es insignificante
+    if (blurAmount < 0.0005) {
+        return color;
     }
+
+    const int MAX_SAMPLES = 16;
+    // Escala razonable: blurAmount ~0.01 → ~10 samples
+    int sampleCount = int(clamp(blurAmount * 500.0, 2.0, float(MAX_SAMPLES)));
 
     float4 blurredColor = float4(0.0);
 
-    for(int i = 0; i < sampleCount; i++){
-        float t = float(i) / float(sampleCount - 1);
-        float2 offsetUV = in.uv - velocity * t;
+    for (int i = 0; i < sampleCount; i++) {
+        // Centrado: t va de -0.5 a 0.5
+        float t = float(i) / float(sampleCount - 1) - 0.5;
+        float2 offsetUV = in.uv + velocity * t;
         blurredColor += colorTexture.sample(textureSampler, offsetUV);
     }
 
-    blurredColor /= float(sampleCount);
-
-    finalColor = blurredColor;
-    return finalColor;
+    return blurredColor / float(sampleCount);
 }

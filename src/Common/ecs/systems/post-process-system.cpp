@@ -99,6 +99,13 @@ void PostProcessSystem::Update() {
             return; //Sin camara, no puedo dibujar.
         }
 
+        std::unordered_map<Entity, maths::matrix::mat4> previousFrameMatrices;
+
+        {
+            std::lock_guard<std::mutex> lock(previousTransformMutex);
+            previousFrameMatrices = previousTransforms;
+        }
+
         std::vector<std::future<void>> futures;
 
         encoderPtr->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->getViewProjectionCameraBuffer());
@@ -109,7 +116,7 @@ void PostProcessSystem::Update() {
 
             if (chunckStart >= chunckEnd) continue;
 
-            futures.push_back(jobSystem->SubmitJob( [this, encoderPtr, &renderListItems, chunckStart, chunckEnd, instanceBuffer]() {
+            futures.push_back(jobSystem->SubmitJob( [this, encoderPtr, &renderListItems, chunckStart, chunckEnd, instanceBuffer, &previousFrameMatrices]() {
                 //Cache para el batching
                 IGPURenderPipeline* lastPSO = nullptr;
                 uint16_t lastMaterialID = 0;
@@ -156,12 +163,27 @@ void PostProcessSystem::Update() {
                             instanceBufferData_PostProcess.resize(totalOfInstance);
                         }
 
-                        for (size_t i = 0; i < totalOfInstance; i++) {
+                        /*for (size_t i = 0; i < totalOfInstance; i++) {
                             auto* transform = coordinator->getComponent<components::TransformComponent>(renderListItems[current + i].entity);
                             auto [it, inserted] = previousTransforms.try_emplace(renderListItems[current + i].entity, *transform);
 
                             instanceBufferData_PostProcess[i].actualModelMatrix = transform->getWorldMatrix();
                             instanceBufferData_PostProcess[i].previousModelMatrix = it->second.getWorldMatrix();
+                        }*/
+
+                        for(size_t i = 0; i < totalOfInstance; i++){
+                            auto entity = renderListItems[current + i].entity;
+                            auto* transform = coordinator->getComponent<components::TransformComponent>(entity);
+                            auto currentMatrix = transform->getWorldMatrix();
+
+                            //Buscamos la matriz del frame anterios SOLO LEERLA
+                            auto prevIt = previousFrameMatrices.find(entity);
+                            maths::matrix::mat4 previousMatrix = (prevIt != previousFrameMatrices.end())
+                                ? prevIt->second
+                                : currentMatrix; //Si es el primer frame, usar el mismo.
+
+                            instanceBufferData_PostProcess[i].actualModelMatrix = currentMatrix;
+                            instanceBufferData_PostProcess[i].previousModelMatrix = previousMatrix;
                         }
 
                         uint32_t offset = instanceBuffer->UploadInstanceData(instanceBufferData_PostProcess.data(), sizeof(structs::InstanceDataForVelocityBuffer) * totalOfInstance);
@@ -182,17 +204,20 @@ void PostProcessSystem::Update() {
                         }
 
                         for (size_t i = 0; i < totalOfInstance; i++) {
-                            auto* transform = coordinator->getComponent<components::TransformComponent>(renderListItems[current + i].entity);
-                            //auto worldMatrix = transform->getWorldMatrix();
+                            auto entity = renderListItems[current + i].entity;
+                            auto* transform = coordinator->getComponent<components::TransformComponent>(entity);
                             structs::InstanceDataForVelocityBuffer instanceBufferData{};
-                            auto [it, inserted] = previousTransforms.try_emplace(renderListItems[current+ i].entity, *transform);
+                            auto currentMatrix = transform->getWorldMatrix();
 
-                            instanceBufferData.actualModelMatrix = transform->getWorldMatrix();
-                            instanceBufferData.previousModelMatrix = it->second.getWorldMatrix();
+                            auto prevIt = previousFrameMatrices.find(entity);
+                            maths::matrix::mat4 previousMatrix = (prevIt != previousFrameMatrices.end())
+                                ? prevIt->second
+                                : currentMatrix; // primer frame de vida: sin blur es correcto
+
+                            instanceBufferData.actualModelMatrix = currentMatrix;
+                            instanceBufferData.previousModelMatrix = previousMatrix;
                             uint32_t offset = instanceBuffer->UploadInstanceData(&instanceBufferData, sizeof(structs::InstanceDataForVelocityBuffer));
                             auto indexCount = meshPtr->indexCount;
-
-                            it->second = *transform;
 
                             cmd->DrawIndexedInstanced(indexCount, 1, offset, sizeof(structs::InstanceDataForVelocityBuffer));
                         }
@@ -208,6 +233,18 @@ void PostProcessSystem::Update() {
         //Esperamos a que se codifiquen todas las llamadas
         for (auto& future : futures) {
             future.wait();
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(previousTransformMutex);
+            previousTransforms.clear();
+
+            for(const auto& item: renderListItems){
+                auto* transform = coordinator->getComponent<components::TransformComponent>(item.entity);
+                if(transform){
+                    previousTransforms[item.entity] = transform->getWorldMatrix();
+                }
+            }
         }
 
         //Finalizando el render actual de calculos, y dibujado, y pasamos a crear un nuevo para unir los efectos.

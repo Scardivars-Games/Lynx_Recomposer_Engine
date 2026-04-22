@@ -23,7 +23,9 @@ namespace ilen::ecs {
     class ComponentArray : public IComponentArray {
         public:
             void insertData(Entity entity, T&& component) {
-                assert(entityToIndexMap.count(entity) == 0 && "Ya existe el componente");
+                //assert(entityToIndexMap.count(entity) == 0 && "Ya existe el componente");
+                // Si ya existe, ignorar en vez de crashear
+                if (entityToIndexMap.count(entity) != 0) return;
 
                 size_t newIndex = size;
                 entityToIndexMap[entity] = newIndex;

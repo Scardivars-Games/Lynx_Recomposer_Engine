@@ -7,7 +7,7 @@
 namespace ilen::ecs {
     //Es el ID que tiene la entidad en el motor.
     using Entity = std::uint32_t;
-    const Entity MAX_ENTITIES = 10000;//Máximo 10 mil entidades a la vez.
+    const Entity MAX_ENTITIES = 10000;//Máximo 100 mil entidades a la vez.
     const Entity NULL_ENTITY = std::numeric_limits<Entity>::max();
 
     //Es un ID único para cada tipo de componente

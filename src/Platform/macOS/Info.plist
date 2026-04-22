@@ -30,5 +30,8 @@
     <key>LSSupportsGameMode</key><true/>
     <!--Esto supuestamente permite usar resolucion retina en macOS-->
     <key>NSHighResolutionCapable</key><true/>
+    <!--Para activar el HUD de Metal-->
+    <key>MetalHUDEnabled</key>
+    <true/>
 </dict>
 </plist>

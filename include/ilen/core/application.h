@@ -12,6 +12,10 @@
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/core/runtime_options.h>
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
+#include <immintrin.h>     
+#endif
+
 namespace ilen::application{
     struct ApplicationMetadata {
         std::string applicationName = "";
@@ -61,8 +65,7 @@ namespace ilen::application{
                 #if defined(__aarch64__) || defined(_M_ARM64)
                     #define CPU_RELAX() __asm__ volatile("yield" ::: "memory") //Apple/ARM
                 #elif defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
-                    #include <immintin.h>     
-                    #define CPU_RELAX() __mm_pause(); //Intel/AMD
+                    #define CPU_RELAX() _mm_pause(); //Intel/AMD
                 #else
                     #define CPU_RELAX(); //Fallback
                 #endif

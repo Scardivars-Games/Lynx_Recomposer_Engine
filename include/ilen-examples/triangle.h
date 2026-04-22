@@ -12,6 +12,9 @@ namespace ilen::game{
         public:
             void Init() override;
             void Update() override;
+        private:
+            float advance = 0.0f;
+            bool isRight = true;
     };
 
     class FalseCamera : public GameObject {

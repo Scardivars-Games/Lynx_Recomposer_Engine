@@ -12,10 +12,13 @@ namespace ilen::ecs::systems {
     void TransformSystem::Update() {
         futures.clear();
 
+        std::vector<Entity> removeTranslation, removeRotation, removeScale;
+        std::mutex removeMutex;
+
         //Este sistema se encargara de las jerarquías de los objetos, convirtiendo la posición local en posición global. Luego calculará la matriz del modelo (modelToViewMatrix)
         for(auto const& entity : entities){
 
-            std::future<void> future = p_jobSystem->SubmitJob([this, entity]() {
+            std::future<void> future = p_jobSystem->SubmitJob([this, entity, &removeMutex, &removeTranslation, &removeRotation, &removeScale]() {
                 auto transform = p_Coordinator->getComponent<TransformComponent>(entity);
 
                 if(transform){
@@ -26,21 +29,28 @@ namespace ilen::ecs::systems {
 
                     if(translation){
                         transform->position = transform->position + translation->traslation;
-                        p_Coordinator->removeComponent<Traslate_TransformOrder>(entity);
+                        std::lock_guard<std::mutex> lock(removeMutex);
+                        removeTranslation.push_back(entity);
+
+                        //p_Coordinator->removeComponent<Traslate_TransformOrder>(entity);
                     }
 
                     if(rotation){
                         transform->rotation = transform->rotation + rotation->rotation;
-                        p_Coordinator->removeComponent<Rotation_TransformOrder>(entity);
-
+                        std::lock_guard<std::mutex> lock(removeMutex);
+                        removeRotation.push_back(entity);
+                        
+                        //p_Coordinator->removeComponent<Rotation_TransformOrder>(entity);
                     }
 
                     if(scale){
                         transform->scale.x *= scale->scale.x;
                         transform->scale.y *= scale->scale.y;
                         transform->scale.z *= scale->scale.z;
-
-                        p_Coordinator->removeComponent<Scale_TransformOrder>(entity);
+                        std::lock_guard<std::mutex> lock(removeMutex);
+                        removeScale.push_back(entity);
+                        
+                       // p_Coordinator->removeComponent<Scale_TransformOrder>(entity);
                     }
 
                     if(transform->parent == NULL_ENTITY){
@@ -56,6 +66,17 @@ namespace ilen::ecs::systems {
         //Esperamos que se hayan completado los cálculos
         for(auto& future : futures) {
             future.wait();
+        }
+
+        //Remover componentes seguramente desde el hilo principal.
+        for(auto e: removeTranslation){
+            p_Coordinator->removeComponent<Traslate_TransformOrder>(e);
+        }
+        for(auto e: removeRotation){
+            p_Coordinator->removeComponent<Rotation_TransformOrder>(e);
+        }
+        for(auto e: removeScale){
+            p_Coordinator->removeComponent<Scale_TransformOrder>(e);
         }
     }
 
