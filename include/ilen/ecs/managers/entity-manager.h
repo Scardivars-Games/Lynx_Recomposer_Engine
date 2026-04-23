@@ -3,6 +3,7 @@
 #include <ilen/ecs/types.h>
 #include <queue>
 #include <array>
+#include <set>
 
 namespace ilen::ecs {
     class EntityManager {
@@ -18,12 +19,18 @@ namespace ilen::ecs {
 
             Signature getSignature(Entity entity); //Obtiene la firma de componentes de una entidad.
 
+#ifdef ILEN_DEBUG
+            const std::set<Entity>& getLiveEntities() const { return liveEntities; }
+#endif
         private:
             //Cola de ID disponibles luego de la destrucción de alguna entidad
             std::queue<Entity> avalaiblesEntities {};
             //Arreglo de firmas, una para cada posible entidad
             std::array<Signature, MAX_ENTITIES> signatures{};
             //Número total de entidades que aún siguen vivas.
-            uint32_t livingEntitiesCount{};
+            uint32_t livingEntitiesCount = 0;
+#ifdef ILEN_DEBUG
+            std::set<Entity> liveEntities;
+#endif
     };
 }

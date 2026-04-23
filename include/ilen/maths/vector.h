@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 
 #ifdef __clang__
 //Espero que los tipos nativos en macOS mantengan su tamaño de memoria de 32 o 64 bits.
@@ -188,6 +189,25 @@ namespace ilen::maths::vector{
             v1.z * v2.x - v1.x * v2.z,
             v1.x * v2.y - v1.y * v2.x
         );
+    }
+
+    //Vector mínimo, vector máximo
+    template<typename T, size_t N>
+    Vector<T, N> min(const Vector<T, N>& a, const Vector<T, N>& b){
+        Vector<T, N> result;
+        for(size_t i = 0; i < N; i++){
+            result[i] = std::min(a[i], b[i]);
+        }
+        return result;
+    }
+
+    template<typename T, size_t N>
+    Vector<T, N> max(const Vector<T, N>& a, const Vector<T, N>& b){
+        Vector<T, N> result;
+        for(size_t i = 0; i < N; i++){
+            result[i] = std::max(a[i], b[i]);
+        }
+        return result;
     }
 
     template<typename T, size_t N>

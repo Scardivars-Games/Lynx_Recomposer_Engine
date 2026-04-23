@@ -1,4 +1,7 @@
 #include <ilen/headers/ecs.h>
+#ifdef ILEN_DEBUG
+#include <sstream>
+#endif
 
 using namespace ilen::ecs;
 
@@ -9,8 +12,22 @@ void ECSCoordinator::init() {
     systemManager = std::make_unique<SystemManager>();
 }
 
+uint32_t noNamedIndex = 0; 
+
 Entity ECSCoordinator::createEntity(){
-    return entityManager ->createEntity();
+    std::string newName = "Entity_" + std::to_string(noNamedIndex);
+    noNamedIndex++;
+    components::EntityMetadataComponent metadata {TagSystem::None, LayerSystem::Default, newName};
+    auto entity = entityManager ->createEntity();
+
+    addComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
+    return entity;
+}
+
+Entity ECSCoordinator::createEntity(components::EntityMetadataComponent&& metadata){
+    auto entity = entityManager->createEntity();
+    addComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
+    return entity;
 }
 
 void ECSCoordinator::destroyEntity(Entity entity){
@@ -33,6 +50,9 @@ Entity EntityManager::createEntity(){
     Entity id = avalaiblesEntities.front();
     avalaiblesEntities.pop();
     livingEntitiesCount++;
+#ifdef ILEN_DEBUG
+    liveEntities.insert(id);
+#endif
     return id;
 }
 
@@ -41,6 +61,9 @@ void EntityManager::destroyEntity(Entity entity) {
     signatures[entity].reset();
     avalaiblesEntities.push(entity);
     livingEntitiesCount--;
+#ifdef ILEN_DEBUG
+    liveEntities.erase(entity);
+#endif
 }
 
 void EntityManager::setSignature(Entity entity, Signature signature){
@@ -108,3 +131,64 @@ std::vector<std::shared_ptr<ISystem>> SystemManager::getSystemByPhase(SystemPhas
 
     return result;
 }
+
+//debug
+#ifdef ILEN_DEBUG
+using namespace ilen::ecs::debug;
+std::string EntityDebugInfo::toString() const {
+    std::ostringstream ss;
+    ss << "[Entity "<< id << "] name='" << name << "'"
+        << " tag=" << tag
+        << " layer=" << layer
+        << " active=" << (isActive ? "true" : "false")
+        << "\n Components(" << components.size() << ")";
+    
+    for(auto const& comp: components){
+        ss << "\n    -"  << comp.typeName;
+    }
+
+    return ss.str();
+}
+
+std::string ECSDebugSnapshot::toString() const {
+    std::ostringstream ss;
+    ss << "=== ECS Debug Snapshot === \n"
+        << "Total de entidades vivas: " << totalEntities << "\n";
+
+    for(auto const& e: entities){
+        ss << e.toString() << "\n";
+    }
+    return ss.str();
+}
+
+ECSDebugSnapshot ECSCoordinator::getDebugSnapshot(){
+    ECSDebugSnapshot snapshot;
+
+    auto const& liveEntities = entityManager->getLiveEntities();
+    snapshot.totalEntities = static_cast<uint32_t>(liveEntities.size());
+
+    for(Entity entity: liveEntities){
+        EntityDebugInfo info;
+        info.id = entity;
+
+        auto* meta = getComponent<components::EntityMetadataComponent>(entity);
+        if(meta) {
+            info.name = meta->getName();
+            info.tag = static_cast<uint32_t>(meta->getTags());
+            info.layer = static_cast<uint32_t>(meta->getLayers());
+            info.isActive = meta->isActive();
+        }else{
+            info.name = "(NO METADATA)";
+        }
+
+        //Componentes
+        for(auto const& typeName : componentManager->getComponentNamesForEntity(entity)){
+            info.components.push_back({typeName});
+        }
+
+        snapshot.entities.push_back(std::move(info));
+    }
+
+    return snapshot;
+}
+#endif

@@ -19,8 +19,9 @@ namespace ilen::core::options {
     };
 
     //Opciones generales del motor
-    struct GeneralEngineOptions {
+    struct PhysicsOptions {
         static inline double PhysicsUpdateTime = 60.0; //Se actualizan las físicas 60 veces por segundo. 
+        static inline float gravity = -9.81f; //Velocidad de la gravedad
     };
 
 

@@ -158,7 +158,7 @@ void PostProcessSystem::Update() {
 
                     if (totalOfInstance > 5) {
                         //Instancing rendering
-                        ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
+                        //ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
                         if (instanceBufferData_PostProcess.size() < totalOfInstance) {
                             instanceBufferData_PostProcess.resize(totalOfInstance);
                         }

@@ -7,7 +7,7 @@ using namespace ilen::core;
 using namespace ilen::ecs::components;
 
 void Triangle::Init() {
-    ILEN_LOG_P("TRIANGLE", "Inicializado triángulo de prueba");
+    //ILEN_LOG_P("TRIANGLE", "Inicializado triángulo de prueba");
 
     // Posición aleatoria entre -5 y 5 en X e Y
     float randomX = -7.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 14.0f);

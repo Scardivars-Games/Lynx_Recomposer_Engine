@@ -43,7 +43,7 @@ namespace ilen::ecs::systems {
             auto runtimeID = p_meshManager->getMeshRuntimeID(render.meshID);
 
             if(solitudeResult.lock() != nullptr && runtimeID != 0){
-                ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
+                //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
                 StaticRenderingData data{solitudeResult, runtimeID};
                 p_Coordinator->addComponent(entity, std::move(data));
             }
@@ -73,7 +73,7 @@ namespace ilen::ecs::systems {
             auto runtimeID = p_materialManager->getRuntimeMaterial(render.materialID);
 
             if (psoSolicitude.lock() != nullptr && runtimeID != 0) {
-                ILEN_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
+                //ILEN_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
                 StaticMaterialRenderingData data{psoSolicitude, runtimeID};
                 p_Coordinator->addComponent(entity, std::move(data));
             }

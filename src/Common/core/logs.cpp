@@ -3,6 +3,7 @@
 
 namespace ilen::internal{
     std::mutex Debug::logMutex;
+    uint32_t messageBufferSize = 200000;
 
     std::string preparatePrefix(std::string prefijo){
         if(prefijo != ""){
@@ -28,7 +29,7 @@ namespace ilen::internal{
 
     void Debug::Warning(const char* content, const char* prefijo, ...) {
         std::lock_guard<std::mutex> lock(logMutex);
-                char messageBuffer[4096];
+                char messageBuffer[messageBufferSize];
 
         va_list args;
         va_start(args, prefijo);
@@ -40,7 +41,7 @@ namespace ilen::internal{
 
     void Debug::Error(const char* content, const char* prefijo, ...) {
         std::lock_guard<std::mutex> lock(logMutex);
-                char messageBuffer[4096];
+                char messageBuffer[messageBufferSize];
 
         va_list args;
         va_start(args, prefijo);
@@ -52,7 +53,7 @@ namespace ilen::internal{
     }
 
     void Debug::ExecuteError(const char* content, const char* prefijo, ...){
-        char messageBuffer[4096];
+        char messageBuffer[messageBufferSize];
 
         va_list args;
         va_start(args, prefijo);

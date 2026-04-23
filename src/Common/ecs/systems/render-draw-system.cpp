@@ -152,7 +152,7 @@ namespace ilen::ecs::systems {
 
                     if (totalOfInstance > m_minInstanceRenderingElements) {
                         //Instancing rendering
-                        ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
+                        //ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
                         if (matrixVector.size() < totalOfInstance) {
                             matrixVector.resize(totalOfInstance);
                         }

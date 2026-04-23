@@ -143,4 +143,97 @@ namespace ilen::enumerations {
         ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR = 1 << 11,
         ILEN_GRAPHICS_OPTIONS_USE_BLOOM = 1 << 12,
     };
+
+    //----FÍSICAS----//
+    //Tags
+    enum class ILEN_TAG_SYSTEM: uint32_t {
+        None = 0,
+
+        //Superfecies
+        Ground = 1 << 0,
+        Wall = 1 << 1,
+        Ceiling = 1 << 2,
+
+        //Tipo de superficie
+        PlatformOneWay = 1 << 3,
+        PlatformMoving = 1 << 4,
+
+        //Zonas básicas
+        Water = 1 << 5,
+        Hazard = 1 << 6,
+        Bouncy = 1 << 7, //Para rebotar
+
+        //Reservaremos algunos bytes para futuros sistemas
+
+        //Personalizables por el juego/usuario
+        UserBit0 = 1 << 16,
+        UserBit1 = 1 << 17,
+        UserBit2 = 1 << 18,
+        UserBit3 = 1 << 19,
+        UserBit4 = 1 << 20,
+        UserBit5 = 1 << 21,
+        UserBit6 = 1 << 22,
+        UserBit7 = 1 << 23,
+        UserBit8 = 1 << 24,
+        UserBit9 = 1 << 25,
+        UserBit10 = 1 << 26,
+        UserBit11 = 1 << 27,
+        UserBit12 = 1 << 28,
+        UserBit13 = 1 << 29,
+        UserBit14 = 1 << 30,
+        UserBit15 = 1u << 31,
+    };
+
+    inline ILEN_TAG_SYSTEM operator|(ILEN_TAG_SYSTEM a, ILEN_TAG_SYSTEM b){
+        return static_cast<ILEN_TAG_SYSTEM>(static_cast<uint32_t>(a) | static_cast<uint32_t>(b));
+    }
+
+    inline ILEN_TAG_SYSTEM operator&(ILEN_TAG_SYSTEM a, ILEN_TAG_SYSTEM b){
+        return static_cast<ILEN_TAG_SYSTEM>(static_cast<uint32_t>(a) & static_cast<uint32_t>(b));
+    }
+
+    inline ILEN_TAG_SYSTEM operator~(ILEN_TAG_SYSTEM a){
+        return static_cast<ILEN_TAG_SYSTEM>(~static_cast<uint32_t>(a));
+    }
+
+    //ILEN_VERTEX_LAYOUT_PARTICLES
+    enum class ILEN_LAYER_SYSTEM: uint32_t {
+        None = 0,
+        Default = 1 << 0,
+        Player = 1 << 1,
+        Enemy = 1 << 2,
+        Environment = 1 << 3,
+        UI = 1 << 4,
+
+        //Users
+        UserBit0 = 1 << 10,
+        UserBit1 = 1 << 11,
+        UserBit2 = 1 << 12,
+        UserBit3 = 1 << 13,
+        UserBit4 = 1 << 14,
+        UserBit5 = 1 << 15,
+        UserBit6 = 1 << 16,
+        UserBit7 = 1 << 17,
+        UserBit8 = 1 << 18,
+        UserBit9 = 1 << 19,
+        UserBit10 = 1 << 20,
+    };
+
+    inline ILEN_LAYER_SYSTEM operator|(ILEN_LAYER_SYSTEM a, ILEN_LAYER_SYSTEM b)
+    {
+        return static_cast<ILEN_LAYER_SYSTEM>(
+            static_cast<uint32_t>(a) | static_cast<uint32_t>(b)
+        );
+    }
+
+    inline ILEN_LAYER_SYSTEM operator&(ILEN_LAYER_SYSTEM a, ILEN_LAYER_SYSTEM b)
+    {
+        return static_cast<ILEN_LAYER_SYSTEM>(
+            static_cast<uint32_t>(a) & static_cast<uint32_t>(b)
+        );
+    }
+
+    inline ILEN_LAYER_SYSTEM operator~(ILEN_LAYER_SYSTEM a){
+        return static_cast<ILEN_LAYER_SYSTEM>(~static_cast<uint32_t>(a));
+    }
 }

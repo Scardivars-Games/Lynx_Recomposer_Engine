@@ -5,17 +5,20 @@
 #include <typeindex>
 #include <unordered_map>
 #include <cassert>
+#include <vector>
+#if ILEN_DEBUG
+#include <cxxabi.h>
+#endif
 
 namespace ilen::ecs {
 
     //Interfaz que permite gestionar componentes diferentes de una forma general
     class IComponentArray {
         public:
-            ~IComponentArray() = default;
-            //virtual void insertData() = 0;
+            virtual ~IComponentArray() = default;
             virtual void removeData(Entity entity) = 0;
-            //virtual void* getData(Entity entity) = 0;
             virtual void entityDestroyed(Entity entity) = 0;
+            virtual bool hasEntity(Entity entity) = 0;
     };
 
     //ComponentArray
@@ -62,6 +65,10 @@ namespace ilen::ecs {
                 if(entityToIndexMap.find(entity) != entityToIndexMap.end()){
                     removeData(entity);
                 }
+            }
+
+            bool hasEntity(Entity entity) override {
+                return entityToIndexMap.find(entity) != entityToIndexMap.end();
             }
 
         private:
@@ -142,9 +149,37 @@ namespace ilen::ecs {
 
             void entityDestroyed(Entity entity); //Notifica a todos los arrays de componentes que una entidad esta destruida
 
+#ifdef ILEN_DEBUG
+            std::vector<std::string> getComponentNamesForEntity(Entity entity) const {
+                std::vector<std::string> names;
+
+                for(auto const& [typeIndex, arrayPtr] : componentArrays) {
+                    if(arrayPtr -> hasEntity(entity)){
+                        names.push_back(demangleTypeName(typeIndex.name()));
+                    }
+                }
+
+                return names;
+            }
+#endif
+
         private:
             std::unordered_map<std::type_index, ComponentType> componentTypes{};
             std::unordered_map<std::type_index, std::shared_ptr<IComponentArray>> componentArrays{};
             ComponentType nextComponentType{};
+
+#ifdef ILEN_DEBUG
+            static std::string demangleTypeName(const char* mangledName){
+#if defined(__GNUG__) || defined(__clang__)
+            int status = 0;
+            char* demangled = abi::__cxa_demangle(mangledName, nullptr, nullptr, &status);
+            std::string result = (status == 0 && demangled) ? demangled : mangledName;
+            free(demangled);
+            return result;
+#else
+            return mangledName;
+#endif //__GNUG__, __clang__
+            }
+#endif //ILEN_DEBUG
     };
 }

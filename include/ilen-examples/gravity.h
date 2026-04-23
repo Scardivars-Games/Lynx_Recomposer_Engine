@@ -14,6 +14,11 @@ namespace ilen::game{
             //void Update() override;
     };
 
+    class Ground : public GameObject {
+        public:
+            void Init() override;
+    };
+
     class GravityCamera : public GameObject {
         public:
             void Init() override;

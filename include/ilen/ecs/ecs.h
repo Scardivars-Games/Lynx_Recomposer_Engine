@@ -5,10 +5,37 @@
 #include <memory>
 #include <vector>
 
+#ifdef ILEN_DEBUG
+namespace ilen::ecs::debug{
+    struct ComponentDebugInfo {
+        std::string typeName;
+    };
+
+    struct EntityDebugInfo{
+        Entity id;
+        std::string name;
+        uint32_t tag;
+        uint32_t layer;
+        bool isActive;
+        std::vector<ComponentDebugInfo> components;
+
+        std::string toString() const;
+    };
+
+    struct ECSDebugSnapshot {
+        std::vector<EntityDebugInfo> entities;
+        uint32_t totalEntities;
+        std::string toString() const;
+    };
+}
+#endif
+
 namespace ilen::ecs {
     class EntityManager;
     class ComponentManager;
     class SystemManager;
+
+
 
     class ECSCoordinator {
         public:
@@ -16,6 +43,7 @@ namespace ilen::ecs {
 
             //Entidaded
             Entity createEntity();
+            Entity createEntity(components::EntityMetadataComponent&& metadata);
             void destroyEntity(Entity entity);
 
             //Componentes
@@ -86,6 +114,10 @@ namespace ilen::ecs {
                 return systemManager->getSystemByPhase(phase);
             }
         
+#ifdef ILEN_DEBUG
+            ilen::ecs::debug::ECSDebugSnapshot getDebugSnapshot();
+#endif
+
         private:
             std::unique_ptr<EntityManager> entityManager;
             std::unique_ptr<ComponentManager> componentManager;
