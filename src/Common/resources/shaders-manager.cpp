@@ -13,7 +13,27 @@ namespace ilen::resources::shaders {
         //Precargar todos los shaders del motor para que esten disponibles al momento de crear este objeto.
         auto allShaders = p_assetsManager->getAllElementsOfType<ILEN_ASSET_TYPE_SHADER>();
 
-        std::vector<std::future<void>> futures;
+        size_t totalShaders = allShaders.size();
+        size_t numThreads = p_jobSystem->AvailableThreads();
+        size_t chunkSize = (totalShaders + numThreads - 1) / numThreads;
+
+        std::vector shadersIterator(allShaders.begin(), allShaders.end());
+
+        ilen::job_system::JobGroup group;
+
+        for(size_t i = 0; i < totalShaders; i += chunkSize){
+            size_t start = i * chunkSize;
+            size_t end = std::min(start + chunkSize, totalShaders);
+            
+            p_jobSystem->SubmitJob([this, &shadersIterator, start, end]() {
+                for(size_t j = start; j < end; j++){
+                    const auto& shaderData = shadersIterator[j];
+                    LoadShaderData(shaderData.second);
+                }
+            }, &group);
+        }
+
+        /*std::vector<std::future<void>> futures;
 
         for (auto const& shaderMap : allShaders)
         {
@@ -26,7 +46,7 @@ namespace ilen::resources::shaders {
 
         for (auto& future: futures) {
             future.wait();
-        }
+        }*/
     }
 
     std::weak_ptr<IShader> ShaderManager::getShaderData(ShaderID id)

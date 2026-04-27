@@ -1,0 +1,53 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/${presetName}"
+        },
+        {
+            "name": "debug",
+            "displayName": "Debug",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ILEN_METAL_HUD": "OFF"
+            }
+        },
+        {
+            "name": "debug-metal-hud",
+            "displayName": "Debug + Metal HUD",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "ILEN_METAL_HUD": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "displayName": "Release",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ILEN_METAL_HUD": "OFF"
+            }
+        },
+        {
+            "name": "release-metal-hud",
+            "displayName": "Release + Metal HUD",
+            "inherits": "base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ILEN_METAL_HUD": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        { "name": "debug",            "configurePreset": "debug" },
+        { "name": "debug-metal-hud",  "configurePreset": "debug-metal-hud" },
+        { "name": "release",          "configurePreset": "release" },
+        { "name": "release-metal-hud","configurePreset": "release-metal-hud" }
+    ]
+}

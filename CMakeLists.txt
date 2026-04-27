@@ -23,6 +23,8 @@ set(APP_VERSION "0.0.1")
 set(APP_BUILD_NUMBER "1")
 set(APP_COPYRIGHT "Copyright (c) 2025 Scardivar's Games. All rights reserved.")
 
+option(ILEN_METAL_HUD "Muestra el HUD de Metal para debuggear")
+
 file(GLOB_RECURSE PROJECT_SOURCES src/main.cpp src/Common/*.cpp src/Examples/*.cpp)
 
 if(NOT APPLE)
@@ -38,6 +40,10 @@ target_include_directories(ilen_global_includes INTERFACE ${CMAKE_CURRENT_SOURCE
 target_link_libraries(${PROJECT_NAME} PRIVATE ilen_global_includes)
 
 list(APPEND SHARED_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+#Threads support
+find_package(Threads REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
 
 if(APPLE)
     list(APPEND EXTERNAL_SYSTEM_SPECIFIC_COMMANDS
@@ -206,6 +212,12 @@ if(APPLE)
         "-framework Metal"
         "-framework QuartzCore"
     )
+
+    #HUD de Metal para debuggear
+    if(ILEN_METAL_HUD)
+        add_custom_target(run COMMAND ${CMAKE_COMMAND} -E env MTL_HUD_ENABLED=1
+        $<TARGET_FILE:${PROJECT_NAME}> DEPENDS ${PROJECT_NAME} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}>)
+    endif()
 elseif(LINUX)
     message("Configuring for Linux")
 
@@ -260,3 +272,4 @@ endif()
 target_compile_definitions(${PROJECT_NAME} PRIVATE "IGNORE_RENDERING=0") #Ignora el sistema de renderizado. Util para probar las ventanas sin nada más de por medio
 target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=0") #Lanza una error window al empezar para revisar que se vea correctamente
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_ONLY_ECS=0") #Desactiva el sistema de scripting del motor, forzando a ser solamente ECS.
+target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_SINGLECORE_TEST=0") #Fuerza al sistema de Jobs tener 1 solo hilo disponible

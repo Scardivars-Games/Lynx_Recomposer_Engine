@@ -8,7 +8,7 @@
             "name": "(lldb) Iniciar",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/ilen-engine.app",
+            "program": "${workspaceFolder}/build/debug-metal-hud/ilen-engine.app",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${fileDirname}",

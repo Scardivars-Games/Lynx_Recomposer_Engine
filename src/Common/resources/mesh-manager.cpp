@@ -28,7 +28,7 @@ namespace ilen::resources::mesh {
         auto meshObject = assetsManager->getAssetElement<ModelAsset>(id);
 
         //Cargando los datos a la GPU.
-        std::future<MeshGPULink> future = jobSystem->SubmitJob([this, meshObject]() -> MeshGPULink {
+        std::future<MeshGPULink> future = jobSystem->SubmitJobWithResult([this, meshObject]() -> MeshGPULink {
                 //TODO: Load binary data of mesh
                 auto loadPath = ilen::core::FileManager::fileRoute(meshObject.assetPath, ILEN_FILE_TYPE_MODEL);
                 //ILEN_LOG_P(DEBUG_PREFIX, "Mesh localizado en %s.", loadPath.c_str());

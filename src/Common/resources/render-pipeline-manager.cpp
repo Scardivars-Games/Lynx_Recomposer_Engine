@@ -24,7 +24,7 @@ namespace ilen::resources::render_pipeline {
             return {}; //Se esta cargando
         }
 
-        std::future<std::shared_ptr<IGPURenderPipeline>> future = p_jobSystem->SubmitJob([this, descriptor] -> std::shared_ptr<IGPURenderPipeline> {
+        std::future<std::shared_ptr<IGPURenderPipeline>> future = p_jobSystem->SubmitJobWithResult([this, descriptor] -> std::shared_ptr<IGPURenderPipeline> {
             //Hay que generar una nueva PSO.
             auto newPSO = p_renderer->createRenderPipeline(descriptor, p_shaderManager);
             //  m_pipelines[descriptor] = newPSO;

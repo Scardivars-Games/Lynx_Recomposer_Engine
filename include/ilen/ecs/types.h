@@ -28,12 +28,10 @@ namespace ilen::ecs {
             explicit EntityMetadataComponent(
                 TagSystem tag = TagSystem::None,
                 LayerSystem layer = LayerSystem::None,
-#ifdef ILEN_DEBUG
                 std::string name = "Entity"
-#endif
-            ) : tags(tag), layers(layer),
+            ) : tags(tag), layers(layer)
 #ifdef ILEN_DEBUG
-            name(name)
+            , name(name)
 #endif
             {}
 

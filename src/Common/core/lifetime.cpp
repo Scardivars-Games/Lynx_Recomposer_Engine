@@ -122,7 +122,7 @@ namespace ilen{
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        int elementosPrueba = 50;
+        int elementosPrueba = 9000;
 
         for (int i = 0; i < elementosPrueba; i++) {
                 auto entity = engineContext->p_coordinator->createEntity();

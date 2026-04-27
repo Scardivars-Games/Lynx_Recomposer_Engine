@@ -12,10 +12,35 @@ namespace ilen::resources::materials {
         p_assetsManager = context->p_assetsManager.get();
 
         auto allMaterials = p_assetsManager->getAllElementsOfType<ILEN_ASSET_TYPE_MATERIAL>();
+    
+        //std::vector<std::future<void>> futures;
+        size_t totalMats = allMaterials.size();
+        if(totalMats == 0) return;
 
-        std::vector<std::future<void>> futures;
+        size_t numThreads = p_jobSystem->AvailableThreads();
+        size_t chunckSize = (totalMats + numThreads - 1) / numThreads;
 
-        for (auto materialData: allMaterials) {
+        ilen::job_system::JobGroup group;
+
+        //Guardamos una lista con los iteradores del mapa de allMaterials, para acceder más rapido a los datos y de forma segura
+        std::vector materialIterators(allMaterials.begin(), allMaterials.end());
+
+        for(size_t i = 0; i < totalMats; i += chunckSize){
+            size_t start = i * chunckSize;
+            size_t end = std::min(start + chunckSize, totalMats);
+
+            p_jobSystem->SubmitJob([this, &materialIterators, start, end] () {
+                for(size_t j = start; j < end; j++) {
+                    const auto& matData = materialIterators[j];
+                    LoadMaterialData(matData.second);
+                }
+            }, &group);
+        }
+
+        group.Wait();
+
+        //REWORKING
+       /*for (auto materialData: allMaterials) {
            std::future<void> future = p_jobSystem->SubmitJob([this, materialData]() {
                 LoadMaterialData(materialData.second);
            });
@@ -25,7 +50,7 @@ namespace ilen::resources::materials {
 
         for (auto& future: futures) {
             future.wait();
-        }
+        }*/
     }
 
     void MaterialManager::LoadMaterialData(const MaterialAsset &asset) {

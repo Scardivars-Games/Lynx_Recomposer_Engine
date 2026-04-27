@@ -106,7 +106,11 @@ void PostProcessSystem::Update() {
             previousFrameMatrices = previousTransforms;
         }
 
-        std::vector<std::future<void>> futures;
+        //OLD
+        //std::vector<std::future<void>> futures;
+
+        //new
+        ilen::job_system::JobGroup group;
 
         encoderPtr->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->getViewProjectionCameraBuffer());
 
@@ -116,7 +120,7 @@ void PostProcessSystem::Update() {
 
             if (chunckStart >= chunckEnd) continue;
 
-            futures.push_back(jobSystem->SubmitJob( [this, encoderPtr, &renderListItems, chunckStart, chunckEnd, instanceBuffer, &previousFrameMatrices]() {
+            jobSystem->SubmitJob( [this, encoderPtr, &renderListItems, chunckStart, chunckEnd, instanceBuffer, &previousFrameMatrices]() {
                 //Cache para el batching
                 IGPURenderPipeline* lastPSO = nullptr;
                 uint16_t lastMaterialID = 0;
@@ -227,13 +231,17 @@ void PostProcessSystem::Update() {
                 }
 
                 cmd->EndEncoding();
-            }));
+            }, &group);
         }
 
         //Esperamos a que se codifiquen todas las llamadas
-        for (auto& future : futures) {
+        //OLD
+        /*for (auto& future : futures) {
             future.wait();
-        }
+        }*/
+
+        //New
+        group.Wait();
 
         {
             std::lock_guard<std::mutex> lock(previousTransformMutex);

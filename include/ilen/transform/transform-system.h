@@ -23,10 +23,8 @@ namespace ilen::ecs::systems {
         private:
             ilen::ecs::ECSCoordinator* p_Coordinator = nullptr;
             job_system::JobSystem* p_jobSystem = nullptr;
-            std::vector<std::future<void>> futures;
 
-
-            void calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix);
+            void calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, ilen::job_system::JobGroup* group);
     };
 }
 

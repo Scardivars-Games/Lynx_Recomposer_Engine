@@ -93,7 +93,10 @@ namespace ilen::ecs::systems {
         size_t numberOfThreads = p_JobSystem->AvailableThreads();
         size_t itemsPerThread = (totalOfItem + numberOfThreads - 1) / numberOfThreads;
 
-        std::vector<std::future<void>> futures;
+        //OLD
+        //std::vector<std::future<void>> futures;
+
+        ilen::job_system::JobGroup group;
         
         for (size_t i = 0; i < numberOfThreads; i++) {
             size_t chunckStart = i * itemsPerThread;
@@ -101,7 +104,7 @@ namespace ilen::ecs::systems {
 
             if (chunckStart >= chunckEnd) continue;
 
-            futures.push_back(p_JobSystem->SubmitJob( [this, encoderPtr, &renderItems, chunckStart, chunckEnd, instanceBuffer]() {
+            p_JobSystem->SubmitJob( [this, encoderPtr, &renderItems, chunckStart, chunckEnd, instanceBuffer]() {
                 //Cache para el batching
                 IGPURenderPipeline* lastPSO = nullptr;
                 uint16_t lastMaterialID = 0;
@@ -193,13 +196,16 @@ namespace ilen::ecs::systems {
                 }
 
                 cmd->EndEncoding();
-            }));
+            }, &group);
         }
 
         //Esperamos a que se codifiquen todas las llamadas
-        for (auto& future : futures) {
+        /*for (auto& future : futures) {
             future.wait();
-        }
+        }*/
+
+        group.Wait();
+
         /*if (core::options::RenderingOptions::isPostProcessEnabled) {
             //Finalizar encoder, liberar, y asignarlo otro puntero. TODO
             IRenderer::FinalizeEncoding(encoderPtr);
