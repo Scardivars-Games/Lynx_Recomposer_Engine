@@ -30,51 +30,55 @@ namespace ilen::ecs::systems {
     }
 
     void CameraSystem::Update() {
-        auto actualGraphicsAPI = ilen::render::IRenderer::getActualGraphicsAPI();
-        
-        auto viewportHeight = ilen::window::IWindow::getHeight();
-        auto viewportWidth = ilen::window::IWindow::getWidth();
-        if (viewportHeight == 0|| viewportWidth == 0) {
-            return; //Si el tamaño de la ventana es 0, no se puede hacer ningún calculo para la cámara.
-        }
+        {
+            ilen::time::ScopedTimer timer("Camera system update");
 
-        const float aspectRatio = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
-
-        for (auto const& entity: entities) {
-            auto* cameraComponent = p_Coordinator->getComponent<CameraComponent>(entity);
-            auto* transformComponent = p_Coordinator->getComponent<TransformComponent>(entity);
-
-            if (!cameraComponent || !transformComponent) {
-                continue; //Esta cámara no es válida
+            auto actualGraphicsAPI = ilen::render::IRenderer::getActualGraphicsAPI();
+            
+            auto viewportHeight = ilen::window::IWindow::getHeight();
+            auto viewportWidth = ilen::window::IWindow::getWidth();
+            if (viewportHeight == 0|| viewportWidth == 0) {
+                return; //Si el tamaño de la ventana es 0, no se puede hacer ningún calculo para la cámara.
             }
 
-            if (cameraComponent->isPrimary == true) {
-                m_mainCamera = cameraComponent;
+            const float aspectRatio = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
+
+            for (auto const& entity: entities) {
+                auto* cameraComponent = p_Coordinator->getComponent<CameraComponent>(entity);
+                auto* transformComponent = p_Coordinator->getComponent<TransformComponent>(entity);
+
+                if (!cameraComponent || !transformComponent) {
+                    continue; //Esta cámara no es válida
+                }
+
+                if (cameraComponent->isPrimary == true) {
+                    m_mainCamera = cameraComponent;
+                }
+            //ILEN_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
+
+                cameraComponent->viewMatrix = matrix::inverse(transformComponent->getWorldMatrix());
+                //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewMatrix).c_str());
+
+                if (cameraComponent->projectionType == ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_PERSPECTIVE) {
+                    cameraComponent->projectionMatrix = matrix::perspective(Degrees(cameraComponent->fovDegrees), aspectRatio, cameraComponent->nearClip, cameraComponent->farClip, actualGraphicsAPI);
+                }else {
+                    float halfWidth = (cameraComponent->orthoSize * aspectRatio) * 0.5f;
+                    float halfHeight = cameraComponent->orthoSize * 0.5f;
+
+                    cameraComponent->projectionMatrix = matrix::orthographic(-halfWidth, halfWidth, -halfHeight, halfHeight, cameraComponent->nearClip, cameraComponent->farClip, actualGraphicsAPI);
+                }
+
+                auto viewProjectionMatrix = cameraComponent->projectionMatrix * cameraComponent->viewMatrix;
+                auto previousProjectionMatrix = cameraComponent->viewProjectionMatrix;
+                cameraComponent->viewProjectionMatrix = viewProjectionMatrix;
+                //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
+
+                //Guardando los datos de cámara en su respectivo buffer.
+                ilen::render::structs::CameraData cameraData{};
+                cameraData.currentViewProjectionMatrix = viewProjectionMatrix;
+                cameraData.previousViewProjectionMatrix = previousProjectionMatrix;
+                cameraComponent->cameraBuffer->writeDataToBuffer(&cameraData, 0 ,0);
             }
-           //ILEN_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
-
-            cameraComponent->viewMatrix = matrix::inverse(transformComponent->getWorldMatrix());
-            //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewMatrix).c_str());
-
-            if (cameraComponent->projectionType == ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_PERSPECTIVE) {
-                cameraComponent->projectionMatrix = matrix::perspective(Degrees(cameraComponent->fovDegrees), aspectRatio, cameraComponent->nearClip, cameraComponent->farClip, actualGraphicsAPI);
-            }else {
-                float halfWidth = (cameraComponent->orthoSize * aspectRatio) * 0.5f;
-                float halfHeight = cameraComponent->orthoSize * 0.5f;
-
-                cameraComponent->projectionMatrix = matrix::orthographic(-halfWidth, halfWidth, -halfHeight, halfHeight, cameraComponent->nearClip, cameraComponent->farClip, actualGraphicsAPI);
-            }
-
-            auto viewProjectionMatrix = cameraComponent->projectionMatrix * cameraComponent->viewMatrix;
-            auto previousProjectionMatrix = cameraComponent->viewProjectionMatrix;
-            cameraComponent->viewProjectionMatrix = viewProjectionMatrix;
-            //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
-
-            //Guardando los datos de cámara en su respectivo buffer.
-            ilen::render::structs::CameraData cameraData{};
-            cameraData.currentViewProjectionMatrix = viewProjectionMatrix;
-            cameraData.previousViewProjectionMatrix = previousProjectionMatrix;
-            cameraComponent->cameraBuffer->writeDataToBuffer(&cameraData, 0 ,0);
         }
     }
 

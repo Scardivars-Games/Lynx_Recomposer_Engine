@@ -9,6 +9,7 @@
 #include <utility>
 #include <future>
 #include <vector>
+#include <ilen/headers/ilen-logs.h>
 
 namespace ilen::job_system {
 
@@ -57,15 +58,37 @@ public:
     // SubmitJob para sistemas ECS — sin future, sin heap alloc extra.
     // Usar cuando solo necesitas saber que el batch terminó (la mayoría de casos).
     void SubmitJob(Job job, JobGroup* group = nullptr) {
-        if (group)
-            group->pendingJobs.fetch_add(1, std::memory_order_relaxed);
-        {
-            std::unique_lock<std::mutex> lock(queueMutex);
-            if (shouldStop)
-                throw std::runtime_error("enqueuing on stopped JobSystem");
-            jobQueue.push(std::move(job));
+        if(!job){
+            ILEN_WARNING_P(DEBUG_PREFIX, "Se encolo una tarea vacia. Favor de revisar la razón de porque sucedio esto");
+            return;
         }
-        condition.notify_one();
+
+        bool needsNotify = false;
+
+        if (group)
+        {
+            group->pendingJobs.fetch_add(1, std::memory_order_relaxed);
+
+            Job wrappedJob = [job = std::move(job), group]() {
+                job();
+                group->pendingJobs.fetch_sub(1, std::memory_order_release);
+            };
+            {
+                std::unique_lock<std::mutex> lock(queueMutex);
+                if (shouldStop)
+                    throw std::runtime_error("enqueuing on stopped JobSystem");
+                needsNotify = jobQueue.empty();
+                jobQueue.push(std::move(wrappedJob));
+            }
+        }else {
+            {
+                std::unique_lock<std::mutex> lock(queueMutex);
+                if (shouldStop) throw std::runtime_error("stopped");
+                needsNotify = jobQueue.empty();
+                jobQueue.push(std::move(job));
+            }
+        }
+        if(needsNotify) condition.notify_one();
     }
 
     // SubmitJob con future — conservar para jobs que necesitan retornar un valor.
@@ -102,9 +125,40 @@ private:
     std::condition_variable    condition;
     std::atomic<bool>          shouldStop = false;
 
+    const static inline char* DEBUG_PREFIX = "JOB_SYSTEM";
+
+    static constexpr int SPIN_COUNT = 0;
+
     void WorkLoop() {
-        while (true) {
+        while (!shouldStop) {
             Job job;
+
+            //Fase 1 con un ciclo activo
+            bool found = false;
+            for(int i = 0; i < SPIN_COUNT && !shouldStop; i++){
+                {
+                    std::unique_lock<std::mutex> lock(queueMutex);
+
+                    if(!jobQueue.empty()){
+                        job = std::move(jobQueue.front());
+                        jobQueue.pop();
+                        found = true;
+                        break;
+                    }
+                }
+                std::this_thread::yield();
+            }
+
+            if(found) {
+                if(!job){
+                    ILEN_ERROR_P(DEBUG_PREFIX, "Llego una tarea vacia hasta el Loop Principal de los workers. Se perdio una referencia al encolar. Revisar.");
+                    continue;
+                }
+                job();
+                continue;
+            }
+
+            //Fase 2, con un Sleep real.
             {
                 std::unique_lock<std::mutex> lock(queueMutex);
                 condition.wait(lock, [this] {
@@ -114,6 +168,11 @@ private:
                     return;
                 job = std::move(jobQueue.front());
                 jobQueue.pop();
+            }
+
+            if(!job){
+                ILEN_ERROR_P(DEBUG_PREFIX, "Llego una tarea vacia hasta el Loop Principal de los workers. Se perdio una referencia al encolar. Revisar.");
+                continue;
             }
             job();
         }

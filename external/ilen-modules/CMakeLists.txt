@@ -13,17 +13,23 @@ add_executable(ILEN_FILE_BINARIZATION
         modules/common/logs.cpp
 )
 
-#set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/executable)
-#
-#foreach(config ${CMAKE_CONFIGURATION_TYPES})
-#    string(TOUPPER ${config} config_upper)
-#    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${config_upper} ${CMAKE_BINARY_DIR}/executable)
-#endforeach()
+#Firmado en macOS
+#if(APPLE)
+#        message(STATUS "Configurando la firma de las herramientas para macOS")
+#        set(ENGINE_TOOLS ILEN_METAL_COMPILER ILEN_FILE_BINARIZATION) #Slang no se lista porque no se usa en macOS
+#        foreach(TOOL ${ENGINE_TOOLS})
+#                add_custom_command(TARGET ${TOOL} POST_BUILD
+#                        COMMAND codesign --sign - --force "$<TARGET_FILE:${TOOL}>"
+#                        COMMENT "Firmando ${TOOL} para macOS con ad-hoc")
+#        endforeach()
+#endif()
 
-
-#target_link_libraries(ILEN_METAL_COMPILER PRIVATE ilen_global_includes)
-#target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE ilen_global_includes)
-
+#ASSIMP
+find_package(assimp QUIET)
+if(assimp_FOUND)
+        message(STATUS "ASSIMP presente en el sistema")
+        set(ASSIMP_LIBRARIES assimp::assimp)
+else()
 # Desactivar la compilación de herramientas, tests y ejemplos
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF)
 set(ASSIMP_BUILD_TESTS OFF)
@@ -41,8 +47,12 @@ set(ASSIMP_BUILD_FBX_IMPORTER OFF)
 set(ASSIMP_BUILD_GLTF_IMPORTER OFF)
 
 add_subdirectory(external/assimp)
+set(ASSIMP_LIBRARIES assimp)
+endif()
 
-target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE assimp)
+target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE ${ASSIMP_LIBRARIES})
+
+#END ASSIMP
 
 target_compile_definitions(ILEN_SLANG_COMPILER PRIVATE "MODULE_SOURCE_FOLDER=\"${CMAKE_SOURCE_DIR}\"")
 

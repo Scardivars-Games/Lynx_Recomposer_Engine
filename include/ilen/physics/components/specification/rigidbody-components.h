@@ -7,7 +7,7 @@ namespace ilen::ecs::components::physics {
     using vec2 = maths::vector::vec2;
     using vec3 = maths::vector::vec3;
 
-    struct Rigidbody2D {
+    struct alignas(64) Rigidbody2D {
         //Velocidad del sistema
         vec2 velocity{0.0f, 0.0f};
         
@@ -30,7 +30,7 @@ namespace ilen::ecs::components::physics {
     };
 
     //3D
-    struct Rigidbody3D {
+    struct alignas(64) Rigidbody3D {
         //Velocidad del sistema
         vec3 velocity{0.0f};
         

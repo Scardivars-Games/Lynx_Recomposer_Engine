@@ -16,12 +16,13 @@ namespace ilen::resources::shaders {
         size_t totalShaders = allShaders.size();
         size_t numThreads = p_jobSystem->AvailableThreads();
         size_t chunkSize = (totalShaders + numThreads - 1) / numThreads;
+        size_t numChunks = (totalShaders + chunkSize - 1) / chunkSize;
 
         std::vector shadersIterator(allShaders.begin(), allShaders.end());
 
         ilen::job_system::JobGroup group;
 
-        for(size_t i = 0; i < totalShaders; i += chunkSize){
+        for(size_t i = 0; i < numChunks; i++){
             size_t start = i * chunkSize;
             size_t end = std::min(start + chunkSize, totalShaders);
             
@@ -32,6 +33,8 @@ namespace ilen::resources::shaders {
                 }
             }, &group);
         }
+
+        group.Wait();
 
         /*std::vector<std::future<void>> futures;
 

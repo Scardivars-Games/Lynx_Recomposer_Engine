@@ -19,13 +19,14 @@ namespace ilen::resources::materials {
 
         size_t numThreads = p_jobSystem->AvailableThreads();
         size_t chunckSize = (totalMats + numThreads - 1) / numThreads;
+        size_t numChunks = (totalMats + chunckSize - 1) / chunckSize;
 
         ilen::job_system::JobGroup group;
 
         //Guardamos una lista con los iteradores del mapa de allMaterials, para acceder más rapido a los datos y de forma segura
         std::vector materialIterators(allMaterials.begin(), allMaterials.end());
 
-        for(size_t i = 0; i < totalMats; i += chunckSize){
+        for(size_t i = 0; i < numChunks; i++){
             size_t start = i * chunckSize;
             size_t end = std::min(start + chunckSize, totalMats);
 

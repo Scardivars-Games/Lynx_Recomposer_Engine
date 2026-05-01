@@ -23,10 +23,13 @@ namespace ilen::ecs::systems {
 
 
     void ScriptingSystem::Update() {
-        for(auto const& entity: entities){
-            auto scriptComponent = m_Coordinator->getComponent<ilen::ecs::components::ScriptingBridgeComponent>(entity);
-            if(scriptComponent->instance){
-                scriptComponent->instance->Update();
+        {
+            ilen::time::ScopedTimer timer("Scripting Update method");
+            for(auto const& entity: entities){
+                auto scriptComponent = m_Coordinator->getComponent<ilen::ecs::components::ScriptingBridgeComponent>(entity);
+                if(scriptComponent->instance){
+                    scriptComponent->instance->Update();
+                }
             }
         }
     }

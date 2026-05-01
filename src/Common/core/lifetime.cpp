@@ -186,7 +186,7 @@ namespace ilen{
 
 #ifdef ILEN_DEBUG
         auto data = engineContext->p_coordinator->getDebugSnapshot();
-        ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
+        //ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
 #endif
     }
 
@@ -198,6 +198,7 @@ namespace ilen{
         const double fixedMethodTime = 1.0 / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
 
         double frameTime = ilen::time::Time::getDeltaTime();
+        //ILEN_LOG("FPS: %.2f", 1.0/frameTime);
 
         if(frameTime > 0.25) frameTime = 0.25; //Esto es para evitar si hay lag, no calcular millones de pasos de física.
 
@@ -208,41 +209,51 @@ namespace ilen{
 
 #if !IGNORE_RENDERING
         //Calculamos el FIXED Update
-        while(accumulator >= fixedMethodTime){
-            #if !ILEN_ONLY_ECS
-                if(scriptingSystemPtr) scriptingSystemPtr->FixedUpdate();
-            #endif //ILEN_ONLY_ECS
-            for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::FixedUpdate)){
-                system->Update();
-            }
+        {
+                ilen::time::ScopedTimer timer("Fixed Update execution");
+                 while(accumulator >= fixedMethodTime){
+                        #if !ILEN_ONLY_ECS
+                                if(scriptingSystemPtr) scriptingSystemPtr->FixedUpdate();
+                        #endif //ILEN_ONLY_ECS
+                        for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::FixedUpdate)){
+                                system->Update();
+                        }
 
-            accumulator -= fixedMethodTime;
+                        accumulator -= fixedMethodTime;
+                }
         }
+       
+        {
+                ilen::time::ScopedTimer timer("Update execution");
+                //Calculos los objetos con un Update que no sean fijos en la pipeline
+                for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::VariableUpdate)){
+                        system->Update();
+                }
 
-        //Calculos los objetos con un Update que no sean fijos en la pipeline
-        for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::VariableUpdate)){
-                system->Update();
-        }
+                //Late update del sistema de scripting
+                #if !ILEN_ONLY_ECS
+                        if(scriptingSystemPtr) scriptingSystemPtr->LateUpdate();
+                #endif //ILEN_ONLY_ECS
 
-        //Late update del sistema de scripting
-        #if !ILEN_ONLY_ECS
-                if(scriptingSystemPtr) scriptingSystemPtr->LateUpdate();
-        #endif //ILEN_ONLY_ECS
-
-        //Calculamos los updates de los datos necesarios antes de renderizar
-        for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::PreRender)){
-                system->Update();
+                //Calculamos los updates de los datos necesarios antes de renderizar
+                for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::PreRender)){
+                        system->Update();
+                }
         }
         
-        //Renderizado        
-        if(engineContext->p_gameRenderer){
-            engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
-            //Aquí deberia poblarse el queue de dibujado.
-            for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::Render)){
-                    system->Update();
-            }
-            engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
+        {
+                ilen::time::ScopedTimer timer("Rendering execution");
+                //Renderizado        
+                if(engineContext->p_gameRenderer){
+                engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
+                //Aquí deberia poblarse el queue de dibujado.
+                for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::Render)){
+                        system->Update();
+                }
+                engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
+                }
         }
+
 #endif //IGNORE_RENDERING
 
 #if !ILEN_IOS //Si estamos en iOS, no es necesario esto, creo?
@@ -288,7 +299,7 @@ namespace ilen{
         ILEN_LOG_P(DEBUG_PREFIX, "Shutting down engine");
 #ifdef ILEN_DEBUG
         auto data = engineContext->p_coordinator->getDebugSnapshot();
-        ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
+       // ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
 #endif
 
         engineContext->p_jobSystem->StopJobSystem();

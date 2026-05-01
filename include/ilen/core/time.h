@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cassert>
+#include <ilen/headers/ilen-logs.h>
 
 namespace ilen::time{
     class Time {
@@ -60,5 +61,27 @@ namespace ilen::time{
             static inline clock::time_point s_lastFrame;
             static inline bool isInitialized = false;
             static inline float s_deltaTime = 0.0f;
+    };
+
+
+    struct ScopedTimer {
+        const char* name;
+        std::chrono::time_point<std::chrono::high_resolution_clock> start;
+
+        ScopedTimer(const char* name) : name(name) {
+            start = std::chrono::high_resolution_clock::now();
+        }
+
+        ~ScopedTimer() {
+            auto end = std::chrono::high_resolution_clock::now();
+            auto startUs = std::chrono::time_point_cast<std::chrono::microseconds>(start).time_since_epoch().count();
+            auto endUs = std::chrono::time_point_cast<std::chrono::microseconds>(end).time_since_epoch().count();
+            
+            auto durationUs = endUs - startUs;
+            float ms = durationUs / 1000.0f;
+            
+            ILEN_LOG_P("PROFILER", "%s: %.4f ms\n", name, ms);
+            //std::cout << "[Profiler] " << name << ": " << ms << " ms\n";
+        }
     };
 }

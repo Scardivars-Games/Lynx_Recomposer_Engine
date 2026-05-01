@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <cassert>
 #include <vector>
+#include <ilen/headers/ilen-logs.h>
 #if ILEN_DEBUG
 #include <cxxabi.h>
 #endif
@@ -25,10 +26,59 @@ namespace ilen::ecs {
     template<typename T>
     class ComponentArray : public IComponentArray {
         public:
+//COMPROBACIONES PARA VER SI VALE LA PENA EL ALIGNAS
+#if ILEN_DEBUG
+            static void PrintDiagnostics(){
+                int status = 0;
+                const char* mangledName = typeid(T).name();
+#if defined(__GNUG__) || defined(__clang__)
+                char* demangled = abi::__cxa_demangle(mangledName, nullptr, nullptr, &status);
+                const char* name = (status == 0 && demangled) ? demangled : mangledName;
+#else
+                const char* name = mangledName;
+#endif //__clang__
+                size_t componentSize = sizeof(T);
+                size_t componentAlign = alignof(T);
+                size_t totalArraySize = sizeof(T) * MAX_ENTITIES;
+
+                bool isCacheAligned = (componentSize % 64 == 0) && (componentAlign >= 64);
+                ILEN_WARNING_P("COMPONENT_ARRAY", "[%s] size=%zu bytes | align=%zu | array=%zu KB | cache-aligned=%s",
+                    name,
+                    componentSize,
+                    componentAlign,
+                    totalArraySize / 1024,
+                    isCacheAligned ? "SI" : "NO — posible false sharing en paralelo");
+
+                if(!isCacheAligned){
+                    size_t nextMultiple = ((componentSize + 63) / 64) * 64;
+                    ILEN_ERROR_P("COMPONENT_ARRAY",
+                        "[%s] Para evitar false sharing añade alignas(64) al struct "
+                        "y/o paddea hasta %zu bytes (actualmente %zu)",
+                        name, nextMultiple, componentSize
+                    );
+                }
+#if defined(__GNUG__) || defined(__clang__)
+                free(demangled);
+#endif
+            }
+#endif
+
+            ComponentArray(){
+                entityToIndexMap.fill(INVALID_INDEX);
+                indexToEntityMap.fill(NULL_ENTITY);
+
+#if ILEN_DEBUG
+                PrintDiagnostics();
+#endif
+            }
+
             void insertData(Entity entity, T&& component) {
                 //assert(entityToIndexMap.count(entity) == 0 && "Ya existe el componente");
+                if(entity > MAX_ENTITIES){
+                    ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+                }
                 // Si ya existe, ignorar en vez de crashear
-                if (entityToIndexMap.count(entity) != 0) return;
+                if(entityToIndexMap[entity] != INVALID_INDEX) return; //Existe
 
                 size_t newIndex = size;
                 entityToIndexMap[entity] = newIndex;
@@ -38,43 +88,69 @@ namespace ilen::ecs {
             }
 
             void removeData(Entity entity) override {
-                assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Tratando de remover un component no existente");
+                //assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Tratando de remover un component no existente");
+                if(entity > MAX_ENTITIES) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+                if(entityToIndexMap[entity] == INVALID_INDEX) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Se esta tratando de borrar una entidad inexistente");
 
                 size_t indexOfRemoved = entityToIndexMap[entity];
                 size_t indexOfLast = size - 1;
+                
+                //Mantiene el array denso.
                 componentArray[indexOfRemoved] = std::move(componentArray[indexOfLast]);
 
                 Entity entityOfLast = indexToEntityMap[indexOfLast];
                 entityToIndexMap[entityOfLast] = indexOfRemoved;
                 indexToEntityMap[indexOfRemoved] = entityOfLast;
 
-                entityToIndexMap.erase(entity);
-                indexToEntityMap.erase(indexOfLast);
+                //entityToIndexMap.erase(entity);
+                //indexToEntityMap.erase(indexOfLast);
+                entityToIndexMap[entity] = INVALID_INDEX;
+                indexToEntityMap[indexOfLast] = NULL_ENTITY;
                 size--;
             }
 
             T* getData(Entity entity) {
-                if (entityToIndexMap.find(entity) == entityToIndexMap.end()) {
+                if(entity > MAX_ENTITIES) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+
+                size_t idx = entityToIndexMap[entity];
+                if(idx == INVALID_INDEX) return nullptr;
+                return &componentArray[idx];
+
+                /*if (entityToIndexMap.find(entity) == entityToIndexMap.end()) {
                     return nullptr;
                 }
 
-                return &componentArray.at(entityToIndexMap.at(entity));
+                return &componentArray.at(entityToIndexMap.at(entity));*/
             }
 
             void entityDestroyed(Entity entity) override {
-                if(entityToIndexMap.find(entity) != entityToIndexMap.end()){
+                /*if(entityToIndexMap.find(entity) != entityToIndexMap.end()){
                     removeData(entity);
-                }
+                }*/
+               if(entity < MAX_ENTITIES && entityToIndexMap[entity] != INVALID_INDEX)
+                removeData(entity);
             }
 
             bool hasEntity(Entity entity) override {
-                return entityToIndexMap.find(entity) != entityToIndexMap.end();
+                return entity < MAX_ENTITIES && entityToIndexMap[entity] != INVALID_INDEX;
+                //return entityToIndexMap.find(entity) != entityToIndexMap.end();
             }
 
+            T* getRawData() { return componentArray.data(); }
+            size_t getActiveCount() const { return size; }
+            Entity getEntityAt(size_t index){
+                if(index > size) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Indice fuera del rango al solicitar entidad");
+                return indexToEntityMap[index];
+            }
         private:
-            std::array<T, MAX_ENTITIES> componentArray;
-            std::unordered_map<Entity, size_t> entityToIndexMap;
-            std::unordered_map<size_t, Entity> indexToEntityMap;
+            static constexpr size_t INVALID_INDEX = std::numeric_limits<size_t>::max();
+
+            alignas(64) std::array<T, MAX_ENTITIES> componentArray;
+            std::array<size_t, MAX_ENTITIES> entityToIndexMap;
+            std::array<Entity, MAX_ENTITIES> indexToEntityMap;
+            
+            //std::unordered_map<Entity, size_t> entityToIndexMap;
+            //std::unordered_map<size_t, Entity> indexToEntityMap;
             size_t size = 0;
     };
 

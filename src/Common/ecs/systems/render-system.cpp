@@ -12,16 +12,19 @@ namespace ilen::ecs::systems {
     }
 
     void RenderSystem::Update() {
-        p_meshManager->UpdateProcess();
-        p_renderPipelineManager->UpdatePipelineWorks();
-        // Este method se debe llamar en cada fotograma.
-        for(auto const& entity : entities){
-            if(auto render = p_Coordinator->getComponent<RenderComponent>(entity); render != nullptr){
-                //En este loops estamos trabajando con una entidad con rendering. Toda entidad que renderice tiene que tener sus datos en VRAM, sino, hay que asignarlos
-                //Carga y obtención de Meshes
-                HaveVisibilityDefined(*render, entity);
-                CheckMeshStatus(*render, entity);
-                CheckRenderPipelineStatus(*render, entity);
+        {
+            ilen::time::ScopedTimer timer("Prep for Rendering System");
+            p_meshManager->UpdateProcess();
+            p_renderPipelineManager->UpdatePipelineWorks();
+            // Este method se debe llamar en cada fotograma.
+            for(auto const& entity : entities){
+                if(auto render = p_Coordinator->getComponent<RenderComponent>(entity); render != nullptr){
+                    //En este loops estamos trabajando con una entidad con rendering. Toda entidad que renderice tiene que tener sus datos en VRAM, sino, hay que asignarlos
+                    //Carga y obtención de Meshes
+                    HaveVisibilityDefined(*render, entity);
+                    CheckMeshStatus(*render, entity);
+                    CheckRenderPipelineStatus(*render, entity);
+                }
             }
         }
     }

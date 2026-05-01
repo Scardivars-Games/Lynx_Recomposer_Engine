@@ -113,7 +113,7 @@ std::string generateFriendlyName(const std::string& filename);
 ilen::graphics::MeshData loadModelData(std::filesystem::path modelPath);
 
 ilen::job_system::JobSystem jobSystem;
-std::mutex fileWrite;
+//std::mutex fileWrite;
 
 namespace nlohmann {
     template <>
@@ -468,9 +468,83 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             std::filesystem::create_directories(binaryModelFolder);
         }
 
-        std::vector<std::future<void>> futures;
+        auto data = manifestData[ILEN_ASSET_MANIFEST_MODEL];
 
-        for(const json& assetData : manifestData[ILEN_ASSET_MANIFEST_MODEL]){
+        //std::vector<std::future<void>> futures;
+        size_t total = data.size();
+        size_t threads = jobSystem.AvailableThreads();
+        size_t chunkSize = (total + threads - 1)/ threads;
+        size_t numChunks = (total + chunkSize - 1) / chunkSize;
+
+        ILEN_LOG_P(DEBUG_PREFIX, "Datos Utiles: total %i, hilos %i, tamaño del chunk: %i, numero de chunks: %i", total, threads, chunkSize, numChunks);
+
+        ilen::job_system::JobGroup group;
+
+        std::vector<std::unordered_map<std::string, uint32_t>> localFriendlyNameToID(numChunks);
+        std::vector<std::unordered_map<uint32_t, ModelAsset>> localIDToModelAsset(numChunks);
+
+        for(size_t i = 0; i < numChunks; i++){
+            size_t start = i * chunkSize;
+            size_t end = std::min(start + chunkSize, total);
+
+            ILEN_LOG_P(DEBUG_PREFIX, "Trabajando chunk %i, que va del indice %i al %i", i, start, end);
+
+
+            jobSystem.SubmitJob([=, &sourceAssetFolders, &engineSourceFolder, &binaryModelFolder, &idToModelAsset, &friendlyNameToID, &data, &localFriendlyNameToID, &localIDToModelAsset]() {
+                for(size_t j = start; j < end; j++){
+                    std::string filePath = data[j][ILEN_ASSET_MANIFEST_ASSET_PATH];
+
+                    auto modelPath = sourceAssetFolders / filePath;
+                    ilen::graphics::MeshData toBinarize = loadModelData(modelPath);
+                    auto savePath = binaryModelFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / targetFolder);
+                    savePath.replace_extension(".ilenmesh");
+                    //Header del binario
+                    ilen::binary::headers::IlenMeshHeader header{};
+                    strncpy(header.magicNumber, "HSEM_NELI", sizeof(header.magicNumber) - 1);
+                    header.version = 1;
+                    header.vertexCount = toBinarize.vertexBufferData.size();
+                    header.indexCount = toBinarize.indexBufferData.size();
+
+                    
+                    if(!std::filesystem::exists(savePath.parent_path())){
+                        std::error_code ec; //Estp es para evitar que multiples hilos creen la misma carpeta, y de un error catastrofico
+                        std::filesystem::create_directories(savePath.parent_path(), ec);
+                    }
+
+                    std::ofstream outFile(savePath, std::ios::binary);
+                    outFile.write(reinterpret_cast<const char*>(&header), sizeof(ilen::binary::headers::IlenMeshHeader));
+                    outFile.write(reinterpret_cast<const char*>(toBinarize.vertexBufferData.data()), sizeof(ilen::render::buffers::VertexBufferData) * toBinarize.vertexBufferData.size());
+                    outFile.write(reinterpret_cast<const char*>(toBinarize.indexBufferData.data()), sizeof(uint32_t) * toBinarize.indexBufferData.size());
+
+                    outFile.close();
+
+                    //std::lock_guard<std::mutex> lock(fileWrite);
+
+                    uint32_t id = data[j][ILEN_ASSET_MANIFEST_ASSET_ID];
+                    std::string name = data[j][ILEN_ASSET_MANIFEST_ASSET_NAME];
+                    std::string path = std::filesystem::relative(savePath, binaryModelFolder);
+
+                    localFriendlyNameToID[i][name] = id;
+                    localIDToModelAsset[i].emplace(id, ModelAsset(id, path));
+                    //friendlyNameToID[name] = id;
+                    //idToModelAsset.emplace(id, ModelAsset(id, path));
+                }
+            }, &group);
+        }
+
+        group.Wait();
+
+        //Asignado las IDs
+        for(size_t i = 0; i < numChunks; i++){
+            for(auto [name, id]: localFriendlyNameToID[i]){
+                friendlyNameToID[name] = id;
+            }
+            for(auto [id, asset]: localIDToModelAsset[i]){
+                idToModelAsset.emplace(id, asset);
+            }
+        }
+
+        /*for(const json& assetData : manifestData[ILEN_ASSET_MANIFEST_MODEL]){
             std::string filePath = assetData[ILEN_ASSET_MANIFEST_ASSET_PATH];
             futures.push_back(
                 jobSystem.SubmitJob([=, &sourceAssetFolders, &engineSourceFolder, &binaryModelFolder, &idToModelAsset, &friendlyNameToID, &assetData]() {
@@ -509,7 +583,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
 
         for (auto& f: futures){
             f.get();
-        }
+        }*/
     }
 
     //Shader loading
