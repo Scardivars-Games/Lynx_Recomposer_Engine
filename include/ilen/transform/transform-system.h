@@ -28,5 +28,5 @@ namespace ilen::ecs::systems {
     };
 }
 
-REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::TransformSystem, ilen::ecs::SystemPhase::PreRender, 1)
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::TransformSystem, ilen::ecs::SystemPhase::PreRender, 10)
 REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::TransformSystem, ilen::ecs::components::TransformComponent)

@@ -1,31 +1,47 @@
-//Api pública para facilitar las operaciones de transform del motor. Crea los componentes necesarios para que el motor luego puedo ejecutar las traslaciones
 #pragma once
-
-#include <ilen/ecs/ecs.h>
-#include <ilen/transform/transform-system.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/ecs/types.h>
 #include <ilen/transform/transform-component.h>
-#include <utility>
-
-
+#include <ilen/core/thread-context.h>
+#include <vector>
 
 namespace ilen::engine::api {
+    using namespace ilen::ecs;
+
     class TransformAPI {
         public:
-            //Traslation calls
-            static void Translate(ilen::ecs::Entity entity, Vector3 traslation);
-            
-            //Rotation calls
-            static void Rotate(ilen::ecs::Entity entity, Vector3 rotation);
-            static void Rotate(ilen::ecs::Entity entity, Vector3 axis, float rotation);
+            static void Init(const ilen::EngineContext* context);
 
-            //Scale calls
-            static void Scale(ilen::ecs::Entity entity, float scale);
-        private:    
-            static void Init(ilen::ecs::ECSCoordinator* coordinator);
-            static void CheckInit();
+            static void Translate(Entity entity, vec3 delta);
+            static void Rotate(Entity entity, vec3 eulerAngles);
+            static void Rotate(Entity entity, vec3 axis, float angle);
+            static void Scale(Entity entity, vec3 scaleFactor);
+            static void Scale(Entity entity, float uniformScale);
+
+            static void ExecuteAllAccumulatedTransform();
+
+        private:
             static inline ilen::ecs::ECSCoordinator* p_coordinator = nullptr;
 
-            friend class ilen::ecs::systems::TransformSystem;
+            // Estructura densa por hilo (la más rápida posible)
+            struct ThreadAccumulator {
+                std::vector<components::TransformOrder> orders;
+                std::vector<Entity>         touched;   // solo las que se modificaron
+            };
+
+            static inline std::vector<ThreadAccumulator> s_threadAccumulators;
+
+            // Helper interno para acumular sin duplicar código
+            template<typename Func>
+            static inline void accumulate(Entity entity, Func&& modifier) {
+                auto& ta = s_threadAccumulators[ilen::core::threading::t_ThreadIndex];
+                auto& order = ta.orders[entity];
+
+                if (!order.hasOrders) {
+                    ta.touched.push_back(entity);
+                    order.hasOrders = true;
+                }
+                modifier(order);
+            }
     };
-}
+
+} // namespace ilen::engine::api

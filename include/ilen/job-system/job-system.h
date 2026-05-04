@@ -10,6 +10,7 @@
 #include <future>
 #include <vector>
 #include <ilen/headers/ilen-logs.h>
+#include <ilen/core/thread-context.h>
 
 namespace ilen::job_system {
 
@@ -33,6 +34,8 @@ class JobSystem final {
 public:
     // Inicializa el job system.
     void Initializate() {
+        ilen::core::threading::g_MainThreadId = std::this_thread::get_id();
+        ilen::core::threading::t_IsMainThread = true;
 #if ILEN_SINGLECORE_TEST
         const uint num_threads = 1;
 #else
@@ -41,7 +44,11 @@ public:
 #endif
         workThreads.reserve(num_threads);
         for (uint i = 0; i < num_threads; i++) {
-            workThreads.emplace_back([this] { WorkLoop(); });
+            workThreads.emplace_back([this, i] {
+                ilen::core::threading::t_ThreadIndex = static_cast<size_t>(i); 
+                ilen::core::threading::t_IsMainThread = false;
+                WorkLoop(); 
+            });
         }
     }
 
@@ -127,7 +134,7 @@ private:
 
     const static inline char* DEBUG_PREFIX = "JOB_SYSTEM";
 
-    static constexpr int SPIN_COUNT = 0;
+    static constexpr int SPIN_COUNT = 1000;
 
     void WorkLoop() {
         while (!shouldStop) {

@@ -2,11 +2,14 @@
 
 #include <ilen/game-logic/script-system.h>
 #include <ilen/core/engine-context.h>
+#include <ilen-public/API/transform.h>
 
 
 namespace ilen::ecs::systems {
     void ScriptingSystem::Init(const EngineContext *engineContext) {
         m_Coordinator = engineContext->p_coordinator.get();
+        p_jobSystem = engineContext->p_jobSystem.get();
+        p_commandDispatcher = engineContext->p_commandDispatcher.get();
 
         for(auto const& entity: entities){
             auto scriptComponent = m_Coordinator->getComponent<ilen::ecs::components::ScriptingBridgeComponent>(entity);
@@ -25,11 +28,39 @@ namespace ilen::ecs::systems {
     void ScriptingSystem::Update() {
         {
             ilen::time::ScopedTimer timer("Scripting Update method");
-            for(auto const& entity: entities){
-                auto scriptComponent = m_Coordinator->getComponent<ilen::ecs::components::ScriptingBridgeComponent>(entity);
-                if(scriptComponent->instance){
-                    scriptComponent->instance->Update();
+
+            std::vector<Entity> entityList(entities.begin(), entities.end());
+            size_t total = entityList.size();
+            size_t numThreads = p_jobSystem->AvailableThreads();
+            size_t chunkSize = (total + numThreads - 1) / numThreads;
+            size_t numChunks = (total + chunkSize - 1) / chunkSize;
+
+            {
+                ilen::time::ScopedTimer timer("Scripting Update method -- Paralelized execution");
+                ilen::job_system::JobGroup group;
+
+                for(int i = 0; i < numChunks; i++){
+                    size_t start = i * chunkSize;
+                    size_t end = std::min(start + chunkSize, total);
+
+                    p_jobSystem->SubmitJob([this, &entityList, start, end]() {
+                        for(size_t j = start; j < end; j++){
+                            auto entity = entityList[j];
+                            auto scriptComponent = m_Coordinator->getComponent<ilen::ecs::components::ScriptingBridgeComponent>(entity);
+                            if(scriptComponent->instance){
+                                scriptComponent->instance->Update();
+                            }
+                        }
+                    }, &group);
                 }
+
+                group.Wait();
+            }
+            
+            {
+                ilen::time::ScopedTimer timer("Scripting Update method -- API pools executian, and ECS command pool execution");
+                ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();                
+                p_commandDispatcher->ExecuteAll();
             }
         }
     }

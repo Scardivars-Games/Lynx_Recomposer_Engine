@@ -12,7 +12,7 @@ namespace ilen::internal{
 
         return "";
     }
-
+#if !ILEN_DISABLE_BASIC_LOGGIN
     void Debug::Log(const char* content, const char* prefijo, ...){
         std::lock_guard<std::mutex> lock(logMutex);
         char messageBuffer[4096];
@@ -26,6 +26,7 @@ namespace ilen::internal{
 
         std::cout << "\033[32m[DEBUG"<< preparatePrefix(prefijo) << ":] \033[0m" << messageBuffer << std::endl;
     }
+#endif
 
     void Debug::Warning(const char* content, const char* prefijo, ...) {
         std::lock_guard<std::mutex> lock(logMutex);

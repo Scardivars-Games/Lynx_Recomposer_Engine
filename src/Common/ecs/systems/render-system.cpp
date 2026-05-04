@@ -33,7 +33,7 @@ namespace ilen::ecs::systems {
         auto visibility = p_Coordinator->getComponent<VisibilityComponent>(entity);
 
         if (visibility == nullptr) {
-            p_Coordinator->addComponent(entity, VisibilityComponent{});
+            p_Coordinator->setComponent(entity, VisibilityComponent{});
         }
     }
 
@@ -48,7 +48,7 @@ namespace ilen::ecs::systems {
             if(solitudeResult.lock() != nullptr && runtimeID != 0){
                 //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
                 StaticRenderingData data{solitudeResult, runtimeID};
-                p_Coordinator->addComponent(entity, std::move(data));
+                p_Coordinator->setComponent(entity, std::move(data));
             }
             //continue; //Salta a la siguiente entidad, esta no puede hacer nada.
             //No hace continue porque sino anularia para ese frame empezar la creación del PSO
@@ -78,7 +78,7 @@ namespace ilen::ecs::systems {
             if (psoSolicitude.lock() != nullptr && runtimeID != 0) {
                 //ILEN_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
                 StaticMaterialRenderingData data{psoSolicitude, runtimeID};
-                p_Coordinator->addComponent(entity, std::move(data));
+                p_Coordinator->setComponent(entity, std::move(data));
             }
         }
     }

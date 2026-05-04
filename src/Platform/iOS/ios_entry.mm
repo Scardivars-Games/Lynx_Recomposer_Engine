@@ -1,5 +1,5 @@
 //ENTRY POINT FOR iOS
-
+#if ILEN_IOS
 #import <UIKit/UIKit.h>
 #include <ilen/core/lifetime.h>
 #include <ilen/headers/ilen-logs.h>
@@ -46,7 +46,7 @@
     metadata.applicationName = "ILEN Test";
     metadata.applicationDeveloper = "Scardivar's Games";
     metadata.applicationVersion = "0.0.1";
-    metadata.iOSUIWindow = (__bridge void*)self.window;
+    metadata.mobileNativeWindow = (__bridge void*)self.window;
     
     try {
         self.app -> init(metadata);
@@ -124,3 +124,4 @@ int main(int argc, char* argv[]) {
     }
 }
 
+#endif //ILEN_IOS

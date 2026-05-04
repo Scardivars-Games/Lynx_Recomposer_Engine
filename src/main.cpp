@@ -3,7 +3,7 @@
 #include <TargetConditionals.h>
 #endif
 
-#if !TARGET_OS_IOS //Si esta app no es de iOS
+#if ILEN_DESKTOP //Si esta app no es de iOS
 #include <ilen/headers/core.h>
 #include <ilen/headers/visual.h>
 #include <ilen/headers/enumerations.h>

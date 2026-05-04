@@ -14,13 +14,23 @@
 
 
 //Macros para el loggin
-
-#define ILEN_LOG(format, ...) \
-    do { \
-        char prefixBuffer[1024]; \
-        snprintf(prefixBuffer, sizeof(prefixBuffer), "%s:%d", __ILEN_FILENAME__, __LINE__); \
-        ilen::internal::Debug::Log(format, prefixBuffer, ##__VA_ARGS__); \
-    } while (0)
+#if !ILEN_DISABLE_BASIC_LOGGIN
+    #define ILEN_LOG(format, ...) \
+        do { \
+            char prefixBuffer[1024]; \
+            snprintf(prefixBuffer, sizeof(prefixBuffer), "%s:%d", __ILEN_FILENAME__, __LINE__); \
+            ilen::internal::Debug::Log(format, prefixBuffer, ##__VA_ARGS__); \
+        } while (0)
+    #define ILEN_LOG_P(prefix, format, ...) \
+        do { \
+            char prefixBuffer[1024]; \
+            snprintf(prefixBuffer, sizeof(prefixBuffer), "%s (%s:%d)", prefix, __ILEN_FILENAME__, __LINE__); \
+            ilen::internal::Debug::Log(format, prefixBuffer, ##__VA_ARGS__); \
+        } while (0)
+#else
+    #define ILEN_LOG(...)
+    #define ILEN_LOG_P(...)
+#endif
 
 #define ILEN_WARNING(format, ...) \
     do { \
@@ -52,12 +62,6 @@
 
 
 //Set con prefijo personalizado!!!!
-#define ILEN_LOG_P(prefix, format, ...) \
-    do { \
-        char prefixBuffer[1024]; \
-        snprintf(prefixBuffer, sizeof(prefixBuffer), "%s (%s:%d)", prefix, __ILEN_FILENAME__, __LINE__); \
-        ilen::internal::Debug::Log(format, prefixBuffer, ##__VA_ARGS__); \
-    } while (0)
     
 #define ILEN_WARNING_P(prefix, format, ...) \
     do { \

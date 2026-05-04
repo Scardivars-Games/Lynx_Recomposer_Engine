@@ -41,6 +41,8 @@ namespace ilen{
         ilen::time::Time::Init();
         engineContext->p_jobSystem = std::make_unique<ilen::job_system::JobSystem>();
         engineContext->p_jobSystem->Initializate();
+        engineContext->p_commandDispatcher = std::make_unique<ilen::job_system::CommandBufferDispatcher>();
+        engineContext->p_commandDispatcher->Init(engineContext->p_jobSystem->AvailableThreads());
 
         //Inicializando la presentiación del motor.
         application::Application::setApplicationData(metadata);
@@ -53,7 +55,7 @@ namespace ilen{
 
         //Inicializando los sistemas del ECS
         engineContext->p_coordinator = std::make_unique<ilen::ecs::ECSCoordinator>();
-        engineContext->p_coordinator->init();
+        engineContext->p_coordinator->init(engineContext.get());
 
         //Presentation
         using namespace ilen::window;
@@ -128,7 +130,7 @@ namespace ilen{
                 auto entity = engineContext->p_coordinator->createEntity();
                 components::ScriptingBridgeComponent script{};
                 script.bind<ilen::game::Triangle>();
-                engineContext->p_coordinator->addComponent(entity, std::move(script));
+                engineContext->p_coordinator->setComponent(entity, std::move(script));
         }
 
         //GravityTest :)
@@ -137,21 +139,21 @@ namespace ilen{
                 auto cube_gravity = engineContext->p_coordinator->createEntity(std::move(cubeMetadata));
                 components::ScriptingBridgeComponent cubeScript_Gravity{};
                 cubeScript_Gravity.bind<ilen::game::Cube>(); //Indicamos que tipo de script corresponde a este scripting.
-                engineContext->p_coordinator->addComponent(cube_gravity, std::move(cubeScript_Gravity));
+                engineContext->p_coordinator->setComponent(cube_gravity, std::move(cubeScript_Gravity));
         }
         {
                 components::EntityMetadataComponent groundMetadata {TagSystem::Ground, LayerSystem::Default, "Tierra"};
                 auto ground_gravity = engineContext->p_coordinator->createEntity(std::move(groundMetadata));
                 components::ScriptingBridgeComponent groundScript_gravity{};
                 groundScript_gravity.bind<ilen::game::Ground>(); //Indicamos que tipo de script corresponde a este scripting.
-                engineContext->p_coordinator->addComponent(ground_gravity, std::move(groundScript_gravity));
+                engineContext->p_coordinator->setComponent(ground_gravity, std::move(groundScript_gravity));
         }
         {
                 components::EntityMetadataComponent camMetadata {TagSystem::None, LayerSystem::None, "Camara"};
                 auto camera_gravity = engineContext->p_coordinator->createEntity(std::move(camMetadata));
                 components::ScriptingBridgeComponent cameraScript_gravity{};
                 cameraScript_gravity.bind<ilen::game::GravityCamera>();
-                engineContext->p_coordinator->addComponent(camera_gravity, std::move(cameraScript_gravity));
+                engineContext->p_coordinator->setComponent(camera_gravity, std::move(cameraScript_gravity));
         }
 
 
@@ -185,7 +187,7 @@ namespace ilen{
         ilen::time::Time::setNewFrame();
 
 #ifdef ILEN_DEBUG
-        auto data = engineContext->p_coordinator->getDebugSnapshot();
+        //auto data = engineContext->p_coordinator->getDebugSnapshot();
         //ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
 #endif
     }
@@ -198,7 +200,7 @@ namespace ilen{
         const double fixedMethodTime = 1.0 / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
 
         double frameTime = ilen::time::Time::getDeltaTime();
-        //ILEN_LOG("FPS: %.2f", 1.0/frameTime);
+        ILEN_WARNING("FPS: %.2f", 1.0/frameTime);
 
         if(frameTime > 0.25) frameTime = 0.25; //Esto es para evitar si hay lag, no calcular millones de pasos de física.
 
@@ -298,7 +300,7 @@ namespace ilen{
         //Actualmente detiene el job system, que es el unico sistema que no se libera automaticamente por el OS.
         ILEN_LOG_P(DEBUG_PREFIX, "Shutting down engine");
 #ifdef ILEN_DEBUG
-        auto data = engineContext->p_coordinator->getDebugSnapshot();
+        //auto data = engineContext->p_coordinator->getDebugSnapshot();
        // ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
 #endif
 

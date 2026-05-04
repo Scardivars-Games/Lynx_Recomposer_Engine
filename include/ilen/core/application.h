@@ -22,22 +22,22 @@ namespace ilen::application{
         std::string applicationDeveloper = "";
         std::string applicationVersion = "";
         int applicationFramerate = 120;
-        #if !TARGET_OS_IOS //Plataforma móviles no necesitan el tamaño de la ventana
+        #if ILEN_DESKTOP //Plataforma móviles no necesitan el tamaño de la ventana
         int startWidth = 0, startHeight = 0;
         IlenWindowPropertiesFlags windowPropertiesFlags = 0; //Fullscreen
         #endif
-        #if TARGET_OS_IOS
-        void* iOSUIWindow = nullptr;
+        #if ILEN_MOBILE
+        void* mobileNativeWindow = nullptr;
         #endif
 
         bool isMetadataComplete() {
             bool platformSpecific = false;
-            #if !TARGET_OS_IOS
+            #if ILEN_DESKTOP
             platformSpecific = startWidth != 0 && startHeight != 0;
             #endif
 
-            #if TARGET_OS_IOS
-            platformSpecific = iOSUIWindow != nullptr;
+            #if ILEN_MOBILE
+            platformSpecific = mobileNativeWindow != nullptr;
            #endif
             
 

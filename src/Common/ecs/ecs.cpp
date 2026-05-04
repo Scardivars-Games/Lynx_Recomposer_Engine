@@ -6,10 +6,12 @@
 using namespace ilen::ecs;
 
 //Coordinator
-void ECSCoordinator::init() {
+void ECSCoordinator::init(const ilen::EngineContext* engineContext) {
     entityManager = std::make_unique<EntityManager>();
     componentManager = std::make_unique<ComponentManager>();
     systemManager = std::make_unique<SystemManager>();
+
+    p_commandDispatcher = engineContext->p_commandDispatcher.get();
 }
 
 uint32_t noNamedIndex = 0; 
@@ -20,13 +22,13 @@ Entity ECSCoordinator::createEntity(){
     components::EntityMetadataComponent metadata {TagSystem::None, LayerSystem::Default, newName};
     auto entity = entityManager ->createEntity();
 
-    addComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
+    setComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
     return entity;
 }
 
 Entity ECSCoordinator::createEntity(components::EntityMetadataComponent&& metadata){
     auto entity = entityManager->createEntity();
-    addComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
+    setComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
     return entity;
 }
 

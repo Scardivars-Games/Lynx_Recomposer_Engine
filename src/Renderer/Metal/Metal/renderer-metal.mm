@@ -25,8 +25,9 @@ namespace ilen::render {
             
 #ifdef ILEN_MACOS
             _metalView = (__bridge NSView*)native_surface;
-#elif defined ILEN_IOS
+#elif defined ILEN_IOS || ILEN_TVOS
             _metalView = (__bridge UIView*)native_surface;
+            
 #endif
             _metalLayer = (CAMetalLayer*)_metalView.layer;
             _device = _metalLayer.device;
@@ -58,16 +59,18 @@ namespace ilen::render {
             
             _predefinedValues.screenPixelFormat = _metalLayer.pixelFormat;
             _predefinedValues.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
-            #if TARGET_OS_OSX
+            #if ILEN_MACOS
             _predefinedValues.clearColor = MTLClearColor(0.1, 0.1, 0.2, 1.0);
-            #elif TARGET_OS_IOS
+            #elif ILEN_IOS
             _predefinedValues.clearColor = MTLClearColor(0.5, 0.2, 0.2, 1.0);
+            #elif ILEN_TVOS
+            _predefinedValues.clearColor = MTLClearColor(0.83, 0.68, 0.21, 1.0);
             #endif //TARGET_OS_IOS
             
             #if ILEN_MACOS
             //Cargar .metallib
             NSString* libraryPath = [[NSBundle mainBundle] pathForResource:@"ilen" ofType:@"metallib" inDirectory:@"shader-code"];
-            #elif ILEN_IOS
+            #elif ILEN_IOS || ILEN_TVOS
             NSString* libraryPath = [[NSBundle mainBundle] pathForResource:@"ilen" ofType:@"metallib" inDirectory:@"assets/shader-code"];
             #endif
             

@@ -103,7 +103,7 @@ namespace ilen::render {
             if(encoderDesc->colorAttachments.size() > 0){
                 colorAttach.pixelFormat = transformEngineToNativePixelFormat(encoderDesc->colorAttachments[0]->texture->getDescriptor().pixelFormat, predefinedVal.screenPixelFormat);
             }else{
-                colorAttach.pixelFormat = MTLPixelFormatInvalid;
+                colorAttach.pixelFormat = MTLPixelFormatBGRA8Unorm; //Esto debería ser invalid, pero el simulador de iOS no le gusta
             }
             
             if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){

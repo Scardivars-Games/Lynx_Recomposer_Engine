@@ -59,7 +59,7 @@ namespace ilen::window{
         actualHeight = 0;
         _windowChanged.store(false);
         
-        nativeWindow = (__bridge UIWindow*)metadata.iOSUIWindow;
+        nativeWindow = (__bridge UIWindow*)metadata.mobileNativeWindow;
         
         /*
         CGRect frame = [[UIScreen mainScreen] bounds];

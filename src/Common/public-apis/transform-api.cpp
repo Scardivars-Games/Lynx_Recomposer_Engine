@@ -3,44 +3,53 @@
 using namespace ilen::engine::api;
 using namespace ilen::ecs::components;
 
-void TransformAPI::Init(ilen::ecs::ECSCoordinator* coordinator){
-    p_coordinator = coordinator;
-}
+// transform.cpp
+void TransformAPI::Init(const ilen::EngineContext* context) {
+    p_coordinator = context->p_coordinator.get();
+    size_t numThreads = context->p_jobSystem->AvailableThreads();
+    s_threadAccumulators.resize(numThreads + 1);
 
-void TransformAPI::CheckInit(){
-    if(p_coordinator == nullptr){
-        ILEN_EXECUTE_ERROR_P("TRANSFORM_API", "Not initilized Tranform API. Please initialize it from a central executable code, like the init of transform system");
+    for (auto& ta : s_threadAccumulators) {
+        ta.orders.resize(ilen::ecs::MAX_ENTITIES);           // pre-alocado
+        ta.touched.reserve(ilen::ecs::MAX_ENTITIES / numThreads + 1024);
     }
 }
 
-void TransformAPI::Translate(ilen::ecs::Entity entity, Vector3 traslation){
-    CheckInit();
-    Traslate_TransformOrder traslateComp{};
-    traslateComp.traslation = traslation;
-
-    p_coordinator->addComponent(entity, std::move(traslateComp));
+void TransformAPI::Translate(Entity e, vec3 delta) {
+    accumulate(e, [&](TransformOrder& o){ o.translation += delta; });
 }
 
-void TransformAPI::Rotate(ilen::ecs::Entity entity, Vector3 rotation) {
-    CheckInit();
-    Rotation_TransformOrder rotationComp{};
-    rotationComp.rotation = rotation;
-
-    p_coordinator->addComponent(entity, std::move(rotationComp));
+void TransformAPI::Rotate(Entity e, vec3 euler) {
+    accumulate(e, [&](TransformOrder& o){ o.rotation += euler; });
 }
 
-void TransformAPI::Rotate(ilen::ecs::Entity entity, Vector3 axis, float rotation) {
-    CheckInit();
-    Rotation_TransformOrder rotationComp{};
-    rotationComp.rotation = axis * rotation;
-
-    p_coordinator->addComponent(entity, std::move(rotationComp));
+void TransformAPI::Rotate(Entity e, vec3 axis, float angle) {
+    accumulate(e, [&](TransformOrder& o){ o.rotation += axis * angle; });
 }
 
-void TransformAPI::Scale(ilen::ecs::Entity entity, float scale){
-    CheckInit();
-    Scale_TransformOrder scaleComp{};
-    scaleComp.scale = vec3(1,1,1) * scale;
+void TransformAPI::Scale(Entity e, vec3 factor) {
+    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= factor; });
+}
 
-    p_coordinator->addComponent(entity, std::move(scaleComp));
+void TransformAPI::Scale(Entity e, float uniform) {
+    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= uniform; });
+}
+
+void TransformAPI::ExecuteAllAccumulatedTransform() {
+    if (!p_coordinator) return;
+
+    for (auto& ta : s_threadAccumulators) {
+        for (Entity e : ta.touched) {
+            auto& order = ta.orders[e];
+            if (order.hasOrders) {
+                p_coordinator->setComponent(e, std::move(order));
+            }
+        }
+
+        // Reset solo de las tocadas (muy rápido)
+        for (Entity e : ta.touched) {
+            ta.orders[e] = TransformOrder{};   // reset a default
+        }
+        ta.touched.clear();
+    }
 }

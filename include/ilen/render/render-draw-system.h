@@ -64,5 +64,5 @@ namespace ilen::ecs::systems {
     };
 }
 
-REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::RenderDrawSystem, ilen::ecs::SystemPhase::Render, 0)
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::RenderDrawSystem, ilen::ecs::SystemPhase::Render, 1)
 REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::RenderDrawSystem, ilen::ecs::components::RenderComponent)

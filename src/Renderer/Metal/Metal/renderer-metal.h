@@ -9,7 +9,7 @@
 
 #if defined ILEN_MACOS
 #import <Cocoa/Cocoa.h>
-#elif defined ILEN_IOS
+#elif defined ILEN_IOS || ILEN_TVOS
 #import <UIKit/UIKit.h>
 #endif
 
@@ -31,8 +31,8 @@ namespace ilen::render {
             id<MTLLibrary> _ilenMetalLibrary;
 #ifdef ILEN_MACOS
             NSView* _metalView;
-#elif defined ILEN_IOS
-        UIView* _metalView;
+#elif defined ILEN_IOS || ILEN_TVOS
+            UIView* _metalView;
 #endif
             CAMetalLayer* _metalLayer;
 

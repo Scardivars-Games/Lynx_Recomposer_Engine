@@ -1,14 +1,30 @@
 {
     "version": "0.2.0",
     "configurations": [
+        
         {
-            "name": "(lldb) Iniciar",
-            "type": "lldb-dap",
+            "name": "(lldb) Iniciar Release",
+            "type": "cppdbg",
             "request": "launch",
+            "MIMode" : "lldb",
+            "program": "${workspaceFolder}/build/release-opt-metalhud/ilen-engine.app/Contents/MacOS/ilen-engine",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "osx": {
+                "MIMode": "lldb"
+            }
+        },
+        {
+            "name": "(lldb) Iniciar Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "MIMode" : "lldb",
             "program": "${workspaceFolder}/build/debug/ilen-engine.app/Contents/MacOS/ilen-engine",
             "args": [],
-            "stopOnEntry": false,
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "osx": {
+                "MIMode": "lldb"
+            }
         }
     ]
 }

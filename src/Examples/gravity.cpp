@@ -18,17 +18,17 @@ void Cube::Init() {
     TransformComponent transform{};
     transform.position = vec3(0.0f, 2.0f, 0.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
-    coordinator->addComponent(entity, std::move(transform));
+    coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
     render.meshID = 2;
     render.mainTexID = 0;
     render.materialID = 5;
-    coordinator->addComponent(entity, std::move(render)); 
+    coordinator->setComponent(entity, std::move(render)); 
 
     Rigidbody2D rigidbody{};
     rigidbody.gravityScale = 1.0f;
-    coordinator->addComponent(entity, std::move(rigidbody));
+    coordinator->setComponent(entity, std::move(rigidbody));
 }
 
 void Ground::Init() {   
@@ -39,24 +39,24 @@ void Ground::Init() {
     TransformComponent transform{};
     transform.position = vec3(0.0f, -8.0f, 0.0f);
     transform.scale = vec3(20.0f, 1.0f, 1.0f);
-    coordinator->addComponent(entity, std::move(transform));
+    coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
     render.meshID = 2;
     render.mainTexID = 0;
     render.materialID = 5;
-    coordinator->addComponent(entity, std::move(render)); 
+    coordinator->setComponent(entity, std::move(render)); 
 
     Rigidbody2D rigidbody{};
     rigidbody.gravityScale = 1.0f;
-    coordinator->addComponent(entity, std::move(rigidbody));
+    coordinator->setComponent(entity, std::move(rigidbody));
 }
 
 void GravityCamera::Init() {
     TransformComponent transform{};
     transform.position = vec3(0.0f, 0.0f, -10.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
-    coordinator->addComponent(entity, std::move(transform));
+    coordinator->setComponent(entity, std::move(transform));
 
     CameraComponent camera{};
     camera.isPrimary = true;
@@ -64,7 +64,7 @@ void GravityCamera::Init() {
     camera.orthoSize = 15;
     //camera.nearClip = 5;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
-    coordinator->addComponent(entity, std::move(camera));
+    coordinator->setComponent(entity, std::move(camera));
 }
 
 #endif //!ILEN_ONLY_ECS

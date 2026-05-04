@@ -2,6 +2,7 @@
 
 #include <ilen/ecs/types.h>
 #include <ilen/headers/ecs-managers.h>
+#include <ilen/core/engine-context.h>
 #include <memory>
 #include <vector>
 
@@ -39,7 +40,7 @@ namespace ilen::ecs {
 
     class ECSCoordinator {
         public:
-            void init();
+            void init(const ilen::EngineContext* engineContext);
 
             //Entidaded
             Entity createEntity();
@@ -52,19 +53,54 @@ namespace ilen::ecs {
                 componentManager->registerComponent<T>();
             }
 
-            template<typename T>
+            /*template<typename T>
             void addComponent(Entity entity, T&& component){
-                using DecayedType = typename std::decay<T>::type;
-                componentManager->addComponent<DecayedType>(entity, std::forward<T>(component));
-                auto signature = entityManager->getSignature(entity);
-                signature.set(componentManager->getComponentType<DecayedType>(), true);
-                entityManager->setSignature(entity, signature);
-                systemManager->entitySignatureChanged(entity, signature);
+                if(ilen::core::threading::t_IsMainThread){
+                    using DecayedType = typename std::decay<T>::type;
+                    componentManager->addComponent<DecayedType>(entity, std::forward<T>(component));
+                    auto signature = entityManager->getSignature(entity);
+                    signature.set(componentManager->getComponentType<DecayedType>(), true);
+                    entityManager->setSignature(entity, signature);
+                    systemManager->entitySignatureChanged(entity, signature);
+                } else {
+                    auto& localBuffer = p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex);
+
+                    localBuffer.push([this, entity, comp = std::forward<T>(component)]() mutable {
+                        this->addComponent<T>(entity, std::move(comp));
+                    });
+                }
+            }*/
+
+            template<typename T>
+            void setComponent(Entity entity, T&& component){
+                if(ilen::core::threading::t_IsMainThread){
+                    using DecayedType = typename std::decay<T>::type;
+                    bool wasNew = !hasComponent<DecayedType>(entity);
+
+                    componentManager->setComponent<DecayedType>(entity, std::forward<T>(component));
+
+                    if(wasNew){
+                        auto signature = entityManager->getSignature(entity);
+                        signature.set(componentManager->getComponentType<DecayedType>(), true);
+                        entityManager->setSignature(entity, signature);
+                        systemManager->entitySignatureChanged(entity, signature);
+                    }
+                } else {
+                    auto& localBuffer = p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex);
+                    localBuffer.push([this, entity, comp = std::forward<T>(component)]() mutable {
+                        this->setComponent<T>(entity, std::move(comp));
+                    });
+                }
             }
 
             template<typename T>
             T* getComponent(Entity entity){
                 return componentManager->getComponent<T>(entity);
+            }
+
+            template<typename T>
+            ComponentArray<typename std::decay<T>::type>* getComponentArray(){
+                return componentManager->getComponentArray<T>();
             }
 
             template<typename T>
@@ -90,11 +126,19 @@ namespace ilen::ecs {
 
             template<typename T>
             void removeComponent(Entity entity){
-                componentManager->removeComponent<T>(entity);
-                auto signature = entityManager->getSignature(entity);
-                signature.set(componentManager->getComponentType<T>(), false);
-                entityManager->setSignature(entity, signature);
-                systemManager->entitySignatureChanged(entity, signature);
+                if(ilen::core::threading::t_IsMainThread){
+                    componentManager->removeComponent<T>(entity);
+                    auto signature = entityManager->getSignature(entity);
+                    signature.set(componentManager->getComponentType<T>(), false);
+                    entityManager->setSignature(entity, signature);
+                    systemManager->entitySignatureChanged(entity, signature);
+                } else {
+                    auto& localBuffer = p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex);
+
+                    localBuffer.push([this, entity]() mutable {
+                        this->removeComponent<T>(entity);
+                    });
+                }
             }
 
             template<typename T>
@@ -122,5 +166,7 @@ namespace ilen::ecs {
             std::unique_ptr<EntityManager> entityManager;
             std::unique_ptr<ComponentManager> componentManager;
             std::unique_ptr<SystemManager> systemManager;
+            
+            ilen::job_system::CommandBufferDispatcher* p_commandDispatcher = nullptr;
     };
 }

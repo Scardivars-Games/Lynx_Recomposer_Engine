@@ -36,8 +36,8 @@ namespace ilen::maths::matrix{
         //bool isRowMajor = false;
         
         //A partir de un índices dentro de [] obtienes el vector correspondiente que representa esa columna en la matrix.
-        Vector<T, Rows>& operator[](size_t colIndex) { return data[colIndex]; };
-        const Vector<T, Rows>& operator[](size_t colIndex) const { return data[colIndex]; };
+        constexpr inline Vector<T, Rows>& operator[](size_t colIndex) { return data[colIndex]; };
+        constexpr inline const Vector<T, Rows>& operator[](size_t colIndex) const { return data[colIndex]; };
 
         //Constructor por defecto. Genera una nueva matriz llena de 0;
         Matrix() = default;
@@ -55,15 +55,23 @@ namespace ilen::maths::matrix{
 
         //Matriz de identidad
         //Esta función crea una matriz de identidad (su diagonal se compone del valor 1)
-        static Matrix<T, Rows, Rows> identity(){
-            Matrix<T, Rows, Rows> result;
-            for(size_t i = 0; i < Cols; i++){
-                for(size_t j = 0; j < Rows; j++){
-                    result[i][j] = (i == j) ? T(1.0) : T(0.0);
+        static constexpr inline Matrix identity(){
+            if constexpr (Cols == Rows && Cols == 4){
+                Matrix result = {};
+                result[0][0] = static_cast<T>(1.0);
+                result[1][1] = static_cast<T>(1.0);
+                result[2][2] = static_cast<T>(1.0);
+                result[3][3] = static_cast<T>(1.0);
+                return result;
+            }else{
+                Matrix result = {};
+                size_t minDim = (Rows < Cols) ? Rows : Cols;
+                for(size_t i = 0; i < minDim; i++) {
+                    result[i][i] = static_cast<T>(1.0);
                 }
+                //result.isRowMajor = false;
+                return result;
             }
-            //result.isRowMajor = false;
-            return result;
         }
 
         //Constructor a partir de valores individuales
@@ -94,11 +102,18 @@ namespace ilen::maths::matrix{
     //@param vec Vector a multiplicar
     // Matrix (R x C) * Vector (C) = Vector (R)
     template<typename T, size_t R, size_t C>
-    Vector<T, R> operator*(const Matrix<T, R, C>& mat, const Vector<T, C>& vec) {
-        Vector<T, R> result(T(0.0));
-        for (size_t row = 0; row < R; row++) {
-            for (size_t col = 0; col < C; col++) {
-                result[row] += mat[col][row] * vec[col];
+    constexpr inline Vector<T, R> operator*(const Matrix<T, R, C>& m, const Vector<T, C>& v){
+        Vector<T, R> result;
+        if constexpr (R == 4 && C == 4) {
+            result[0] = m[0][0]*v[0] + m[1][0]*v[1] + m[2][0]*v[2] + m[3][0]*v[3];
+            result[1] = m[0][1]*v[0] + m[1][1]*v[1] + m[2][1]*v[2] + m[3][1]*v[3];
+            result[2] = m[0][2]*v[0] + m[1][2]*v[1] + m[2][2]*v[2] + m[3][2]*v[3];
+            result[3] = m[0][3]*v[0] + m[1][3]*v[1] + m[2][3]*v[2] + m[3][3]*v[3];        
+        } else{
+            for(size_t r = 0; r < R; ++r) {
+                T sum = 0;
+                for(size_t c = 0; c < C; ++c) sum += m[c][r] * v[c];
+                result[r] = sum;
             }
         }
         return result;
@@ -106,65 +121,78 @@ namespace ilen::maths::matrix{
 
 
     // Matrix * Matrix (column-major)
-    template<typename T, size_t R, size_t C1, size_t C2>
-    Matrix<T, R, C2> operator*(const Matrix<T, R, C1>& mat1, const Matrix<T, C1, C2>& mat2) {
-        Matrix<T, R, C2> result(T(0.0));
-        for (size_t col2 = 0; col2 < C2; col2++) {         // columnas del resultado
-            for (size_t row = 0; row < R; row++) {         // filas del resultado
-                for (size_t k = 0; k < C1; k++) {          // columna de A / fila de B
-                    result[col2][row] += mat1[k][row] * mat2[col2][k];
+    template<typename T, size_t R1, size_t C1, size_t C2>
+    constexpr inline Matrix<T, R1, C2> operator*(const Matrix<T, R1, C1>& a, const Matrix<T, R1, C2>& b) {
+        Matrix<T, R1, C2> result;
+
+        if constexpr (R1 == 4 && C1 == 4 && C2 == 4) {
+            for(size_t col = 0; col < 4; col++){
+                result[col][0] = a[0][0]*b[col][0] + a[1][0]*b[col][1] + a[2][0]*b[col][2] + a[3][0]*b[col][3];
+                result[col][1] = a[0][1]*b[col][0] + a[1][1]*b[col][1] + a[2][1]*b[col][2] + a[3][1]*b[col][3];
+                result[col][2] = a[0][2]*b[col][0] + a[1][2]*b[col][1] + a[2][2]*b[col][2] + a[3][2]*b[col][3];
+                result[col][3] = a[0][3]*b[col][0] + a[1][3]*b[col][1] + a[2][3]*b[col][2] + a[3][3]*b[col][3];
+            }
+        } else {
+            for(size_t c = 0; c < C2; ++c) {
+                for(size_t r = 0; r < R1; ++r) {
+                    T sum = 0;
+                    for(size_t k = 0; k < C1; ++k) sum += a[k][r] * b[c][k];
+                    result[c][r] = sum;
                 }
             }
         }
+
         return result;
     }
 
 
     //Operación de traslación con matrices
     template<typename T>
-    Matrix<T, 4, 4> translate(const Matrix<T, 4, 4>& originalMatrix, const Vector<T, 3>& translationVector){
-        auto translateMatrix = Matrix<T, 4, 4>::identity();
-        translateMatrix[3][0] = translationVector.x;
-        translateMatrix[3][1] = translationVector.y;
-        translateMatrix[3][2] = translationVector.z;
-        return originalMatrix * translateMatrix;
+    constexpr inline Matrix<T, 4, 4> translate(const Matrix<T, 4, 4>& m, const Vector<T, 3>& v) {
+        Matrix<T, 4, 4> Result = m;
+        Result[3][0] = m[0][0] * v.x + m[1][0] * v.y + m[2][0] * v.z + m[3][0];
+        Result[3][1] = m[0][1] * v.x + m[1][1] * v.y + m[2][1] * v.z + m[3][1];
+        Result[3][2] = m[0][2] * v.x + m[1][2] * v.y + m[2][2] * v.z + m[3][2];
+        Result[3][3] = m[0][3] * v.x + m[1][3] * v.y + m[2][3] * v.z + m[3][3];
+        return Result;
     }
 
     //Operacion para escalar objetos mediante matrices
     template<typename T>
-    Matrix<T, 4, 4> scale(const Matrix<T, 4, 4>& originalMatrix, const Vector<T, 3>& scaleVector){
-        auto scaleMatrix = Matrix<T, 4, 4>::identity();
-        scaleMatrix[0][0] = scaleVector.x;
-        scaleMatrix[1][1] = scaleVector.y;
-        scaleMatrix[2][2] = scaleVector.z;
-        return originalMatrix * scaleMatrix;
+    constexpr inline Matrix<T, 4, 4> scale(const Matrix<T, 4, 4>& m, const Vector<T, 3>& v) {
+        Matrix<T, 4, 4> Result;
+        Result[0][0] = m[0][0] * v.x; Result[0][1] = m[0][1] * v.x; Result[0][2] = m[0][2] * v.x; Result[0][3] = m[0][3] * v.x;
+        Result[1][0] = m[1][0] * v.y; Result[1][1] = m[1][1] * v.y; Result[1][2] = m[1][2] * v.y; Result[1][3] = m[1][3] * v.y;
+        Result[2][0] = m[2][0] * v.z; Result[2][1] = m[2][1] * v.z; Result[2][2] = m[2][2] * v.z; Result[2][3] = m[2][3] * v.z;
+        Result[3][0] = m[3][0];       Result[3][1] = m[3][1];       Result[3][2] = m[3][2];       Result[3][3] = m[3][3];
+        return Result;
     }
 
     //Rotar matrices!!!
     template<typename T>
-    Matrix<T, 4, 4> rotate(const Matrix<T, 4, 4>& originalMatrix, const Radians& rotationAngle, const Vector<T, 3>& rotationAxis){
-        //El eje de rotación debe estar normalizado
-        Vector<T, 3> normalizedRotationAxis = vector::normalize(rotationAxis);
-        //Calculo de seno y coseno
-        T seno = sin(rotationAngle.getValue());
-        T coseno = cos(rotationAngle.getValue());
-        T oneMinusCos = 1.0f - coseno;
+    constexpr inline Matrix<T, 4, 4> createTRS(const Vector<T, 3>& pos, const Vector<T, 3>& rotRadians, const Vector<T, 3>& scale) {
+        Matrix<T, 4, 4> m;
+        T cx = std::cos(rotRadians.x), sx = std::sin(rotRadians.x);
+        T cy = std::cos(rotRadians.y), sy = std::sin(rotRadians.y);
+        T cz = std::cos(rotRadians.z), sz = std::sin(rotRadians.z);
 
-        //Matriz de rotación
-        auto rotateMatrix = Matrix<T, 4, 4>::identity();
-        rotateMatrix[0][0] = oneMinusCos * normalizedRotationAxis.x * normalizedRotationAxis.x + coseno;
-        rotateMatrix[0][1] = oneMinusCos * normalizedRotationAxis.x * normalizedRotationAxis.y - seno * normalizedRotationAxis.z;
-        rotateMatrix[0][2] = oneMinusCos * normalizedRotationAxis.x * normalizedRotationAxis.z + seno * normalizedRotationAxis.y;
+        m[0][0] = scale.x * (cy * cz);
+        m[0][1] = scale.x * (sx * sy * cz - cx * sz);
+        m[0][2] = scale.x * (cx * sy * cz + sx * sz);
+        m[0][3] = static_cast<T>(0.0);
 
-        rotateMatrix[1][0] = oneMinusCos * normalizedRotationAxis.x * normalizedRotationAxis.y + seno * normalizedRotationAxis.z;
-        rotateMatrix[1][1] = oneMinusCos * normalizedRotationAxis.y * normalizedRotationAxis.y + coseno;
-        rotateMatrix[1][2] = oneMinusCos * normalizedRotationAxis.y * normalizedRotationAxis.z - seno * normalizedRotationAxis.x;
+        m[1][0] = scale.y * (cy * sz);
+        m[1][1] = scale.y * (sx * sy * sz + cx * cz);
+        m[1][2] = scale.y * (cx * sy * sz - sx * cz);
+        m[1][3] = static_cast<T>(0.0);
 
-        rotateMatrix[2][0] = oneMinusCos * normalizedRotationAxis.x * normalizedRotationAxis.z - seno * normalizedRotationAxis.y;
-        rotateMatrix[2][1] = oneMinusCos * normalizedRotationAxis.y * normalizedRotationAxis.z + seno * normalizedRotationAxis.x;
-        rotateMatrix[2][2] = oneMinusCos * normalizedRotationAxis.z * normalizedRotationAxis.z + coseno;
+        m[2][0] = scale.z * (-sy);
+        m[2][1] = scale.z * (sx * cy);
+        m[2][2] = scale.z * (cx * cy);
+        m[2][3] = static_cast<T>(0.0);
 
-        return originalMatrix * rotateMatrix;
+        m[3][0] = pos.x; m[3][1] = pos.y; m[3][2] = pos.z; m[3][3] = static_cast<T>(1.0);
+        return m;
     }
 
     template<typename T>
@@ -203,7 +231,7 @@ namespace ilen::maths::matrix{
 
     template<typename T>
     Matrix<T, 4, 4> perspective(const Degrees& fov, const T& aspectRatio, const T& nearPlane, const T& farPlane, ILEN_GPU_GRAPHICS_API_TYPE GraphicsAPI) {
-        Radians fovInRadians(fov);
+        Radians fovInRadians(fov, ILEN_ANGLE_TYPE_DEGREES);
         
         /*T f = T(1.0) / tan(fovInRadians.getValue() / 2.0);
 
@@ -215,7 +243,7 @@ namespace ilen::maths::matrix{
         projectionMatrix[3][2] = T(1.0);
         projectionMatrix[3][3] = T(0.0);*/
 
-        T scalingFactor = T(1.0) / tan(fovInRadians.getValue() / T(2.0));
+        T scalingFactor = T(1.0) / tan(fovInRadians.value / T(2.0));
         Matrix<T, 4, 4> projectionMatrix(T(0.0));
         
         projectionMatrix[0][0] = scalingFactor / aspectRatio;
@@ -303,60 +331,41 @@ namespace ilen::maths::matrix{
     }
 
     template<typename T>
-    Matrix <T, 4, 4> inverse (const Matrix<T, 4, 4>& m) {
-        // Implementación de la matriz adjunta (¡column-major!)
-        T cof00 = m[2][2] * m[3][3] - m[3][2] * m[2][3];
-        T cof01 = m[2][1] * m[3][3] - m[3][1] * m[2][3];
-        T cof02 = m[2][1] * m[3][2] - m[3][1] * m[2][2];
-        T cof03 = m[2][0] * m[3][3] - m[3][0] * m[2][3];
-        T cof04 = m[2][0] * m[3][2] - m[3][0] * m[2][2];
-        T cof05 = m[2][0] * m[3][1] - m[3][0] * m[2][1];
-        T cof06 = m[1][2] * m[3][3] - m[3][2] * m[1][3];
-        T cof07 = m[1][1] * m[3][3] - m[3][1] * m[1][3];
-        T cof08 = m[1][1] * m[3][2] - m[3][1] * m[1][2];
-        T cof09 = m[1][0] * m[3][3] - m[3][0] * m[1][3];
-        T cof10 = m[1][0] * m[3][2] - m[3][0] * m[1][2];
-        T cof11 = m[1][0] * m[3][1] - m[3][0] * m[1][1];
-        T cof12 = m[1][2] * m[2][3] - m[2][2] * m[1][3];
-        T cof13 = m[1][1] * m[2][3] - m[2][1] * m[1][3];
-        T cof14 = m[1][1] * m[2][2] - m[2][1] * m[1][2];
-        T cof15 = m[1][0] * m[2][3] - m[2][0] * m[1][3];
-        T cof16 = m[1][0] * m[2][2] - m[2][0] * m[1][2];
-        T cof17 = m[1][0] * m[2][1] - m[2][0] * m[1][1];
+    constexpr inline Matrix<T, 4, 4> inverse(const Matrix<T, 4, 4>& m) {
+        Matrix<T, 4, 4> inv;
 
-        Matrix<T, 4, 4> adj;
-        adj[0][0] =  (m[1][1] * cof00 - m[1][2] * cof01 + m[1][3] * cof02);
-        adj[0][1] = -(m[0][1] * cof00 - m[0][2] * cof01 + m[0][3] * cof02);
-        adj[0][2] =  (m[0][1] * cof06 - m[0][2] * cof07 + m[0][3] * cof08);
-        adj[0][3] = -(m[0][1] * cof12 - m[0][2] * cof13 + m[0][3] * cof14);
-        adj[1][0] = -(m[1][0] * cof00 - m[1][2] * cof03 + m[1][3] * cof04);
-        adj[1][1] =  (m[0][0] * cof00 - m[0][2] * cof03 + m[0][3] * cof04);
-        adj[1][2] = -(m[0][0] * cof06 - m[0][2] * cof09 + m[0][3] * cof10);
-        adj[1][3] =  (m[0][0] * cof12 - m[0][2] * cof15 + m[0][3] * cof16);
-        adj[2][0] =  (m[1][0] * cof01 - m[1][1] * cof03 + m[1][3] * cof05);
-        adj[2][1] = -(m[0][0] * cof01 - m[0][1] * cof03 + m[0][3] * cof05);
-        adj[2][2] =  (m[0][0] * cof07 - m[0][1] * cof09 + m[0][3] * cof11);
-        adj[2][3] = -(m[0][0] * cof13 - m[0][1] * cof15 + m[0][3] * cof17);
-        adj[3][0] = -(m[1][0] * cof02 - m[1][1] * cof04 + m[1][2] * cof05);
-        adj[3][1] =  (m[0][0] * cof02 - m[0][1] * cof04 + m[0][2] * cof05);
-        adj[3][2] = -(m[0][0] * cof08 - m[0][1] * cof10 + m[0][2] * cof11);
-        adj[3][3] =  (m[0][0] * cof14 - m[0][1] * cof16 + m[0][2] * cof17);
+        inv[0][0] =  m[1][1]*m[2][2]*m[3][3] - m[1][1]*m[2][3]*m[3][2] - m[2][1]*m[1][2]*m[3][3] + m[2][1]*m[1][3]*m[3][2] + m[3][1]*m[1][2]*m[2][3] - m[3][1]*m[1][3]*m[2][2];
+        inv[1][0] = -m[1][0]*m[2][2]*m[3][3] + m[1][0]*m[2][3]*m[3][2] + m[2][0]*m[1][2]*m[3][3] - m[2][0]*m[1][3]*m[3][2] - m[3][0]*m[1][2]*m[2][3] + m[3][0]*m[1][3]*m[2][2];
+        inv[2][0] =  m[1][0]*m[2][1]*m[3][3] - m[1][0]*m[2][3]*m[3][1] - m[2][0]*m[1][1]*m[3][3] + m[2][0]*m[1][3]*m[3][1] + m[3][0]*m[1][1]*m[2][3] - m[3][0]*m[1][3]*m[2][1];
+        inv[3][0] = -m[1][0]*m[2][1]*m[3][2] + m[1][0]*m[2][2]*m[3][1] + m[2][0]*m[1][1]*m[3][2] - m[2][0]*m[1][2]*m[3][1] - m[3][0]*m[1][1]*m[2][2] + m[3][0]*m[1][2]*m[2][1];
 
-        T det = m[0][0] * adj[0][0] + m[0][1] * adj[1][0] + m[0][2] * adj[2][0] + m[0][3] * adj[3][0];
+        inv[0][1] = -m[0][1]*m[2][2]*m[3][3] + m[0][1]*m[2][3]*m[3][2] + m[2][1]*m[0][2]*m[3][3] - m[2][1]*m[0][3]*m[3][2] - m[3][1]*m[0][2]*m[2][3] + m[3][1]*m[0][3]*m[2][2];
+        inv[1][1] =  m[0][0]*m[2][2]*m[3][3] - m[0][0]*m[2][3]*m[3][2] - m[2][0]*m[0][2]*m[3][3] + m[2][0]*m[0][3]*m[3][2] + m[3][0]*m[0][2]*m[2][3] - m[3][0]*m[0][3]*m[2][2];
+        inv[2][1] = -m[0][0]*m[2][1]*m[3][3] + m[0][0]*m[2][3]*m[3][1] + m[2][0]*m[0][1]*m[3][3] - m[2][0]*m[0][3]*m[3][1] - m[3][0]*m[0][1]*m[2][3] + m[3][0]*m[0][3]*m[2][1];
+        inv[3][1] =  m[0][0]*m[2][1]*m[3][2] - m[0][0]*m[2][2]*m[3][1] - m[2][0]*m[0][1]*m[3][2] + m[2][0]*m[0][2]*m[3][1] + m[3][0]*m[0][1]*m[2][2] - m[3][0]*m[0][2]*m[2][1];
 
-        // Evitar división por cero
-        if (std::abs(det) < static_cast<T>(1e-6)) {
-            // Retornar identidad o manejar el error
-            return Matrix<T, 4, 4>::identity();
+        inv[0][2] =  m[0][1]*m[1][2]*m[3][3] - m[0][1]*m[1][3]*m[3][2] - m[1][1]*m[0][2]*m[3][3] + m[1][1]*m[0][3]*m[3][2] + m[3][1]*m[0][2]*m[1][3] - m[3][1]*m[0][3]*m[1][2];
+        inv[1][2] = -m[0][0]*m[1][2]*m[3][3] + m[0][0]*m[1][3]*m[3][2] + m[1][0]*m[0][2]*m[3][3] - m[1][0]*m[0][3]*m[3][2] - m[3][0]*m[0][2]*m[1][3] + m[3][0]*m[0][3]*m[1][2];
+        inv[2][2] =  m[0][0]*m[1][1]*m[3][3] - m[0][0]*m[1][3]*m[3][1] - m[1][0]*m[0][1]*m[3][3] + m[1][0]*m[0][3]*m[3][1] + m[3][0]*m[0][1]*m[1][3] - m[3][0]*m[0][3]*m[1][1];
+        inv[3][2] = -m[0][0]*m[1][1]*m[3][2] + m[0][0]*m[1][2]*m[3][1] + m[1][0]*m[0][1]*m[3][2] - m[1][0]*m[0][2]*m[3][1] - m[3][0]*m[0][1]*m[1][2] + m[3][0]*m[0][2]*m[1][1];
+
+        inv[0][3] = -m[0][1]*m[1][2]*m[2][3] + m[0][1]*m[1][3]*m[2][2] + m[1][1]*m[0][2]*m[2][3] - m[1][1]*m[0][3]*m[2][2] - m[2][1]*m[0][2]*m[1][3] + m[2][1]*m[0][3]*m[1][2];
+        inv[1][3] =  m[0][0]*m[1][2]*m[2][3] - m[0][0]*m[1][3]*m[2][2] - m[1][0]*m[0][2]*m[2][3] + m[1][0]*m[0][3]*m[2][2] + m[2][0]*m[0][2]*m[1][3] - m[2][0]*m[0][3]*m[1][2];
+        inv[2][3] = -m[0][0]*m[1][1]*m[2][3] + m[0][0]*m[1][3]*m[2][1] + m[1][0]*m[0][1]*m[2][3] - m[1][0]*m[0][3]*m[2][1] - m[2][0]*m[0][1]*m[1][3] + m[2][0]*m[0][3]*m[1][1];
+        inv[3][3] =  m[0][0]*m[1][1]*m[2][2] - m[0][0]*m[1][2]*m[2][1] - m[1][0]*m[0][1]*m[2][2] + m[1][0]*m[0][2]*m[2][1] + m[2][0]*m[0][1]*m[1][2] - m[2][0]*m[0][2]*m[1][1];
+
+        T det = m[0][0] * inv[0][0] + m[0][1] * inv[1][0] + m[0][2] * inv[2][0] + m[0][3] * inv[3][0];
+
+        if (std::abs(det) < static_cast<T>(0.000001)) {
+            return Matrix<T, 4, 4>::identity(); // Evitar división por cero
         }
 
         T invDet = static_cast<T>(1.0) / det;
-        for (size_t c = 0; c < 4; ++c) {
-            for (size_t r = 0; r < 4; ++r) {
-                adj[c][r] = adj[c][r] * invDet;
-            }
+        for (size_t i = 0; i < 4; i++) {
+            for (size_t j = 0; j < 4; j++) inv[i][j] *= invDet;
         }
-        return adj;
+
+        return inv;
     }
 
     //Definiciones de matrices

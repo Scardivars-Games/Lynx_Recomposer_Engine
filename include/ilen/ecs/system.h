@@ -7,6 +7,15 @@ namespace ilen{
     struct EngineContext;
 }
 
+namespace ilen::job_system {
+    class CommandBufferDispatcher;
+    class JobSystem;
+}
+
+namespace ilen::ecs {
+    class ECSCoordinator;
+}
+
 namespace ilen::ecs {
     enum class SystemPhase {
         FixedUpdate, //Datos que deben calcularse cada cierta cantidad fija
@@ -25,5 +34,9 @@ namespace ilen::ecs {
 
             virtual void Init(const EngineContext* engineContext) {};
             virtual void Update() {};
+        protected:
+            ilen::ecs::ECSCoordinator* m_Coordinator = nullptr;
+            ilen::job_system::JobSystem* p_jobSystem = nullptr;
+            ilen::job_system::CommandBufferDispatcher* p_commandDispatcher = nullptr;
     };
 }

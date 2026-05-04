@@ -63,7 +63,7 @@ namespace ilen::time{
             static inline float s_deltaTime = 0.0f;
     };
 
-
+#if !ILEN_DISABLE_BASIC_LOGGIN
     struct ScopedTimer {
         const char* name;
         std::chrono::time_point<std::chrono::high_resolution_clock> start;
@@ -84,4 +84,9 @@ namespace ilen::time{
             //std::cout << "[Profiler] " << name << ": " << ms << " ms\n";
         }
     };
+#else
+    struct ScopedTimer{
+           ScopedTimer(const char* name) {}; //Solo por compatibilidad 
+    };
+#endif
 }

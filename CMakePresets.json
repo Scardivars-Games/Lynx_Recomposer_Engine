@@ -1,53 +1,58 @@
 {
     "version": 3,
+    "cmakeMinimumRequired": {"major": 3, "minor": 20, "patch": 0},
     "configurePresets": [
         {
-            "name": "base",
-            "hidden": true,
+            "name" :  "Release -- Unoptimized",
+            "displayName" : "Release -- Unoptimized",
+            "description" : "Configura el proyecto en modo Release pero sin optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
             "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/${presetName}"
+            "binaryDir": "${sourceDir}/build/release-unoptimized",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name" :  "Release -- Optimized",
+            "displayName" : "Release -- Optimized",
+            "description" : "Configura el proyecto en modo Release con optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/release-opt",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ILEN_OPTIMIZED_BUILD_FLAGS": "ON"
+            }
+        },
+        {
+            "name" :  "Release -- Optimized + MetalHUD",
+            "displayName" : "Release -- Optimized + MetalHUD",
+            "description" : "Configura el proyecto en modo Release con optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/release-opt-metalhud",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "ILEN_OPTIMIZED_BUILD_FLAGS": "ON",
+                "ILEN_METAL_HUD": "ON"
+            }
         },
         {
             "name": "debug",
             "displayName": "Debug",
-            "inherits": "base",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "debug-metalhud",
+            "displayName": "Debug + MetalHUD",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/debug-metalhud",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "ILEN_METAL_HUD": "OFF"
-            }
-        },
-        {
-            "name": "debug-metal-hud",
-            "displayName": "Debug + Metal HUD",
-            "inherits": "base",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "ILEN_METAL_HUD": "ON"
-            }
-        },
-        {
-            "name": "release",
-            "displayName": "Release",
-            "inherits": "base",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "ILEN_METAL_HUD": "OFF"
-            }
-        },
-        {
-            "name": "release-metal-hud",
-            "displayName": "Release + Metal HUD",
-            "inherits": "base",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
                 "ILEN_METAL_HUD": "ON"
             }
         }
-    ],
-    "buildPresets": [
-        { "name": "debug",            "configurePreset": "debug" },
-        { "name": "debug-metal-hud",  "configurePreset": "debug-metal-hud" },
-        { "name": "release",          "configurePreset": "release" },
-        { "name": "release-metal-hud","configurePreset": "release-metal-hud" }
     ]
 }

@@ -13,7 +13,7 @@ void FileManager::Init(){
         NSString *resourcesPath = [[NSBundle mainBundle] resourcePath];
         s_applicationResourcesPath = resourcesPath ? [resourcesPath UTF8String] : "";
 
-        #if ILEN_IOS
+        #if ILEN_IOS || ILEN_TVOS
         s_applicationResourcesPath /= "assets";
         #endif
 

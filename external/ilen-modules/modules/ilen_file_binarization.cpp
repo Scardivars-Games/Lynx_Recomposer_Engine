@@ -20,6 +20,12 @@
 #include <future>
 #include <mutex>
 
+namespace ilen::core::threading {
+    std::thread::id g_MainThreadId;
+    thread_local bool t_IsMainThread = false;
+    thread_local size_t t_ThreadIndex = UNREGISTERED_THREAD;
+}
+
 using namespace ilen::enumerations;
 const char* DEBUG_PREFIX = "FILE_BINARIZATION";
 

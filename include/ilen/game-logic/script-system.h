@@ -18,13 +18,10 @@ namespace ilen::ecs::systems {
             void Update() override;
             void FixedUpdate() const;
             void LateUpdate() const;
-
-        private:
-            ilen::ecs::ECSCoordinator* m_Coordinator = nullptr;
     };
 }
 
-REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::ScriptingSystem, ilen::ecs::SystemPhase::PreRender, 0);
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::ScriptingSystem, ilen::ecs::SystemPhase::VariableUpdate, 0);
 REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::ScriptingSystem, ilen::ecs::components::ScriptingBridgeComponent);
 
 #endif //!ILEN_ONLY_ECS

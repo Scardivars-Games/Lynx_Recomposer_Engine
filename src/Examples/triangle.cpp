@@ -15,13 +15,13 @@ void Triangle::Init() {
     TransformComponent transform{};
     transform.position = vec3(randomX, randomY, -1.0f);
     transform.scale = vec3(0.5f, 0.5f, 0.5f);
-    coordinator->addComponent(entity, std::move(transform));
+    coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
     render.meshID = 2;
     render.mainTexID = 0;
     render.materialID = 5;
-    coordinator->addComponent(entity, std::move(render));
+    coordinator->setComponent(entity, std::move(render));
 }
 
 void Triangle::Update(){
@@ -49,14 +49,14 @@ void FalseCamera::Init() {
     TransformComponent transform{};
     transform.position = vec3(0.0f, 0.0f, -10.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
-    coordinator->addComponent(entity, std::move(transform));
+    coordinator->setComponent(entity, std::move(transform));
 
     CameraComponent camera{};
     camera.isPrimary = true;
     camera.fovDegrees = 70.0f;
     //camera.nearClip = 5;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
-    coordinator->addComponent(entity, std::move(camera));
+    coordinator->setComponent(entity, std::move(camera));
 }
 
 #endif //!ILEN_ONLY_ECS

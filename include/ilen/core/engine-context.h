@@ -2,6 +2,7 @@
 //Esta cabecera define el contexto del motor.
 #include <memory>
 #include <ilen/job-system/job-system.h>
+#include <ilen/job-system/command-buffers.h>
 
 namespace ilen::resources {
     class AssetsManager;
@@ -38,6 +39,7 @@ namespace ilen {
         std::unique_ptr<window::IWindow> p_gameWindow;
         std::unique_ptr<render::IRenderer> p_gameRenderer;
         std::unique_ptr<ilen::ecs::ECSCoordinator> p_coordinator;
+        std::unique_ptr<ilen::job_system::CommandBufferDispatcher> p_commandDispatcher;
 
         //Resources Managers
         std::unique_ptr<ilen::resources::AssetsManager> p_assetsManager;

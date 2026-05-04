@@ -1,7 +1,6 @@
 #pragma once
 //Header con la definición de color que usará ilen-engine
 #include <ilen/maths/vector.h>
-#include <external/json/json.hpp>
 
 namespace ilen::graphics {
     using namespace ilen::maths::vector;

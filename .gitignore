@@ -1,6 +1,7 @@
 out
 build
 build-ios
+build-tvOS
 build_macOS
 build-macOS
 build-linux-arm64

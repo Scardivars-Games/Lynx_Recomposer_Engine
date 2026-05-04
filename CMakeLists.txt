@@ -24,6 +24,19 @@ set(APP_BUILD_NUMBER "1")
 set(APP_COPYRIGHT "Copyright (c) 2025 Scardivar's Games. All rights reserved.")
 
 option(ILEN_METAL_HUD "Muestra el HUD de Metal para debuggear")
+option(ILEN_OPTIMIZED_BUILD_FLAGS "Activa flags de optimización agresivas. No recomendado para debuggear, o usar para apps que no sean juegos" OFF)
+
+if(CMAKE_SYSTEM_NAME MATCHES "iOS|tvOS")
+    set(ARCH_FLAGS -arch arm64 -mcpu=apple-a13)
+elseif(ANDROID)
+    if(CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
+        set(ARCH_FLAGS -march=armv8-a)
+    endif()
+elseif(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+    set(ARCH_FLAGS -arch arm64 -mcpu=apple-m1)
+else()
+    set(ARCH_FLAGS -march=x86-64-v3)
+endif()
 
 file(GLOB_RECURSE PROJECT_SOURCES src/main.cpp src/Common/*.cpp src/Examples/*.cpp)
 
@@ -31,6 +44,26 @@ if(NOT APPLE)
     add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
 else()
     add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SOURCES})
+endif()
+
+if(ILEN_OPTIMIZED_BUILD_FLAGS)
+    if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo")
+        message("Activando flags de optimización agresivas para build optimizada")
+        target_compile_options(${PROJECT_NAME} PRIVATE
+            -O3
+            ${ARCH_FLAGS}
+            -ffast-math
+            -flto=thin
+            -funroll-loops
+            -fomit-frame-pointer
+            -fstrict-vtable-pointers
+            -DNDEBUG
+        )
+
+        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+    else()
+        message(WARNING "ILEN_OPTIMIZED_BUILD_FLAGS está activado, pero la configuración actual no es Release o RelWithDebInfo. Las flags de optimización agresivas solo se aplicarán a builds optimizadas.")
+    endif()
 endif()
 
 #target_include_directories(${PROJECT_NAME} PRIVATE include)
@@ -148,14 +181,82 @@ if(APPLE)
 
             target_compile_options(${PROJECT_NAME} PRIVATE "-fno-objc-arc")
 
+    if(PLATFORM STREQUAL "SIMULATOR")
+        set(ILEN_METAL_SDK "iphonesimulator")
+    else()
+        set(ILEN_METAL_SDK "iphoneos")
+    endif()
+
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
-            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk iphoneos $<$<CONFIG:Debug>:--add-debug>
+            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk ${ILEN_METAL_SDK} $<$<CONFIG:Debug>:--add-debug>
             COMMENT "Compilando shader de metal para ser usados en iOS"
             VERBATIM
         )
 
         #iOS need also assets folder in the bundle
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
+        )
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        message("Configuration for tvOS")
+        
+        # Asumiendo una estructura de carpetas similar a iOS pero para tvOS
+        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/tvOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm)
+        set(NATIVE_HEADERS src/Platform/tvOS src/Platform/apple src/Renderer/Metal)
+
+        target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
+        
+        # Ajusta estas rutas a tus carpetas de iconos de tvOS (suelen ser capas LCR en lugar de imágenes planas)
+        set(ASSET_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS/icon/Assets.xcassets")
+        
+        set_source_files_properties(${ASSET_FOLDER} PROPERTIES RESOURCE TRUE)
+
+        target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES} ${ASSET_FOLDER})
+        
+        target_link_libraries(${PROJECT_NAME} PRIVATE 
+            "-framework Foundation" 
+            "-framework UIKit"
+            "-framework TVUIKit"
+        )
+
+        set_target_properties(${PROJECT_NAME} PROPERTIES        
+            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+            XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
+            MACOSX_BUNDLE TRUE
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/tvOS/Info.plist"
+            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.scardivargames.ilen-test"
+            MACOSX_BUNDLE_IDENTIFIER ${APP_IDENTIFIER}
+            MACOSX_BUNDLE_NAME ${APP_NAME}
+            MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
+            MACOSX_BUNDLE_VERSION ${APP_BUILD_NUMBER}
+            MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
+            XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
+            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "3QYB6BMV6T"
+            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
+            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_ASSET_PATHS "${ASSET_FOLDER}"
+            # "3" es el identificador para Apple TV
+            XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "3"
+        )
+
+
+        target_compile_options(${PROJECT_NAME} PRIVATE "-fno-objc-arc")
+
+        if(PLATFORM STREQUAL "SIMULATOR")
+            set(ILEN_METAL_SDK "appletvsimulator")
+        else()
+            set(ILEN_METAL_SDK "appletvos")
+        endif()
+
+        # Comando para shaders de Metal ajustado al SDK de tvOS
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
+            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk ${ILEN_METAL_SDK} $<$<CONFIG:Debug>:--add-debug>
+            COMMENT "Compilando shader de metal para ser usados en tvOS"
+            VERBATIM
+        )
+
+        # Copia de assets al bundle
         add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
         )
@@ -257,10 +358,12 @@ add_dependencies(${PROJECT_NAME} ILEN_FILE_BINARIZATION)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:ILEN_DEBUG>)
 
-if(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_MACOS=1;ILEN_SOURCES_FOLDER=\"${CMAKE_SOURCE_DIR}\"")
-elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_MOBILE=1;ILEN_IOS=1")
+elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_MOBILE=1;ILEN_TVOS=1")
+elseif(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_MACOS=1;ILEN_SOURCES_FOLDER=\"${CMAKE_SOURCE_DIR}\"")
 elseif(LINUX)
     target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_LINUX=1;VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1")
 elseif(WIN32)
@@ -273,3 +376,4 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "IGNORE_RENDERING=0") #Ignora
 target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=0") #Lanza una error window al empezar para revisar que se vea correctamente
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_ONLY_ECS=0") #Desactiva el sistema de scripting del motor, forzando a ser solamente ECS.
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_SINGLECORE_TEST=0") #Fuerza al sistema de Jobs tener 1 solo hilo disponible
+target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_BASIC_LOGGIN=0") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)

@@ -2,8 +2,9 @@
 
 #include <string>
 #include <filesystem>
+#include <istream>
 #include <ilen/headers/enumerations.h>
-#include <external/json/json.hpp>
+//#include <external/json/json.hpp>
 //#include <ilen/resources/assets-manager.h>
 #include <ilen/resources/binary_headers.h>
 #include <ilen/resources/assets-elements.h>

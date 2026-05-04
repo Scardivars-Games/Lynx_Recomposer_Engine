@@ -109,6 +109,17 @@ namespace ilen::ecs {
                 size--;
             }
 
+            void updateData(Entity entity, T&& component){
+                if(entity > MAX_ENTITIES) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+
+                size_t idx = entityToIndexMap[entity];
+                if(idx != INVALID_INDEX){
+                    componentArray[idx] = std::forward<T>(component);
+                } else {
+                    insertData(entity, std::forward<T>(component));
+                }
+            }
+
             T* getData(Entity entity) {
                 if(entity > MAX_ENTITIES) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
 
@@ -196,6 +207,17 @@ namespace ilen::ecs {
             }; //Elimina un componente a una enitdad
 
             template<typename T>
+            void setComponent(Entity entity, T&& component){
+                using DecayedType = typename std::decay<T>::type;
+                registerComponent<DecayedType>();
+
+                auto arrayPtr = std::static_pointer_cast<ComponentArray<DecayedType>>(
+                    componentArrays[std::type_index(typeid(DecayedType))]
+                );
+                arrayPtr->updateData(entity, std::forward<T>(component));
+            }
+
+            template<typename T>
             T* getComponent(Entity entity){
                 using DecayedType = typename std::decay<T>::type;
                 std::type_index typeIndex(typeid(DecayedType));
@@ -206,6 +228,21 @@ namespace ilen::ecs {
                 auto genericArrayPtr = componentArrays.at(typeIndex);
                 return std::static_pointer_cast<ComponentArray<DecayedType>>(genericArrayPtr)->getData(entity);
             }; //Regresa la referencia de un componente de una entidad.
+
+            //Retorna la referencia al arreglo que posee todos los componentes de un mismo tipo
+            template <typename T>
+            ComponentArray<typename std::decay<T>::type>* getComponentArray() {
+                using DecayedType = typename std::decay<T>::type;
+                std::type_index typeIndex(typeid(DecayedType));
+
+                if(componentArrays.find(typeIndex) == componentArrays.end()){
+                    //Tipo de componente no registrado.
+                    return nullptr;
+                }
+
+                auto genericArrayPtr = componentArrays.at(typeIndex);
+                return std::static_pointer_cast<ComponentArray<DecayedType>>(genericArrayPtr).get();
+            }
 
             template<typename T>
             bool entityHasComponent(Entity entity){
