@@ -49,12 +49,6 @@ void TransformAPI::ExecuteAllAccumulatedTransform() {
             if (!order.hasOrders) continue;
 
             orderArray->updateData(e, std::move(order));
-
-            /*auto* dest = orderArray->getData(e);
-            if(dest) {
-                *dest = std::move(order);
-            }*/
-
             order = TransformOrder{};
         }
         ta.touched.clear();

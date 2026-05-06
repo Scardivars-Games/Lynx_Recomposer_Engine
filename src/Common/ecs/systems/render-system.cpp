@@ -10,6 +10,11 @@ namespace ilen::ecs::systems {
         p_renderPipelineManager = engineContext->p_renderPipelineManager.get();
         p_materialManager = engineContext->p_materialManager.get();
         p_commandDispatcher = engineContext->p_commandDispatcher.get();
+
+        //Registramos los componentes que requiere esta cosa
+        p_coordinator->registerComponent<VisibilityComponent>();
+        p_coordinator->registerComponent<StaticRenderingData>();
+        p_coordinator->registerComponent<StaticMaterialRenderingData>();
     }
 
     void RenderSystem::Update() {
@@ -77,7 +82,8 @@ namespace ilen::ecs::systems {
         }
 
         if (visibility == nullptr) {
-            p_coordinator->setComponent(entity, VisibilityComponent{});
+            componentArray->updateData(entity, VisibilityComponent{});
+            //p_coordinator->setComponent(entity, VisibilityComponent{});
         }
     }
 
@@ -97,7 +103,8 @@ namespace ilen::ecs::systems {
             if(solitudeResult.lock() != nullptr && runtimeID != 0){
                 //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
                 StaticRenderingData data{solitudeResult, runtimeID};
-                p_coordinator->setComponent(entity, std::move(data));
+                componentArray->updateData(entity, std::move(data));
+                //p_coordinator->setComponent(entity, std::move(data));
             }
             //continue; //Salta a la siguiente entidad, esta no puede hacer nada.
             //No hace continue porque sino anularia para ese frame empezar la creación del PSO
@@ -132,7 +139,8 @@ namespace ilen::ecs::systems {
             if (psoSolicitude.lock() != nullptr && runtimeID != 0) {
                 //ILEN_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
                 StaticMaterialRenderingData data{psoSolicitude, runtimeID};
-                p_coordinator->setComponent(entity, std::move(data));
+                componentArray->updateData(entity, std::move(data));
+                //p_coordinator->setComponent(entity, std::move(data));
             }
         }
     }

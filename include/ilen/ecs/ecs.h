@@ -53,24 +53,6 @@ namespace ilen::ecs {
                 componentManager->registerComponent<T>();
             }
 
-            /*template<typename T>
-            void addComponent(Entity entity, T&& component){
-                if(ilen::core::threading::t_IsMainThread){
-                    using DecayedType = typename std::decay<T>::type;
-                    componentManager->addComponent<DecayedType>(entity, std::forward<T>(component));
-                    auto signature = entityManager->getSignature(entity);
-                    signature.set(componentManager->getComponentType<DecayedType>(), true);
-                    entityManager->setSignature(entity, signature);
-                    systemManager->entitySignatureChanged(entity, signature);
-                } else {
-                    auto& localBuffer = p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex);
-
-                    localBuffer.push([this, entity, comp = std::forward<T>(component)]() mutable {
-                        this->addComponent<T>(entity, std::move(comp));
-                    });
-                }
-            }*/
-
             template<typename T>
             void setComponent(Entity entity, T&& component){
                 if(ilen::core::threading::t_IsMainThread){

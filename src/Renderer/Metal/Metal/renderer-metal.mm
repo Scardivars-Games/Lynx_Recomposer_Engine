@@ -94,7 +94,7 @@ namespace ilen::render {
             _parallelCommandEncoder.resize(MAX_FRAMES_IN_FLIGHT);
 
             
-            size_t instanceBufferSize = 4 * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
+            size_t instanceBufferSize = ilen::core::options::GraphicsOptions::instanceBufferSizeInMB * 1024 * 1024; //Obtenemos el tamaño del buffer, de acuerdo a las opciones, y llevamos ese valor a los bytes que corresponden.
             for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
                 _instanceBuffer[i] = createInstanceBuffer(instanceBufferSize, "Instance Main Ring Buffer -> Frame " + std::to_string(_actualFrame));
             }

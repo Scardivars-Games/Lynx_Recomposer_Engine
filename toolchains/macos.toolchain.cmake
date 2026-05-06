@@ -6,4 +6,4 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "macOS deploy target for macOS, and internal tools")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "macOS deploy target for macOS, and internal tools")
