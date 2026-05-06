@@ -35,7 +35,7 @@ namespace ilen::ecs {
             virtual void Init(const EngineContext* engineContext) {};
             virtual void Update() {};
         protected:
-            ilen::ecs::ECSCoordinator* m_Coordinator = nullptr;
+            ilen::ecs::ECSCoordinator* p_coordinator = nullptr;
             ilen::job_system::JobSystem* p_jobSystem = nullptr;
             ilen::job_system::CommandBufferDispatcher* p_commandDispatcher = nullptr;
     };

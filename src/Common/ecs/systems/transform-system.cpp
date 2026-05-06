@@ -3,7 +3,7 @@
 
 namespace ilen::ecs::systems {
     void TransformSystem::Init(const ilen::EngineContext *engineContext) {
-        p_Coordinator = engineContext->p_coordinator.get();
+        p_coordinator = engineContext->p_coordinator.get();
         p_jobSystem = engineContext->p_jobSystem.get();
         p_commandDispatcher = engineContext->p_commandDispatcher.get();
 
@@ -22,8 +22,9 @@ namespace ilen::ecs::systems {
         size_t numChunks = (total + chunkSize - 1) / chunkSize;
 
         //obtener arrays
-        auto* transformArray = p_Coordinator->getComponentArray<TransformComponent>();
-        auto* orderArray = p_Coordinator->getComponentArray<TransformOrder>();
+        auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
+        auto* orderArray = p_coordinator->getComponentArray<TransformOrder>();
+        if(!transformArray) return;
 
         {
             ilen::time::ScopedTimer timer("Transform system -- Fase 1");
@@ -39,7 +40,9 @@ namespace ilen::ecs::systems {
 
                         auto* transform = transformArray->getData(entity);
                         if(!transform) continue;
-
+                        
+                        if(!orderArray) continue;
+                        
                         auto* order = orderArray->getData(entity);
                         if(order && order->hasOrders) {
                             transform->position += order->translation;
@@ -85,9 +88,9 @@ namespace ilen::ecs::systems {
                 size_t start = i * rootChunkSize;
                 size_t end = std::min(start + rootChunkSize, rootTotal);
 
-                p_jobSystem->SubmitJob([this, &rootEntities, start, end, &phase2]() {
+                p_jobSystem->SubmitJob([this, &rootEntities, start, end, &phase2, transformArray]() {
                     for(size_t j = start; j < end; j++) {
-                        calculateLocalToWorldMatrix(rootEntities[j], matrix::mat4::identity(), &phase2);
+                        calculateLocalToWorldMatrix(rootEntities[j], matrix::mat4::identity(), &phase2, transformArray);
                     }
                 }, &phase2);
             }
@@ -190,8 +193,8 @@ namespace ilen::ecs::systems {
         }*/
     }
 
-    void TransformSystem::calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, ilen::job_system::JobGroup* group) {
-        auto transform = p_Coordinator->getComponent<TransformComponent>(entity);
+    void TransformSystem::calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, ilen::job_system::JobGroup* group, ComponentArray<TransformComponent>* componentArray){
+        auto* transform = componentArray->getData(entity);
         if(!transform) return;
 
         // 1. Conversión hiper-rápida de grados a radianes para los 3 ejes a la vez.
@@ -208,8 +211,8 @@ namespace ilen::ecs::systems {
 
         // 4. Propagación a los hijos
         for(const auto& child: transform->childrens){
-            p_jobSystem->SubmitJob([this, child, worldMatrix = transform->localToWorldMatrix, group](){
-                calculateLocalToWorldMatrix(child, worldMatrix, group);
+            p_jobSystem->SubmitJob([this, child, worldMatrix = transform->localToWorldMatrix, group, componentArray](){
+                calculateLocalToWorldMatrix(child, worldMatrix, group, componentArray);
             }, group);
         }
     }

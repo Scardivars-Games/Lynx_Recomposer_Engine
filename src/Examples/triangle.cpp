@@ -10,8 +10,8 @@ void Triangle::Init() {
     //ILEN_LOG_P("TRIANGLE", "Inicializado triángulo de prueba");
 
     // Posición aleatoria entre -5 y 5 en X e Y
-    float randomX = -7.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 14.0f);
-    float randomY = -4.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 8.0f);
+    float randomX = -35.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 70.0f);
+    float randomY = -18.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 36.0f);
     TransformComponent transform{};
     transform.position = vec3(randomX, randomY, -1.0f);
     transform.scale = vec3(0.5f, 0.5f, 0.5f);

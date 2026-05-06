@@ -124,7 +124,7 @@ namespace ilen{
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        int elementosPrueba = 9000;
+        int elementosPrueba = 20000;
 
         for (int i = 0; i < elementosPrueba; i++) {
                 auto entity = engineContext->p_coordinator->createEntity();
@@ -247,12 +247,18 @@ namespace ilen{
                 ilen::time::ScopedTimer timer("Rendering execution");
                 //Renderizado        
                 if(engineContext->p_gameRenderer){
-                engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
-                //Aquí deberia poblarse el queue de dibujado.
-                for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::Render)){
-                        system->Update();
-                }
-                engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
+                        {
+                                ilen::time::ScopedTimer timer("Begin frame time");
+                                engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
+                        }
+                        //Aquí deberia poblarse el queue de dibujado.
+                        for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::Render)){
+                                system->Update();
+                        }
+                        {
+                                ilen::time::ScopedTimer timer("End frame time");
+                                engineContext->p_gameRenderer->endFrame(); //Cierra el encoding y manda a dibujar
+                        }
                 }
         }
 

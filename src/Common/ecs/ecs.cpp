@@ -47,7 +47,7 @@ EntityManager::EntityManager() {
 }
 
 Entity EntityManager::createEntity(){
-    assert(livingEntitiesCount < MAX_ENTITIES && "Demasiadas entidades en el sistema");
+    if (livingEntitiesCount > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Demasiadas entidades en el sistema");
 
     Entity id = avalaiblesEntities.front();
     avalaiblesEntities.pop();
@@ -59,7 +59,8 @@ Entity EntityManager::createEntity(){
 }
 
 void EntityManager::destroyEntity(Entity entity) {
-    assert(entity < MAX_ENTITIES && "Entidad fuera del rango");
+    if (entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Entidad fuera del rango");
+
     signatures[entity].reset();
     avalaiblesEntities.push(entity);
     livingEntitiesCount--;
@@ -69,12 +70,14 @@ void EntityManager::destroyEntity(Entity entity) {
 }
 
 void EntityManager::setSignature(Entity entity, Signature signature){
-    assert(entity < MAX_ENTITIES && "Entidad fuera del rango");
+    if (entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Entidad fuera del rango");
+
     signatures[entity] = signature;
 }
 
 Signature EntityManager::getSignature(Entity entity){
-    assert(entity < MAX_ENTITIES && "Entidad fuera del rango");
+    if (entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Entidad fuera del rango");
+
     return signatures[entity];
 }
 

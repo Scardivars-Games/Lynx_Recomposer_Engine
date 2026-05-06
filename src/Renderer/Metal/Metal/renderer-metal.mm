@@ -132,7 +132,7 @@ namespace ilen::render {
     }
 
 void MetalRender::beginFrame() {
-    
+   /* 
     //        ILEN_LOG("Waitin for frame %i. Start time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
     dispatch_semaphore_wait(_inFlightSemaphores, DISPATCH_TIME_FOREVER);
     //ILEN_LOG("Getted frame %i. End time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
@@ -143,12 +143,12 @@ void MetalRender::beginFrame() {
     
     //_currentDrawable = [metalView currentDrawable];
     
-    /*if(!_currentDrawable){
+    if(!_currentDrawable){
      _commandBuffer = nil;
      [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
      _frameAutoReleasePool = nil;
      return;
-     }*/
+     }
     
     //_drawables[_actualFrame] = [metalView currentDrawable];
     
@@ -160,17 +160,6 @@ void MetalRender::beginFrame() {
         _frameAutoReleasePool = nil;
         return;
     }
-    
-    _drawables[_actualFrame] = [_metalLayer nextDrawable];
-    
-    
-    if(!_drawables[_actualFrame]){
-        _commandBuffer[_actualFrame] = nil;
-        [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
-        _frameAutoReleasePool = nil;
-        return;
-    }
-    _drawableTexture[_actualFrame] = std::make_unique<MetalTexture>(_drawables[_actualFrame].texture);
     
     if(lastUsedGraphicsOptions != GraphicsOptions::graphicsOptionsFlags){
         regenerateEncoderDescriptor();
@@ -196,10 +185,77 @@ void MetalRender::beginFrame() {
     
             
     _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
-    _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], std::move(parallelEncoderDescriptor));
+    _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], std::move(parallelEncoderDescriptor));*/
+
+    dispatch_semaphore_wait(_inFlightSemaphores, DISPATCH_TIME_FOREVER);
+
+    _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
+    generateFrameTextures();
+    _instanceBuffer[_actualFrame]->OnBeginFrame();
+    _drawableAcquired = false; // flag interno
+
+    if (_metalLayer.drawableSize.width < 1 || _metalLayer.drawableSize.height < 1) {
+        _commandBuffer[_actualFrame] = nil;
+        [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+        _frameAutoReleasePool = nullptr;
+        return;
     }
 
+    // Command buffer si, encoder NO todavia
+    _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
+
+    if (lastUsedGraphicsOptions != GraphicsOptions::graphicsOptionsFlags) {
+        regenerateEncoderDescriptor();
+    }
+}
+
+bool MetalRender::acquireDrawable(){
+   if (_drawableAcquired) return true; // idempotente, se puede llamar varias veces
+
+    _drawables[_actualFrame] = [_metalLayer nextDrawable];
+    if (!_drawables[_actualFrame]) {
+        _commandBuffer[_actualFrame] = nil;
+        [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+        _frameAutoReleasePool = nullptr;
+        return false;
+    }
+
+    _drawableTexture[_actualFrame] = std::make_unique<MetalTexture>(_drawables[_actualFrame].texture);
+
+    // Ahora si construimos el encoder con el render target correcto
+    IlenParallelEncoderDescriptor parallelEncoderDescriptor = actualMainDescriptor;
+
+    if (GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
+        parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_Color]->texture
+            = _sceneTexture[_actualFrame].get();
+
+        uint32_t actualIndexForNextTexture = MAX_FRAMES_IN_FLIGHT;
+        if (GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
+            parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_VelocityBuffer]->texture
+                = _sceneTexture[_actualFrame + actualIndexForNextTexture].get();
+        }
+    } else {
+        // Sin post-process: el drawable ES el render target final
+        parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_Color]->texture
+            = _drawableTexture[_actualFrame].get();
+    }
+
+    if (GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH) {
+        parallelEncoderDescriptor.depthAttachment->texture = _depthTexture[_actualFrame].get();
+    }
+
+    _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(
+        _commandBuffer[_actualFrame], std::move(parallelEncoderDescriptor));
+
+    _drawableAcquired = true;
+    return true;
+}
+
     void MetalRender::endFrame() {
+        if(!_drawableAcquired){
+            acquireDrawable();
+        }
+        
         if(isParallelEncoderInOtherObject){
             ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "The parallel encoder was given to another process, but never returned a parallel encoder to the renderer");
             return;
@@ -264,6 +320,9 @@ void MetalRender::beginFrame() {
     }
 
     std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::getParallelCommandEncoder(){
+        auto result = acquireDrawable();
+        if(result == false) return nullptr;
+        
         isParallelEncoderInOtherObject = true;
         return std::move(_parallelCommandEncoder[_actualFrame]);
     }

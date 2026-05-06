@@ -49,8 +49,6 @@ namespace ilen::ecs::systems {
         private:
             static uint64_t GenerateSortKey(const std::shared_ptr<IGPURenderPipeline> &pso, float depth, uint16_t materialRuntimeID, uint8_t drawIndex, uint16_t meshID);
 
-            ECSCoordinator* p_Coordinator = nullptr;
-            JobSystem* p_JobSystem = nullptr;
             ilen::render::IRenderer* p_Renderer = nullptr;
             CameraSystem* p_cameraSystem = nullptr;
             MaterialManager* p_matManager = nullptr;

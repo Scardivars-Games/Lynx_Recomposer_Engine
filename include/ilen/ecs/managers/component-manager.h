@@ -75,7 +75,7 @@ namespace ilen::ecs {
             void insertData(Entity entity, T&& component) {
                 //assert(entityToIndexMap.count(entity) == 0 && "Ya existe el componente");
                 if(entity > MAX_ENTITIES){
-                    ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+                    ILEN_EXECUTE_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
                 }
                 // Si ya existe, ignorar en vez de crashear
                 if(entityToIndexMap[entity] != INVALID_INDEX) return; //Existe
@@ -89,8 +89,8 @@ namespace ilen::ecs {
 
             void removeData(Entity entity) override {
                 //assert(entityToIndexMap.find(entity) != entityToIndexMap.end() && "Tratando de remover un component no existente");
-                if(entity > MAX_ENTITIES) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
-                if(entityToIndexMap[entity] == INVALID_INDEX) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Se esta tratando de borrar una entidad inexistente");
+                if(entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+                if(entityToIndexMap[entity] == INVALID_INDEX) ILEN_EXECUTE_ERROR_P("COMPONENT_ARRAY", "Se esta tratando de borrar una entidad inexistente");
 
                 size_t indexOfRemoved = entityToIndexMap[entity];
                 size_t indexOfLast = size - 1;
@@ -110,7 +110,7 @@ namespace ilen::ecs {
             }
 
             void updateData(Entity entity, T&& component){
-                if(entity > MAX_ENTITIES) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+                if(entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
 
                 size_t idx = entityToIndexMap[entity];
                 if(idx != INVALID_INDEX){
@@ -121,7 +121,7 @@ namespace ilen::ecs {
             }
 
             T* getData(Entity entity) {
-                if(entity > MAX_ENTITIES) ILEN_FATAL_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
+                if(entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("COMPONENT_ARRAY", "Entity ID fuera del rango permitido (overflow de entidades)");
 
                 size_t idx = entityToIndexMap[entity];
                 if(idx == INVALID_INDEX) return nullptr;

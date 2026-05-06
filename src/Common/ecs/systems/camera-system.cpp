@@ -12,12 +12,12 @@ namespace ilen::ecs::systems {
     using namespace ilen::ecs::components;
 
     void CameraSystem::Init(const EngineContext* engineContext) {
-        p_Coordinator = engineContext->p_coordinator.get();
+        p_coordinator = engineContext->p_coordinator.get();
         p_Renderer = engineContext->p_gameRenderer.get();
 
         //Asignarles a cada cámara un buffer para la matriz
         for (auto const& entity: entities) {
-            auto* cameraComponent = p_Coordinator->getComponent<CameraComponent>(entity);
+            auto* cameraComponent = p_coordinator->getComponent<CameraComponent>(entity);
 
             render::IlenBufferDescriptor descriptor{};
             descriptor.bufferLabelName = "Camera Buffer for entity " + std::to_string(entity);
@@ -44,8 +44,8 @@ namespace ilen::ecs::systems {
             const float aspectRatio = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
 
             for (auto const& entity: entities) {
-                auto* cameraComponent = p_Coordinator->getComponent<CameraComponent>(entity);
-                auto* transformComponent = p_Coordinator->getComponent<TransformComponent>(entity);
+                auto* cameraComponent = p_coordinator->getComponent<CameraComponent>(entity);
+                auto* transformComponent = p_coordinator->getComponent<TransformComponent>(entity);
 
                 if (!cameraComponent || !transformComponent) {
                     continue; //Esta cámara no es válida

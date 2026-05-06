@@ -8,6 +8,8 @@ void TransformAPI::Init(const ilen::EngineContext* context) {
     p_coordinator = context->p_coordinator.get();
     size_t numThreads = context->p_jobSystem->AvailableThreads();
     s_threadAccumulators.resize(numThreads + 1);
+    
+    p_coordinator->registerComponent<components::TransformOrder>();
 
     for (auto& ta : s_threadAccumulators) {
         ta.orders.resize(ilen::ecs::MAX_ENTITIES);           // pre-alocado
@@ -38,17 +40,22 @@ void TransformAPI::Scale(Entity e, float uniform) {
 void TransformAPI::ExecuteAllAccumulatedTransform() {
     if (!p_coordinator) return;
 
+    auto* orderArray = p_coordinator->getComponentArray<components::TransformOrder>();
+    if(!orderArray) return;
+
     for (auto& ta : s_threadAccumulators) {
         for (Entity e : ta.touched) {
             auto& order = ta.orders[e];
-            if (order.hasOrders) {
-                p_coordinator->setComponent(e, std::move(order));
-            }
-        }
+            if (!order.hasOrders) continue;
 
-        // Reset solo de las tocadas (muy rápido)
-        for (Entity e : ta.touched) {
-            ta.orders[e] = TransformOrder{};   // reset a default
+            orderArray->updateData(e, std::move(order));
+
+            /*auto* dest = orderArray->getData(e);
+            if(dest) {
+                *dest = std::move(order);
+            }*/
+
+            order = TransformOrder{};
         }
         ta.touched.clear();
     }

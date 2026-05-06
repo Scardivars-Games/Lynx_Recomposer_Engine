@@ -9,15 +9,15 @@ using namespace ilen::maths::matrix;
 
 
 void PostProcessSystem::Init(const EngineContext *engineContext) {
-    coordinator = engineContext->p_coordinator.get();
+    p_coordinator = engineContext->p_coordinator.get();
     renderer = engineContext->p_gameRenderer.get();
     shaderManager = engineContext->p_shaderManager.get();
     meshManager = engineContext->p_meshManager.get();
     //drawSystem = engineContext->p_renderDrawSystem.get();
     //cameraSystem = engineContext->p_cameraSystem.get();
-    jobSystem = engineContext->p_jobSystem.get();
-    drawSystem = coordinator->getSystem<RenderDrawSystem>().get();
-    cameraSystem = coordinator->getSystem<CameraSystem>().get();
+    p_jobSystem = engineContext->p_jobSystem.get();
+    drawSystem = p_coordinator->getSystem<RenderDrawSystem>().get();
+    cameraSystem = p_coordinator->getSystem<CameraSystem>().get();
 
 
     //Todo, crear los PSO especiales para el post-procesado, según esten en uso o no. (Completado, creo)
@@ -43,258 +43,288 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
 }
 
 void PostProcessSystem::Update() {
-    auto quadPtr = quadGPUMesh.lock();
-    if (quadPtr == nullptr) {
-        meshManager->UpdateProcess();
-        quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
-        ILEN_LOG_P(DEBUG_PREFIX, "Saltando el frame porque no esta en memoria el mesh para el Quad.");
-        return; //Saltamos el frame
-    }
-
-    if (ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
-        //Comprobar si el Parallel es el mismo que esta configurado en el PSO!!!
-        auto actualFrameInFlight = renderer->getActualFrameInFlight();
-        postProcessInstanceBuffer[actualFrameInFlight]->OnBeginFrame();
-        auto actualParallel = renderer->getParallelCommandEncoder();
-        auto postProcessPSOs = GenerateNewPSO();
-        bool changedPSO = false;
-
-        if (*actualParallel->getParallelEncoderDescriptor() != encoderToPostProcessPSO.first) {
-            ILEN_LOG_P(DEBUG_PREFIX, "Generating new PSO for post-processing. Reason: Encoder Descriptor changed");
-            auto *descriptor = actualParallel->getParallelEncoderDescriptor(); //Return a *
-            postProcessPSOs[0].encoderDescriptor = descriptor;
-
-            /*auto descriptorToRender = *descriptor;
-            descriptorToRender.colorAttachments.resize(1); //Eliminamos el resto
-            postProcessPSOs[1].encoderDescriptor = &descriptorToRender;*/
-
-            encoderToPostProcessPSO.second = renderer->createRenderPipeline(postProcessPSOs[0], shaderManager);
-            encoderToPostProcessPSO.first = *descriptor;
-            changedPSO = true;
-
-            //postProcessPresentPSO = renderer->createRenderPipeline(postProcessPSOs[1], shaderManager);
-        }
-        //Post processing code
-        //Obtenemos la lista de todo lo que si dibujo anteriormente. La lista ya viene sorteada.
-        auto renderListItems = drawSystem->getLastUsedRenderItemList();
-        auto encoderPtr = actualParallel.get();
-
-        //Instance buffer donde escribir.
-        auto* instanceBuffer = postProcessInstanceBuffer[actualFrameInFlight].get();
-        if (instanceBuffer == nullptr) {
-            ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Instance buffer incorrecto en el área de Post Procesado. Revisar el proceso de creación.");
+   {
+        ilen::time::ScopedTimer postProcessTimer("Post-Process Timer");
+        auto quadPtr = quadGPUMesh.lock();
+        if (quadPtr == nullptr) {
+            meshManager->UpdateProcess();
+            quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
+            ILEN_LOG_P(DEBUG_PREFIX, "Saltando el frame porque no esta en memoria el mesh para el Quad.");
+            return; //Saltamos el frame
         }
 
-        size_t totalOfItem = renderListItems.size();
-        size_t numberOfThreads = jobSystem->AvailableThreads();
-        size_t itemsPerThread = (totalOfItem + numberOfThreads - 1) / numberOfThreads;
+        //Obtener punteros a los array de los componentes que requiere el sistema para trabajar
+        auto* transformComponentArray = p_coordinator->getComponentArray<components::TransformComponent>();
+        auto* staticMeshArray = p_coordinator->getComponentArray<components::StaticRenderingData>();
 
-        if (previousTransforms.size() != totalOfItem) {
-            previousTransforms.reserve(totalOfItem);
+        if(!transformComponentArray || !staticMeshArray){
+            return; //Es imposible ejecutar este sistema si esos componentes aún no existen.
         }
 
-        auto activeCamera = cameraSystem->getMainCamera();
-        if (!activeCamera) {
-            ILEN_WARNING_P(DEBUG_PREFIX, "No se encontró una cámara activa, por lo que no se puede dibujar.");
-            return; //Sin camara, no puedo dibujar.
-        }
+        if (ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
+            //Comprobar si el Parallel es el mismo que esta configurado en el PSO!!!
+            auto actualFrameInFlight = renderer->getActualFrameInFlight();
+            postProcessInstanceBuffer[actualFrameInFlight]->OnBeginFrame();
+            auto actualParallel = renderer->getParallelCommandEncoder();
+            auto postProcessPSOs = GenerateNewPSO();
+            bool changedPSO = false;
 
-        std::unordered_map<Entity, maths::matrix::mat4> previousFrameMatrices;
+            if (*actualParallel->getParallelEncoderDescriptor() != encoderToPostProcessPSO.first) {
+                ILEN_LOG_P(DEBUG_PREFIX, "Generating new PSO for post-processing. Reason: Encoder Descriptor changed");
+                auto *descriptor = actualParallel->getParallelEncoderDescriptor(); //Return a *
+                postProcessPSOs[0].encoderDescriptor = descriptor;
 
-        {
-            std::lock_guard<std::mutex> lock(previousTransformMutex);
-            previousFrameMatrices = previousTransforms;
-        }
+                /*auto descriptorToRender = *descriptor;
+                descriptorToRender.colorAttachments.resize(1); //Eliminamos el resto
+                postProcessPSOs[1].encoderDescriptor = &descriptorToRender;*/
 
-        //OLD
-        //std::vector<std::future<void>> futures;
+                encoderToPostProcessPSO.second = renderer->createRenderPipeline(postProcessPSOs[0], shaderManager);
+                encoderToPostProcessPSO.first = *descriptor;
+                changedPSO = true;
 
-        //new
-        ilen::job_system::JobGroup group;
+                //postProcessPresentPSO = renderer->createRenderPipeline(postProcessPSOs[1], shaderManager);
+            }
+            
+            {
+                ilen::time::ScopedTimer timer("Post-processing calculation time");
+                //Post processing code
+                //Obtenemos la lista de todo lo que si dibujo anteriormente. La lista ya viene sorteada.
+                auto renderListItems = drawSystem->getLastUsedRenderItemList();
+                auto encoderPtr = actualParallel.get();
 
-        encoderPtr->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->getViewProjectionCameraBuffer());
-
-        for (size_t i = 0; i < numberOfThreads; i++) {
-            size_t chunckStart = i * itemsPerThread;
-            size_t chunckEnd = std::min(chunckStart + itemsPerThread, totalOfItem);
-
-            if (chunckStart >= chunckEnd) continue;
-
-            jobSystem->SubmitJob( [this, encoderPtr, &renderListItems, chunckStart, chunckEnd, instanceBuffer, &previousFrameMatrices]() {
-                //Cache para el batching
-                IGPURenderPipeline* lastPSO = nullptr;
-                uint16_t lastMaterialID = 0;
-                uint16_t lastMeshID = 0;
-
-                auto cmd = encoderPtr->GetThreadEncoder();
-
-                std::vector<structs::InstanceDataForVelocityBuffer> instanceBufferData_PostProcess;
-                bool isIntanceBufferSet = false;
-
-                size_t current = chunckStart;
-                while (current < chunckEnd) {
-                    const auto& item = renderListItems[current];
-                    const uint64_t key = item.sortKey;
-
-                    size_t batchEnd = current + 1;
-                    while (batchEnd < chunckEnd && renderListItems[batchEnd].sortKey == key) {
-                        batchEnd++;
-                    }
-
-                    auto entity = item.entity;
-                    //auto* transform = p_Coordinator->getComponent<TransformComponent>(entity); No tiene sentido obtener el transform, porque cada entidad tiene uno diferente. Mejor pedirlo al renderizar con logica personalizada
-                    //segun el tipo de rendering
-                    auto* staticMesh = coordinator->getComponent<components::StaticRenderingData>(entity);
-
-                    size_t totalOfInstance = batchEnd - current;
-                    auto meshID = staticMesh->runtimeMeshID;
-
-                    //Solo hay un único PSO en este proceso de cálculos.
-                    cmd->SetPipelineState(encoderToPostProcessPSO.second.get());
-
-                    auto* meshPtr = staticMesh->staticBuffers.lock().get();
-
-                    if (meshID != lastMeshID) {
-                        cmd->SetVertexBuffer(slots::RenderBufferSlot_VertexMain, meshPtr->vertexBuffer.get());
-                        cmd->SetIndexBuffer(meshPtr->indexBuffer.get());
-                        lastMeshID = meshID;
-                    }
-
-                    if (totalOfInstance > 5) {
-                        //Instancing rendering
-                        //ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
-                        if (instanceBufferData_PostProcess.size() < totalOfInstance) {
-                            instanceBufferData_PostProcess.resize(totalOfInstance);
-                        }
-
-                        /*for (size_t i = 0; i < totalOfInstance; i++) {
-                            auto* transform = coordinator->getComponent<components::TransformComponent>(renderListItems[current + i].entity);
-                            auto [it, inserted] = previousTransforms.try_emplace(renderListItems[current + i].entity, *transform);
-
-                            instanceBufferData_PostProcess[i].actualModelMatrix = transform->getWorldMatrix();
-                            instanceBufferData_PostProcess[i].previousModelMatrix = it->second.getWorldMatrix();
-                        }*/
-
-                        for(size_t i = 0; i < totalOfInstance; i++){
-                            auto entity = renderListItems[current + i].entity;
-                            auto* transform = coordinator->getComponent<components::TransformComponent>(entity);
-                            auto currentMatrix = transform->getWorldMatrix();
-
-                            //Buscamos la matriz del frame anterios SOLO LEERLA
-                            auto prevIt = previousFrameMatrices.find(entity);
-                            maths::matrix::mat4 previousMatrix = (prevIt != previousFrameMatrices.end())
-                                ? prevIt->second
-                                : currentMatrix; //Si es el primer frame, usar el mismo.
-
-                            instanceBufferData_PostProcess[i].actualModelMatrix = currentMatrix;
-                            instanceBufferData_PostProcess[i].previousModelMatrix = previousMatrix;
-                        }
-
-                        uint32_t offset = instanceBuffer->UploadInstanceData(instanceBufferData_PostProcess.data(), sizeof(structs::InstanceDataForVelocityBuffer) * totalOfInstance);
-
-                        if (!isIntanceBufferSet) {
-                            cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());
-                            isIntanceBufferSet = true;
-                        }
-                        auto indexCount = meshPtr->indexCount;
-
-                        cmd->DrawIndexedInstanced(indexCount, totalOfInstance, offset, sizeof(structs::InstanceDataForVelocityBuffer));
-                    }else {
-                        //ILEN_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
-                        //Render en bucle
-                        if (!isIntanceBufferSet) {
-                            cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());
-                            isIntanceBufferSet = true;
-                        }
-
-                        for (size_t i = 0; i < totalOfInstance; i++) {
-                            auto entity = renderListItems[current + i].entity;
-                            auto* transform = coordinator->getComponent<components::TransformComponent>(entity);
-                            structs::InstanceDataForVelocityBuffer instanceBufferData{};
-                            auto currentMatrix = transform->getWorldMatrix();
-
-                            auto prevIt = previousFrameMatrices.find(entity);
-                            maths::matrix::mat4 previousMatrix = (prevIt != previousFrameMatrices.end())
-                                ? prevIt->second
-                                : currentMatrix; // primer frame de vida: sin blur es correcto
-
-                            instanceBufferData.actualModelMatrix = currentMatrix;
-                            instanceBufferData.previousModelMatrix = previousMatrix;
-                            uint32_t offset = instanceBuffer->UploadInstanceData(&instanceBufferData, sizeof(structs::InstanceDataForVelocityBuffer));
-                            auto indexCount = meshPtr->indexCount;
-
-                            cmd->DrawIndexedInstanced(indexCount, 1, offset, sizeof(structs::InstanceDataForVelocityBuffer));
-                        }
-                    }
-
-                    current = batchEnd;
+                //Instance buffer donde escribir.
+                auto* instanceBuffer = postProcessInstanceBuffer[actualFrameInFlight].get();
+                if (instanceBuffer == nullptr) {
+                    ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Instance buffer incorrecto en el área de Post Procesado. Revisar el proceso de creación.");
                 }
 
-                cmd->EndEncoding();
-            }, &group);
-        }
+                size_t totalOfItem = renderListItems.size();
+                size_t numberOfThreads = p_jobSystem->AvailableThreads();
+                size_t chunkSize = (totalOfItem + numberOfThreads - 1) / numberOfThreads;
+                size_t numChunks = (totalOfItem + chunkSize - 1) / chunkSize;
 
-        //Esperamos a que se codifiquen todas las llamadas
-        //OLD
-        /*for (auto& future : futures) {
-            future.wait();
-        }*/
-
-        //New
-        group.Wait();
-
-        {
-            std::lock_guard<std::mutex> lock(previousTransformMutex);
-            previousTransforms.clear();
-
-            for(const auto& item: renderListItems){
-                auto* transform = coordinator->getComponent<components::TransformComponent>(item.entity);
-                if(transform){
-                    previousTransforms[item.entity] = transform->getWorldMatrix();
+                if (previousTransforms.size() != totalOfItem) {
+                    previousTransforms.reserve(totalOfItem);
                 }
+
+                auto activeCamera = cameraSystem->getMainCamera();
+                if (!activeCamera) {
+                    ILEN_WARNING_P(DEBUG_PREFIX, "No se encontró una cámara activa, por lo que no se puede dibujar.");
+                    return; //Sin camara, no puedo dibujar.
+                }
+
+                /* Cual era mi idea aqui..., ni idea.
+                std::unordered_map<Entity, maths::matrix::mat4> previousFrameMatrices;
+
+                {
+                    std::lock_guard<std::mutex> lock(previousTransformMutex);
+                    previousFrameMatrices = previousTransforms;
+                }*/
+
+                std::vector<std::pair<Entity, maths::matrix::mat4>> previousFrameMatrices;
+                previousFrameMatrices = previousTransforms;
+
+                //OLD
+                //std::vector<std::future<void>> futures;
+
+                //new
+                ilen::job_system::JobGroup group;
+
+                encoderPtr->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->getViewProjectionCameraBuffer());
+
+                for (size_t i = 0; i < numChunks; i++) {
+                    size_t chunckStart = i * chunkSize;
+                    size_t chunckEnd = std::min(chunckStart + chunkSize, totalOfItem);
+
+
+                    p_jobSystem->SubmitJob( [this, encoderPtr, &renderListItems, chunckStart, chunckEnd, instanceBuffer, &previousFrameMatrices, transformComponentArray, staticMeshArray]() {
+                        //Cache para el batching
+                        IGPURenderPipeline* lastPSO = nullptr;
+                        uint16_t lastMaterialID = 0;
+                        uint16_t lastMeshID = 0;
+
+                        auto cmd = encoderPtr->GetThreadEncoder();
+
+                        std::vector<structs::InstanceDataForVelocityBuffer> instanceBufferData_PostProcess;
+                        bool isIntanceBufferSet = false;
+
+                        size_t current = chunckStart;
+                        while (current < chunckEnd) {
+                            const auto& item = renderListItems[current];
+                            const uint64_t key = item.sortKey;
+
+                            size_t batchEnd = current + 1;
+                            while (batchEnd < chunckEnd && renderListItems[batchEnd].sortKey == key) {
+                                batchEnd++;
+                            }
+
+                            auto entity = item.entity;
+                            //auto* transform = p_Coordinator->getComponent<TransformComponent>(entity); No tiene sentido obtener el transform, porque cada entidad tiene uno diferente. Mejor pedirlo al renderizar con logica personalizada
+                            //segun el tipo de rendering
+                            //auto* staticMesh = p_coordinator->getComponent<components::StaticRenderingData>(entity);
+                            auto* staticMesh = staticMeshArray->getData(entity);
+
+                            size_t totalOfInstance = batchEnd - current;
+                            auto meshID = staticMesh->runtimeMeshID;
+
+                            //Solo hay un único PSO en este proceso de cálculos.
+                            cmd->SetPipelineState(encoderToPostProcessPSO.second.get());
+
+                            auto* meshPtr = staticMesh->staticBuffers.lock().get();
+
+                            if (meshID != lastMeshID) {
+                                cmd->SetVertexBuffer(slots::RenderBufferSlot_VertexMain, meshPtr->vertexBuffer.get());
+                                cmd->SetIndexBuffer(meshPtr->indexBuffer.get());
+                                lastMeshID = meshID;
+                            }
+
+                            if (totalOfInstance > 5) {
+                                //Instancing rendering
+                                //ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
+                                if (instanceBufferData_PostProcess.size() < totalOfInstance) {
+                                    instanceBufferData_PostProcess.resize(totalOfInstance);
+                                }
+
+                                /*for (size_t i = 0; i < totalOfInstance; i++) {
+                                    auto* transform = coordinator->getComponent<components::TransformComponent>(renderListItems[current + i].entity);
+                                    auto [it, inserted] = previousTransforms.try_emplace(renderListItems[current + i].entity, *transform);
+
+                                    instanceBufferData_PostProcess[i].actualModelMatrix = transform->getWorldMatrix();
+                                    instanceBufferData_PostProcess[i].previousModelMatrix = it->second.getWorldMatrix();
+                                }*/
+
+                                for(size_t i = 0; i < totalOfInstance; i++){
+                                    auto entity = renderListItems[current + i].entity;
+                                    //auto* transform = p_coordinator->getComponent<components::TransformComponent>(entity);
+                                    auto* transform = transformComponentArray->getData(entity);
+                                    auto currentMatrix = transform->getWorldMatrix();
+
+                                    //Buscamos la matriz del frame anterios SOLO LEERLA
+                                    //auto prevIt = previousFrameMatrices.find(entity);
+                                    auto prevIt = std::lower_bound(previousFrameMatrices.begin(), previousFrameMatrices.end(), entity, [](const auto& p, Entity e){ return p.first < e; });
+                                    maths::matrix::mat4 previousMatrix = (prevIt != previousFrameMatrices.end())
+                                        ? prevIt->second
+                                        : currentMatrix; //Si es el primer frame, usar el mismo.
+
+                                    instanceBufferData_PostProcess[i].actualModelMatrix = currentMatrix;
+                                    instanceBufferData_PostProcess[i].previousModelMatrix = previousMatrix;
+                                }
+
+                                uint32_t offset = instanceBuffer->UploadInstanceData(instanceBufferData_PostProcess.data(), sizeof(structs::InstanceDataForVelocityBuffer) * totalOfInstance);
+
+                                if (!isIntanceBufferSet) {
+                                    cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());
+                                    isIntanceBufferSet = true;
+                                }
+                                auto indexCount = meshPtr->indexCount;
+
+                                cmd->DrawIndexedInstanced(indexCount, totalOfInstance, offset, sizeof(structs::InstanceDataForVelocityBuffer));
+                            }else {
+                                //ILEN_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
+                                //Render en bucle
+                                if (!isIntanceBufferSet) {
+                                    cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());
+                                    isIntanceBufferSet = true;
+                                }
+
+                                for (size_t i = 0; i < totalOfInstance; i++) {
+                                    auto entity = renderListItems[current + i].entity;
+                                   // auto* transform = p_coordinator->getComponent<components::TransformComponent>(entity);
+                                    auto* transform = transformComponentArray->getData(entity);
+
+                                    structs::InstanceDataForVelocityBuffer instanceBufferData{};
+                                    auto currentMatrix = transform->getWorldMatrix();
+
+                                    auto prevIt = std::lower_bound(previousFrameMatrices.begin(), previousFrameMatrices.end(), entity, [](const auto& p, Entity e){ return p.first < e; });
+                                    maths::matrix::mat4 previousMatrix = (prevIt != previousFrameMatrices.end())
+                                        ? prevIt->second
+                                        : currentMatrix; // primer frame de vida: sin blur es correcto
+
+                                    instanceBufferData.actualModelMatrix = currentMatrix;
+                                    instanceBufferData.previousModelMatrix = previousMatrix;
+                                    uint32_t offset = instanceBuffer->UploadInstanceData(&instanceBufferData, sizeof(structs::InstanceDataForVelocityBuffer));
+                                    auto indexCount = meshPtr->indexCount;
+
+                                    cmd->DrawIndexedInstanced(indexCount, 1, offset, sizeof(structs::InstanceDataForVelocityBuffer));
+                                }
+                            }
+
+                            current = batchEnd;
+                        }
+
+                        cmd->EndEncoding();
+                    }, &group);
+                }
+
+                //Esperamos a que se codifiquen todas las llamadas
+                //OLD
+                /*for (auto& future : futures) {
+                    future.wait();
+                }*/
+
+                //New
+                group.Wait();
+
+                
+                previousTransforms.clear();
+
+                for(const auto& item: renderListItems){
+                    //auto* transform = p_coordinator->getComponent<components::TransformComponent>(item.entity);
+                    auto* transform = transformComponentArray->getData(item.entity);
+
+                    if(transform){
+                        //previousTransforms[item.entity] = transform->getWorldMatrix();
+                        previousTransforms.push_back({item.entity, transform->getWorldMatrix()});
+                    }
+                }
+                
+
+                //Finalizando el render actual de calculos, y dibujado, y pasamos a crear un nuevo para unir los efectos.
+                renderer->endEncoding(actualParallel.get()); //Finalizamos el render actual, y generar uno nuevo.
+            }
+            {
+                ilen::time::ScopedTimer timer("Post-processing screen rendering");
+                IlenParallelEncoderDescriptor renderDescriptor {};
+                renderDescriptor.colorAttachments.resize(1); //Solo posee 1 (El drawable.)
+                renderDescriptor.label = "Post-Process Parallel Renderer";
+                auto nativeTexture = renderer->getAllSceneTexturesPtr(); //Esto es un std::Vector con las texturas usadas en el color attachment
+
+                auto drawableAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+                auto imagesAttach = renderer->getAllSceneTexturesPtr(); //Aqui solo llegan las texturas del Frame actual !!!
+
+                drawableAttach->texture = renderer->getDrawableTexturePtr();
+                drawableAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+                drawableAttach->clearColor = color::Black;
+                drawableAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+
+                renderDescriptor.colorAttachments[0] = std::move(drawableAttach);
+
+                if (changedPSO) {
+                    postProcessPSOs[1].encoderDescriptor = &renderDescriptor;
+                    postProcessPresentPSO = renderer->createRenderPipeline(postProcessPSOs[1], shaderManager);
+                }
+
+                auto newParallelEncoder = renderer->createNewParallelCommandEncoder(std::move(renderDescriptor));
+
+                auto encoder = newParallelEncoder->GetThreadEncoder();//Solo se necesita un encoder, ya que solo se va a dibujar una vez.
+
+                //Asignando todo lo que requiere el encoder para funcionar en este caso.
+                encoder->SetPipelineState(postProcessPresentPSO.get());
+                encoder->SetVertexBuffer(slots::RenderBufferSlot_VertexMain, quadPtr->vertexBuffer.get());
+                encoder->SetIndexBuffer(quadPtr->indexBuffer.get());
+                encoder->SetTexture(0, nativeTexture[0]); //Esto siempre será la textura base de color con los datos renderizados.
+                size_t actualImageIndex = 1;
+                if (core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
+                    encoder->SetTexture(slots::TextureBufferSlot_VelocityBuffer, imagesAttach[actualImageIndex]);
+                }
+                encoder->DrawIndexed(quadPtr->indexCount);
+                //TODO: Actualmente no dibuja nada en pantalla. Posible causa: el PSO tiene prohibido escribir en el buffer 0 (textura de color en nuestro caso. Revisar)
+                //Corregido
+                encoder->EndEncoding();
+                renderer->returnParallelCommandEncoder(std::move(newParallelEncoder));
             }
         }
-
-        //Finalizando el render actual de calculos, y dibujado, y pasamos a crear un nuevo para unir los efectos.
-        renderer->endEncoding(actualParallel.get()); //Finalizamos el render actual, y generar uno nuevo.
-        IlenParallelEncoderDescriptor renderDescriptor {};
-        renderDescriptor.colorAttachments.resize(1); //Solo posee 1 (El drawable.)
-        renderDescriptor.label = "Post-Process Parallel Renderer";
-        auto nativeTexture = renderer->getAllSceneTexturesPtr(); //Esto es un std::Vector con las texturas usadas en el color attachment
-
-        auto drawableAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
-        auto imagesAttach = renderer->getAllSceneTexturesPtr(); //Aqui solo llegan las texturas del Frame actual !!!
-
-        drawableAttach->texture = renderer->getDrawableTexturePtr();
-        drawableAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-        drawableAttach->clearColor = color::Black;
-        drawableAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
-
-        renderDescriptor.colorAttachments[0] = std::move(drawableAttach);
-
-        if (changedPSO) {
-            postProcessPSOs[1].encoderDescriptor = &renderDescriptor;
-            postProcessPresentPSO = renderer->createRenderPipeline(postProcessPSOs[1], shaderManager);
-        }
-
-        auto newParallelEncoder = renderer->createNewParallelCommandEncoder(std::move(renderDescriptor));
-
-        auto encoder = newParallelEncoder->GetThreadEncoder();//Solo se necesita un encoder, ya que solo se va a dibujar una vez.
-
-        //Asignando todo lo que requiere el encoder para funcionar en este caso.
-        encoder->SetPipelineState(postProcessPresentPSO.get());
-        encoder->SetVertexBuffer(slots::RenderBufferSlot_VertexMain, quadPtr->vertexBuffer.get());
-        encoder->SetIndexBuffer(quadPtr->indexBuffer.get());
-        encoder->SetTexture(0, nativeTexture[0]); //Esto siempre será la textura base de color con los datos renderizados.
-        size_t actualImageIndex = 1;
-        if (core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
-            encoder->SetTexture(slots::TextureBufferSlot_VelocityBuffer, imagesAttach[actualImageIndex]);
-        }
-        encoder->DrawIndexed(quadPtr->indexCount);
-        //TODO: Actualmente no dibuja nada en pantalla. Posible causa: el PSO tiene prohibido escribir en el buffer 0 (textura de color en nuestro caso. Revisar)
-        encoder->EndEncoding();
-        renderer->returnParallelCommandEncoder(std::move(newParallelEncoder));
-    }
+   }
 }
 
 std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {

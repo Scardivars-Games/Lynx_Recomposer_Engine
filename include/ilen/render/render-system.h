@@ -35,16 +35,14 @@ namespace ilen::ecs::systems {
             void Init(const EngineContext* engineContext) override;
             void Update() override;
         private:
-            ECSCoordinator* p_Coordinator = nullptr;
-            JobSystem* p_jobSystemInstance = nullptr;
             MeshManager* p_meshManager = nullptr;
             PipelineManager* p_renderPipelineManager = nullptr;
             MaterialManager* p_materialManager = nullptr;
 
             //Métodos privados
-            void HaveVisibilityDefined(const RenderComponent& render, const Entity& entity);
-            void CheckMeshStatus(const RenderComponent& render, const Entity& entity) const;
-            void CheckRenderPipelineStatus(const RenderComponent& render, const Entity& entity) const;
+            void HaveVisibilityDefined(const RenderComponent& render, const Entity& entity, ComponentArray<VisibilityComponent>* componentArray);
+            void CheckMeshStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticRenderingData>* componentArray) const;
+            void CheckRenderPipelineStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticMaterialRenderingData>* componentArray) const;
 
             const char* DEBUG_PREFIX = "RENDER_SYSTEM";
     };

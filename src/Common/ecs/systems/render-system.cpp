@@ -4,19 +4,58 @@
 
 namespace ilen::ecs::systems {
     void RenderSystem::Init(const EngineContext *engineContext) {
-        p_jobSystemInstance = engineContext->p_jobSystem.get();
+        p_jobSystem = engineContext->p_jobSystem.get();
         p_meshManager = engineContext->p_meshManager.get();
-        p_Coordinator = engineContext->p_coordinator.get();
+        p_coordinator = engineContext->p_coordinator.get();
         p_renderPipelineManager = engineContext->p_renderPipelineManager.get();
         p_materialManager = engineContext->p_materialManager.get();
+        p_commandDispatcher = engineContext->p_commandDispatcher.get();
     }
 
     void RenderSystem::Update() {
         {
             ilen::time::ScopedTimer timer("Prep for Rendering System");
+            //Actualizando el estado de los elementos cargados en paralelo
             p_meshManager->UpdateProcess();
             p_renderPipelineManager->UpdatePipelineWorks();
-            // Este method se debe llamar en cada fotograma.
+
+            std::vector<Entity> entityList(entities.begin(), entities.end());
+            size_t total = entityList.size();
+            if(total == 0) return; //Early return
+
+            size_t threadsAvailables = p_jobSystem->AvailableThreads();
+            size_t chunkSize = (total + threadsAvailables - 1) / threadsAvailables;
+            size_t numChunks = (total + chunkSize - 1) / chunkSize;
+
+            auto* renderComponentArray = p_coordinator->getComponentArray<RenderComponent>();
+            auto* visibilityComponentArray = p_coordinator->getComponentArray<VisibilityComponent>();
+            auto* staticRenderDataArray = p_coordinator->getComponentArray<StaticRenderingData>();
+            auto* staticMatRenderDataArray = p_coordinator->getComponentArray<StaticMaterialRenderingData>();
+
+            ilen::job_system::JobGroup group;
+
+            for(size_t i = 0; i < numChunks; i++){
+                size_t start = i * chunkSize;
+                size_t end = std::min(start + chunkSize, total);
+
+                p_jobSystem->SubmitJob([this, start, end, entityList, renderComponentArray, visibilityComponentArray, staticRenderDataArray, staticMatRenderDataArray]() {
+                    for(size_t j = start; j < end; j++){
+                        Entity entity = entityList[j];
+                        auto* render = renderComponentArray->getData(entity);
+                        if(!render) continue;
+
+                        HaveVisibilityDefined(*render, entity, visibilityComponentArray);
+                        CheckMeshStatus(*render, entity, staticRenderDataArray);
+                        CheckRenderPipelineStatus(*render, entity, staticMatRenderDataArray);
+                    }
+                }, &group);
+            }
+
+            group.Wait();
+            p_commandDispatcher->ExecuteAll();
+
+
+           /* // Este method se debe llamar en cada fotograma.
             for(auto const& entity : entities){
                 if(auto render = p_Coordinator->getComponent<RenderComponent>(entity); render != nullptr){
                     //En este loops estamos trabajando con una entidad con rendering. Toda entidad que renderice tiene que tener sus datos en VRAM, sino, hay que asignarlos
@@ -25,20 +64,30 @@ namespace ilen::ecs::systems {
                     CheckMeshStatus(*render, entity);
                     CheckRenderPipelineStatus(*render, entity);
                 }
-            }
+            }*/
         }
     }
 
-    void RenderSystem::HaveVisibilityDefined(const RenderComponent &render, const Entity &entity) {
-        auto visibility = p_Coordinator->getComponent<VisibilityComponent>(entity);
+    void RenderSystem::HaveVisibilityDefined(const RenderComponent &render, const Entity &entity, ComponentArray<VisibilityComponent>* componentArray) {
+        //auto visibility = p_Coordinator->getComponent<VisibilityComponent>(entity);
+        VisibilityComponent* visibility = nullptr;
+        
+        if(componentArray){
+            visibility = componentArray->getData(entity);
+        }
 
         if (visibility == nullptr) {
-            p_Coordinator->setComponent(entity, VisibilityComponent{});
+            p_coordinator->setComponent(entity, VisibilityComponent{});
         }
     }
 
-    void RenderSystem::CheckMeshStatus(const RenderComponent &render, const Entity &entity) const {
-        auto staticMeshData = p_Coordinator->getComponent<StaticRenderingData>(entity);
+    void RenderSystem::CheckMeshStatus(const RenderComponent &render, const Entity &entity, ComponentArray<StaticRenderingData>* componentArray) const {
+        //auto staticMeshData = p_Coordinator->getComponent<StaticRenderingData>(entity);
+        StaticRenderingData* staticMeshData = nullptr;
+        
+        if(componentArray){
+            staticMeshData = componentArray->getData(entity);
+        }
 
         if(staticMeshData == nullptr){
             //Solicitar la carga de estos datos
@@ -48,7 +97,7 @@ namespace ilen::ecs::systems {
             if(solitudeResult.lock() != nullptr && runtimeID != 0){
                 //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
                 StaticRenderingData data{solitudeResult, runtimeID};
-                p_Coordinator->setComponent(entity, std::move(data));
+                p_coordinator->setComponent(entity, std::move(data));
             }
             //continue; //Salta a la siguiente entidad, esta no puede hacer nada.
             //No hace continue porque sino anularia para ese frame empezar la creación del PSO
@@ -64,8 +113,13 @@ namespace ilen::ecs::systems {
         }*/
     }
 
-    void RenderSystem::CheckRenderPipelineStatus(const RenderComponent &render, const Entity &entity) const {
-        auto staticMaterialData = p_Coordinator->getComponent<StaticMaterialRenderingData>(entity);
+    void RenderSystem::CheckRenderPipelineStatus(const RenderComponent &render, const Entity &entity, ComponentArray<StaticMaterialRenderingData>* componentArray) const {
+       // auto staticMaterialData = p_Coordinator->getComponent<StaticMaterialRenderingData>(entity);
+        StaticMaterialRenderingData* staticMaterialData = nullptr;
+        
+        if(componentArray){
+            staticMaterialData = componentArray->getData(entity);
+        }
 
         if (staticMaterialData == nullptr) {
             auto material = p_materialManager->getMaterial(render.materialID);
@@ -78,7 +132,7 @@ namespace ilen::ecs::systems {
             if (psoSolicitude.lock() != nullptr && runtimeID != 0) {
                 //ILEN_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
                 StaticMaterialRenderingData data{psoSolicitude, runtimeID};
-                p_Coordinator->setComponent(entity, std::move(data));
+                p_coordinator->setComponent(entity, std::move(data));
             }
         }
     }

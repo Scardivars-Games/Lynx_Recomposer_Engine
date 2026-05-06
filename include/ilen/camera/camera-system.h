@@ -15,7 +15,6 @@ namespace ilen::ecs::systems {
 
             const components::CameraComponent* getMainCamera() const;
         private:
-            ECSCoordinator* p_Coordinator = nullptr;
             render::IRenderer* p_Renderer = nullptr;
             components::CameraComponent* m_mainCamera = nullptr;
     };

@@ -34,8 +34,6 @@ namespace  ilen::ecs::systems {
         void Update() override;
     private:
         static std::vector<render::IlenRenderPipelineDescriptor> GenerateNewPSO(); //Retorna los datos para generar el PSO de calculo y de dibujo final.
-        ECSCoordinator* coordinator = nullptr;
-        job_system::JobSystem* jobSystem = nullptr;
         render::IRenderer* renderer = nullptr;
         systems::RenderDrawSystem* drawSystem = nullptr;
         resources::shaders::ShaderManager* shaderManager = nullptr;
@@ -47,8 +45,9 @@ namespace  ilen::ecs::systems {
         std::weak_ptr<components::MeshGPULink> quadGPUMesh; // Por optimización, usamos directamente el mesh que tenemos definido, evitando tener 2 buffers idénticos en la GPU.
         std::vector<std::unique_ptr<render::IGPUInstanceBuffer>> postProcessInstanceBuffer;
 
-        std::unordered_map<Entity, maths::matrix::mat4> previousTransforms;
-        std::mutex previousTransformMutex;
+        //std::unordered_map<Entity, maths::matrix::mat4> previousTransforms;
+        //std::mutex previousTransformMutex;
+        std::vector<std::pair<Entity, maths::matrix::mat4>> previousTransforms;
 
         const char* DEBUG_PREFIX = "POST_PROCESSING_SYSTEM";
     };

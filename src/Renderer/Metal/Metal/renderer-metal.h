@@ -45,6 +45,7 @@ namespace ilen::render {
             void endFrame() override;
             void endEncoding(IGPUParallelCommandEncoder* encoder) override;
             void regenerateEncoderDescriptor() override;
+            bool acquireDrawable();
 
             std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data = nullptr) override;
             std::unique_ptr<IGPUInstanceBuffer> createInstanceBuffer(size_t bufferSize, std::string bufferName) override;
@@ -78,6 +79,8 @@ namespace ilen::render {
         
             //MTLClearColor _renderingClearColor;
             ilen::render::utils::metal::MetalViewPredefinedValues _predefinedValues;
+
+            bool _drawableAcquired;
     };
 }
 
