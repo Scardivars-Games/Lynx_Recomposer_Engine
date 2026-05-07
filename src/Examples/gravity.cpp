@@ -16,7 +16,7 @@ void Cube::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = vec3(0.0f, 2.0f, 0.0f);
+    transform.position = vec3(0.0f, 20.0f, 0.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
 
@@ -29,6 +29,9 @@ void Cube::Init() {
     Rigidbody2D rigidbody{};
     rigidbody.gravityScale = 1.0f;
     coordinator->setComponent(entity, std::move(rigidbody));
+
+    BoxCollider2D collider{};
+    coordinator->setComponent(entity, std::move(collider));
 }
 
 void Ground::Init() {   
@@ -37,8 +40,8 @@ void Ground::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = vec3(0.0f, -20.0f, 0.0f);
-    transform.scale = vec3(90.0f, 1.0f, 1.0f);
+    transform.position = vec3(0.0f, -9.0f, 0.0f);
+    transform.scale = vec3(90.0f, 0.5f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
@@ -49,7 +52,11 @@ void Ground::Init() {
 
     Rigidbody2D rigidbody{};
     rigidbody.gravityScale = 1.0f;
+    rigidbody.isStatic = true;
     coordinator->setComponent(entity, std::move(rigidbody));
+
+    BoxCollider2D collider{};
+    coordinator->setComponent(entity, std::move(collider));
 }
 
 void GravityCamera::Init() {
@@ -61,7 +68,7 @@ void GravityCamera::Init() {
     CameraComponent camera{};
     camera.isPrimary = true;
     camera.fovDegrees = 70.0f;
-    camera.orthoSize = 40;
+    camera.orthoSize = 20;
     camera.nearClip = 5;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->setComponent(entity, std::move(camera));

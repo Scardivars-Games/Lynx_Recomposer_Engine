@@ -93,6 +93,6 @@ namespace ilen::maths::aabb{
     bool containsPoint3D(const AABB3D& box, vec3 point);
 
     //Version simplificada que comprueba superposiciones de AABB para operaciones rápidas
-    bool overladAABB2D(const AABB2D& a, const AABB2D&b);
-    bool overladAABB3D(const AABB3D& a, const AABB3D&b);
+    bool overlapAABB2D(const AABB2D& a, const AABB2D&b);
+    bool overlapAABB3D(const AABB3D& a, const AABB3D&b);
 }

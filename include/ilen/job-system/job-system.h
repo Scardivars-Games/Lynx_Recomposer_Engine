@@ -36,6 +36,7 @@ public:
     void Initializate() {
         ilen::core::threading::g_MainThreadId = std::this_thread::get_id();
         ilen::core::threading::t_IsMainThread = true;
+        ilen::core::threading::t_ThreadIndex = 0;
 #if ILEN_SINGLECORE_TEST
         const uint num_threads = 1;
 #else

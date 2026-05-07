@@ -34,7 +34,7 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
 
     quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
 
-    size_t instanceBufferSize = 4 * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
+    constexpr size_t instanceBufferSize = ilen::core::options::GraphicsOptions::instanceBufferSizeInMB * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
     auto framesInFlight = renderer->getActualNumOfFramesInFlight();
     postProcessInstanceBuffer.resize(framesInFlight);
     for (int i = 0; i < framesInFlight; i++) {
@@ -277,7 +277,9 @@ void PostProcessSystem::Update() {
                         previousTransforms.push_back({item.entity, transform->getWorldMatrix()});
                     }
                 }
-                
+
+                //Estp dene arreglar el ghosting de los cubos, asignando correctamente la posicion en el array de la GPU.
+                std::sort(previousTransforms.begin(), previousTransforms.end(), [](const auto& a, const auto& b){ return a.first < b.first; });
 
                 //Finalizando el render actual de calculos, y dibujado, y pasamos a crear un nuevo para unir los efectos.
                 renderer->endEncoding(actualParallel.get()); //Finalizamos el render actual, y generar uno nuevo.

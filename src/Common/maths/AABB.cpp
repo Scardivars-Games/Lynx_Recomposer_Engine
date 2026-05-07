@@ -26,10 +26,10 @@ namespace ilen::maths::aabb {
             result.depth = overlapX;
 
             //el diff apunta a b. Si es mayor a 0, b esta a la derecha, y sino, b esta a la izquierda
-            result.normal = vec2(diff.x < 0.0f? -1.0f : 1.0f, 0.0f);
+            result.normal = vec2(diff.x < 0.0f ? 1.0f : -1.0f, 0.0f);
         }else{
             result.depth = overlapY;
-            result.normal = vec2(0.0f, diff.y < 0.0f ? -1.0f : 1.0f);
+            result.normal = vec2(0.0f, diff.y < 0.0f ? 1.0f : -1.0f);
         }
         return result;
     }
@@ -57,13 +57,13 @@ namespace ilen::maths::aabb {
             result.depth = overlapX;
 
             //el diff apunta a b. Si es mayor a 0, b esta a la derecha, y sino, b esta a la izquierda
-            result.normal = vec3(diff.x < 0.0f? -1.0f : 1.0f, 0.0f, 0.0f);
+            result.normal = vec3(diff.x < 0.0f? 1.0f :-1.0f, 0.0f, 0.0f);
         }else if(overlapY <= overlapX && overlapY <= overlapZ){
             result.depth = overlapY;
-            result.normal = vec3(0.0f, diff.y < 0.0f ? -1.0f : 1.0f, 0.0f);
+            result.normal = vec3(0.0f, diff.y < 0.0f ? 1.0f : -1.0f, 0.0f);
         }else{
             result.depth = overlapZ;
-            result.normal = vec3(0.0f, 0.0f, diff.z < 0.0f ? -1.0f : 1.0f);
+            result.normal = vec3(0.0f, 0.0f, diff.z < 0.0f ? 1.0f : -1.0f);
         }
         return result;
     }
@@ -81,14 +81,14 @@ namespace ilen::maths::aabb {
     }
 
     //Overlap, deteccion sencilla de solapamiento de cajas
-    bool overladAABB2D(const AABB2D& a, const AABB2D& b){
+    bool overlapAABB2D(const AABB2D& a, const AABB2D& b){
         vec2 diff = b.center - a.center;
         vec2 sum = a.halfExtents + b.halfExtents;
 
         return std::abs(diff.x) < sum.x && std::abs(diff.y) < sum.y;
     }
 
-    bool overladAABB3D(const AABB3D& a, const AABB3D& b){
+    bool overlapAABB3D(const AABB3D& a, const AABB3D& b){
         vec3 diff = b.center - a.center;
         vec3 sum = a.halfExtents + b.halfExtents;
 

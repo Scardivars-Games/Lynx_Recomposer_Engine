@@ -124,7 +124,7 @@ namespace ilen{
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        int elementosPrueba = 40000;
+        int elementosPrueba = 0;
 
         for (int i = 0; i < elementosPrueba; i++) {
                 auto entity = engineContext->p_coordinator->createEntity();
@@ -197,7 +197,7 @@ namespace ilen{
 
         //Gestionamos primero el tiempo para ejecutar el fixed update.
         static double accumulator = 0.0;
-        const double fixedMethodTime = 1.0 / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
+        constexpr const double fixedMethodTime = 1.0 / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
 
         double frameTime = ilen::time::Time::getDeltaTime();
         ILEN_WARNING("FPS: %.2f", 1.0/frameTime);

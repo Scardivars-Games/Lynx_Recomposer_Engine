@@ -18,7 +18,7 @@ int main() {
     metadata.applicationVersion = "0.0.1";
     metadata.startHeight = 600;
     metadata.startWidth = 800;
-    metadata.windowPropertiesFlags = ILEN_WINDOW_PROPERTY_CLOSABLE | ILEN_WINDOW_PROPERTY_RESIZABLE | ILEN_WINDOW_PROPERTY_MAXIMIZABLE | ILEN_WINDOW_PROPERTY_WINDOWED;
+    metadata.windowPropertiesFlags = ILEN_WINDOW_PROPERTY_CLOSABLE | ILEN_WINDOW_PROPERTY_RESIZABLE | ILEN_WINDOW_PROPERTY_MAXIMIZABLE | ILEN_WINDOW_PROPERTY_FULLSCREEN;
     metadata.applicationFramerate = 120;
 
     AppRuntime& app = AppRuntime::getInstance();

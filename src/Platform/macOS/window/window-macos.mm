@@ -108,6 +108,9 @@ namespace ilen::window {
             [nativeWindow setTitle:[NSString stringWithUTF8String:title.c_str()]];
             [nativeWindow center];
             [nativeWindow setDelegate:appDelegate];
+
+            //Añadir opcion para fullscreen
+            [nativeWindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
             
             //Menu principal de la app
             NSMenu* mainMenu = [[NSMenu alloc] initWithTitle:@"MainMenu"];
@@ -169,6 +172,12 @@ namespace ilen::window {
             [nativeWindow setIsVisible:YES];
             [nativeWindow makeKeyAndOrderFront:nil];
             [NSApp activateIgnoringOtherApps:YES];
+
+            if(windowProperties & ILEN_WINDOW_PROPERTY_FULLSCREEN){
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [nativeWindow toggleFullScreen:nil];
+                });            
+            }
         }
     }
 

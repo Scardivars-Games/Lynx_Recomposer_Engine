@@ -41,6 +41,10 @@ namespace ilen::maths::vector{
         constexpr inline T& operator[](size_t index) { return data[index]; }
         constexpr inline const T& operator[](size_t index) const { return data[index]; }
         
+        explicit operator Vector<T, 3>() const {
+            return Vector<T, 3>(x, y, static_cast<T>(0));
+        }
+
         /*bool operator==(const Vector<T, 2>& other) const {
             return x == other.x && y == other.y;
         }*/
@@ -83,6 +87,9 @@ namespace ilen::maths::vector{
         constexpr inline T& operator[](size_t index) { return data[index]; }
         constexpr inline const T& operator[](size_t index) const { return data[index]; }
 
+        explicit operator Vector<T, 2>() const {
+            return Vector<T, 2>(x, y);
+        };
        /* bool operator==(const Vector<T, 3>& other) const {
             return x == other.x && y == other.y && z == other.z;
         }*/
