@@ -42,7 +42,7 @@ namespace  ilen::ecs::systems {
 
         std::pair<render::IlenParallelEncoderDescriptor, std::shared_ptr<render::IGPURenderPipeline>> encoderToPostProcessPSO; //Este PSO es el que se ejecuta por cada objeto y su objetivo es poblar con datos las texturas
         std::shared_ptr<render::IGPURenderPipeline> postProcessPresentPSO; //Este PSO es el que se usa para dibujar el present en pantalla al final.
-        std::weak_ptr<components::MeshGPULink> quadGPUMesh; // Por optimización, usamos directamente el mesh que tenemos definido, evitando tener 2 buffers idénticos en la GPU.
+        //std::weak_ptr<components::MeshGPULink> quadGPUMesh; // Por optimización, usamos directamente el mesh que tenemos definido, evitando tener 2 buffers idénticos en la GPU.
         std::vector<std::unique_ptr<render::IGPUInstanceBuffer>> postProcessInstanceBuffer;
 
         //std::unordered_map<Entity, maths::matrix::mat4> previousTransforms;

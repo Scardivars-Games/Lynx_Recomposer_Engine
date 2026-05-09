@@ -3,6 +3,13 @@
 #include <ilen/transform/transform-component.h>
 #include <ilen/core/thread-context.h>
 #include <vector>
+#include <ranges>
+#include <iterator>
+
+//Declaración adelantada
+namespace ilen::ecs::systems {
+    class ScriptingSystem;
+}
 
 namespace ilen::engine::api {
     using namespace ilen::ecs;
@@ -16,8 +23,6 @@ namespace ilen::engine::api {
             static void Rotate(Entity entity, vec3 axis, float angle);
             static void Scale(Entity entity, vec3 scaleFactor);
             static void Scale(Entity entity, float uniformScale);
-
-            static void ExecuteAllAccumulatedTransform();
 
         private:
             static inline ilen::ecs::ECSCoordinator* p_coordinator = nullptr;
@@ -42,6 +47,10 @@ namespace ilen::engine::api {
                 }
                 modifier(order);
             }
+
+            static void ExecuteAllAccumulatedTransform();
+
+        friend class ilen::ecs::systems::ScriptingSystem;
     };
 
 } // namespace ilen::engine::api

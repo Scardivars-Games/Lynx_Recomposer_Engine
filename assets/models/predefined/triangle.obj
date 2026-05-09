@@ -1,8 +1,8 @@
 # Archivo OBJ para un triángulo simple
 # Lista de vértices (x, y, z)
-v 1.0 0.0 0.0
-v 0.0 1.0 0.0
-v -1.0 0.0 0.0
+v 0.5 0.0 0.0
+v 0.0 0.5 0.0
+v -0.5 0.0 0.0
 
 # Definición de la cara
 f 1 2 3

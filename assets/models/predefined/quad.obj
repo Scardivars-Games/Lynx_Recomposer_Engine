@@ -1,18 +1,12 @@
-# Archivo OBJ para un quad (sprite 2D)
+# Archivo OBJ para un quad NORMALIZADO (1x1 unidades)
+v 0.5 0.5 0.0
+v -0.5 0.5 0.0
+v -0.5 -0.5 0.0
+v 0.5 -0.5 0.0
 
-# Lista de vértices (x, y, z)
-# Definimos un cuadrado en el plano XY
-v 1.0 1.0 0.0
-v -1.0 1.0 0.0
-v -1.0 -1.0 0.0
-v 1.0 -1.0 0.0
-
-# Lista de coordenadas de textura (u, v)
-# Corresponden a las esquinas de la imagen
 vt 1.0 1.0
 vt 0.0 1.0
 vt 0.0 0.0
 vt 1.0 0.0
 
-# Definición de la cara (vértice/coordenada de textura)
 f 1/1 2/2 3/3 4/4

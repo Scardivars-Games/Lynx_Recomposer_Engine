@@ -23,6 +23,7 @@ namespace ilen::render {
 
             virtual void DrawIndexed(uint32_t indexCount) = 0;
             virtual void DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset, size_t instanceDataSize) = 0;
+            virtual void DrawWithoutMesh() = 0; //Util para el post-procesado.
 
             virtual void EndEncoding() = 0;
     };

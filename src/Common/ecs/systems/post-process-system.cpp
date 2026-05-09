@@ -32,7 +32,7 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
 
     postProcessPresentPSO = renderer->createRenderPipeline(postProcessPSO[1], shaderManager);
 
-    quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
+    //quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
 
     constexpr size_t instanceBufferSize = ilen::core::options::GraphicsOptions::instanceBufferSizeInMB * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
     auto framesInFlight = renderer->getActualNumOfFramesInFlight();
@@ -45,13 +45,13 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
 void PostProcessSystem::Update() {
    {
         ilen::time::ScopedTimer postProcessTimer("Post-Process Timer");
-        auto quadPtr = quadGPUMesh.lock();
+        /*auto quadPtr = quadGPUMesh.lock();
         if (quadPtr == nullptr) {
             meshManager->UpdateProcess();
             quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
             ILEN_LOG_P(DEBUG_PREFIX, "Saltando el frame porque no esta en memoria el mesh para el Quad.");
             return; //Saltamos el frame
-        }
+        }*/
 
         //Obtener punteros a los array de los componentes que requiere el sistema para trabajar
         auto* transformComponentArray = p_coordinator->getComponentArray<components::TransformComponent>();
@@ -312,14 +312,15 @@ void PostProcessSystem::Update() {
 
                 //Asignando todo lo que requiere el encoder para funcionar en este caso.
                 encoder->SetPipelineState(postProcessPresentPSO.get());
-                encoder->SetVertexBuffer(slots::RenderBufferSlot_VertexMain, quadPtr->vertexBuffer.get());
-                encoder->SetIndexBuffer(quadPtr->indexBuffer.get());
+                //encoder->SetVertexBuffer(slots::RenderBufferSlot_VertexMain, quadPtr->vertexBuffer.get());
+                //encoder->SetIndexBuffer(quadPtr->indexBuffer.get());
                 encoder->SetTexture(0, nativeTexture[0]); //Esto siempre será la textura base de color con los datos renderizados.
                 size_t actualImageIndex = 1;
                 if (core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
                     encoder->SetTexture(slots::TextureBufferSlot_VelocityBuffer, imagesAttach[actualImageIndex]);
                 }
-                encoder->DrawIndexed(quadPtr->indexCount);
+                encoder->DrawWithoutMesh();
+                //encoder->DrawIndexed(quadPtr->indexCount);
                 //TODO: Actualmente no dibuja nada en pantalla. Posible causa: el PSO tiene prohibido escribir en el buffer 0 (textura de color en nuestro caso. Revisar)
                 //Corregido
                 encoder->EndEncoding();

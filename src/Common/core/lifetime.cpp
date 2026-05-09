@@ -8,6 +8,9 @@
 #include <ilen/core/engine-context.h>
 #include <ilen/ecs/system_registry.h>
 
+//API públicas del motor
+#include <ilen-public/API/input-api.h>
+
 //FOR NO-EDITOR GAME
 #include <ilen-examples/gravity.h>
 #include <ilen-examples/triangle.h>
@@ -166,6 +169,10 @@ namespace ilen{
                 if(system.get() == scriptingSystemPtr.get()) continue;
                 system->Init(engineContext.get());
         }
+
+
+        //Inicializar APIS del motor.
+        ilen::engine::api::InputAPI::Init(engineContext.get());
         /*
         engineContext->p_transformSystem->Init(engineContext.get());
         //Inicializamos los scripts.

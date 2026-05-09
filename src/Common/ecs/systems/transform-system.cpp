@@ -49,6 +49,10 @@ namespace ilen::ecs::systems {
                             transform->rotation += order->rotation;
                             transform->scale *= order->scaleMultiplier;
 
+                           /* if(order->translation.y > 0 || order->translation.y < 0) {
+                                ILEN_LOG_P("Prueba de gravedad", "La entidad con nombre %s fue modificada su posicion con estos parametros: %s", p_coordinator->getComponent<EntityMetadataComponent>(entity)->getName().c_str(), vector::to_string(order->translation).c_str());
+                            }*/
+
                             //Reset
                             order->translation = vec3(0.0f);
                             order->rotation = vec3(0.0f);

@@ -22,6 +22,8 @@ void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
     p_coordinator->registerComponent<physics::Rigidbody2D>();
     p_coordinator->registerComponent<physics::BoxCollider2D>();
     p_coordinator->registerComponent<physics::CollisionComponent2D>();
+
+    ilen::engine::api::PhysicsAPI::Init(engineContext);
 }
 
 
@@ -35,6 +37,8 @@ void PhysicsSystem2D::Update() {
     componentArray.collisionComponentArray = p_coordinator->getComponentArray<physics::CollisionComponent2D>();
     componentArray.boxColliderArray = p_coordinator->getComponentArray<physics::BoxCollider2D>();
     componentArray.transformComponentArray = p_coordinator->getComponentArray<TransformComponent>();
+    componentArray.physicsOrderArray = p_coordinator->getComponentArray<physics::PhysicsOrder>();
+
 
     syncEntities(&componentArray);
 
@@ -44,6 +48,8 @@ void PhysicsSystem2D::Update() {
     constexpr float dt = 1.0f / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
 
     clearCollisionData(&componentArray);
+    registerPrevPosition(&componentArray);
+    applyForces(dt, &componentArray);
     applyGravity(dt, &componentArray);
     integrate(dt, &componentArray);
     detectAndResolve(dt, &componentArray);
@@ -61,7 +67,7 @@ void PhysicsSystem2D::registerEntity(Entity e, ArrayOfComponentsUsed* components
 
     //Método de seguridad para forzar el collider si este no existe.
     if (collider->halfExtents.x == 0.0f && collider->halfExtents.y == 0.0f) {
-        ilen::engine::api::Physics2DAPI::GenerateBoxColliderSize(e, collider);
+        ilen::engine::api::PhysicsAPI::GenerateBoxColliderSize(e, collider);
     }
 
     if(rb->isStatic) {
@@ -139,6 +145,16 @@ void PhysicsSystem2D::unregisterEntity(Entity e){
     }
 }
 
+void PhysicsSystem2D::registerPrevPosition(ArrayOfComponentsUsed* componentsArray){
+    for(Entity e: m_dynamicEntities){
+        auto* transform = componentsArray->transformComponentArray->getData(e);
+        auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
+    
+        // Guardamos la memoria del frame anterior
+        rb->prevPosition = vec2(transform->position.x, transform->position.y);
+    }
+}
+
 void PhysicsSystem2D::clearCollisionData(ArrayOfComponentsUsed* componentsArray){
     for(Entity e: m_dynamicEntities){
         if(auto* col = componentsArray->collisionComponentArray->getData(e)){
@@ -148,6 +164,26 @@ void PhysicsSystem2D::clearCollisionData(ArrayOfComponentsUsed* componentsArray)
     for(Entity e: m_staticEntities){
         if(auto* col = componentsArray->collisionComponentArray->getData(e)){
             col->contacts.clear();
+        }
+    }
+}
+
+void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArray){
+    for(Entity e : m_dynamicEntities){
+        auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
+        auto* order = componentsArray->physicsOrderArray->getData(e);
+
+        if(rb && order && order->hasOrders){
+            //Calculamos la aceleracion: F = m * a => a = F / m
+            vec2 acceleration = static_cast<vec2>(order->accumulatedForce) / rb->mass;
+            rb->velocity += acceleration * dt;
+
+            //Añadimos los impulsos. Estos no dependen de dt.
+            rb->velocity += static_cast<vec2>(order->accumulatedImpulse) / rb->mass;
+
+            order->accumulatedForce = vec3(0);
+            order->accumulatedImpulse = vec3(0);
+            order->hasOrders = false;
         }
     }
 }
@@ -198,13 +234,16 @@ void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componen
     for(size_t i = 0; i < dynamicCount; i++){
         Entity a = m_dynamicEntities[i];
         maths::aabb::AABB2D aabbA = dynamicsAABBs[i];
+        auto* rbA = componentsArray->rigidbodyComponentArray->getData(a);
 
         //Colisiones Dynamic vs Dynamic
         for(size_t j = i + 1; j < dynamicCount; j++){
             Entity b = m_dynamicEntities[j];
             maths::aabb::AABB2D aabbB = dynamicsAABBs[j];
+            auto* rbB = componentsArray->rigidbodyComponentArray->getData(b);
 
-            auto result = maths::aabb::intersectAABB2D(aabbA, aabbB);
+
+            auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsDynamic>(aabbA, aabbB, rbA->prevPosition, rbB->prevPosition);
 
             if(result.hit) {
                 resolveCollision(a, b, result, componentsArray);
@@ -218,12 +257,12 @@ void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componen
             }
         }
 
-        //Colisiones dynamic vs StaticGuard
+        //Colisiones dynamic vs Static
         for(size_t j = 0; j < staticCount; j++){
             Entity s = m_staticEntities[j];
             const maths::aabb::AABB2D& aabbStatic = m_staticAABBs[j];
 
-            auto result = maths::aabb::intersectAABB2D(aabbA, aabbStatic);
+            auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsStatic>(aabbA, aabbStatic, rbA->prevPosition);
             if(result.hit){
                 resolveCollision(a, s, result, componentsArray);
 
@@ -246,7 +285,11 @@ ilen::maths::aabb::AABB2D PhysicsSystem2D::buildAABB(Entity e, ArrayOfComponents
     vec2 post(transform->position.x, transform->position.y);
     vec2 center = post + collider->offset;
 
-    return maths::aabb::AABB2D::fromCenterHalf(center, collider->halfExtents);
+    vec2 scaledHalfExtents;
+    scaledHalfExtents.x = collider->halfExtents.x * transform->scale.x;
+    scaledHalfExtents.y = collider->halfExtents.y * transform->scale.y;
+
+    return maths::aabb::AABB2D::fromCenterHalf(center, scaledHalfExtents);
 }
 
 void PhysicsSystem2D::resolveCollision(Entity a, Entity b, const ilen::maths::aabb::IntersectResult2D& result, ArrayOfComponentsUsed* componentsArray){

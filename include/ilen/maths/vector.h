@@ -41,7 +41,7 @@ namespace ilen::maths::vector{
         constexpr inline T& operator[](size_t index) { return data[index]; }
         constexpr inline const T& operator[](size_t index) const { return data[index]; }
         
-        explicit operator Vector<T, 3>() const {
+        operator Vector<T, 3>() const {
             return Vector<T, 3>(x, y, static_cast<T>(0));
         }
 
@@ -87,7 +87,7 @@ namespace ilen::maths::vector{
         constexpr inline T& operator[](size_t index) { return data[index]; }
         constexpr inline const T& operator[](size_t index) const { return data[index]; }
 
-        explicit operator Vector<T, 2>() const {
+        operator Vector<T, 2>() const {
             return Vector<T, 2>(x, y);
         };
        /* bool operator==(const Vector<T, 3>& other) const {
@@ -153,6 +153,16 @@ namespace ilen::maths::vector{
         return result;
     }
 
+    //Operaciones poco comunes
+    template<typename T>
+    inline Vector<T, 3> operator+(const Vector<T, 3>& a, const Vector<T, 2>& b) {
+        Vector<T, 3> result;
+        result.x = a.x + b.x;
+        result.y = a.y + b.y;
+        result.z = a.z;
+        return result;
+    };
+
     template<typename T, size_t N>
     constexpr inline Vector<T, N> operator-(const Vector<T, N>& a, const Vector<T, N>& b){
         Vector<T, N> result;
@@ -191,6 +201,27 @@ namespace ilen::maths::vector{
             result.w = v.w * scalar;
         } else {
             for (size_t i = 0; i < N; ++i) result[i] = v[i] * scalar;
+        }
+        return result;
+    }
+
+    template<typename T, size_t N>
+    constexpr inline Vector<T, N> operator/(const Vector<T, N>& v, const T& scalar){
+        Vector<T, N> result;
+        if constexpr (N == 2) {
+            result.x = v.x / scalar; 
+            result.y = v.y / scalar;
+        } else if constexpr (N == 3) {
+            result.x = v.x / scalar; 
+            result.y = v.y / scalar; 
+            result.z = v.z / scalar;
+        } else if constexpr (N == 4) {
+            result.x = v.x / scalar; 
+            result.y = v.y / scalar; 
+            result.z = v.z / scalar; 
+            result.w = v.w / scalar;
+        } else {
+            for (size_t i = 0; i < N; ++i) result[i] = v[i] / scalar;
         }
         return result;
     }

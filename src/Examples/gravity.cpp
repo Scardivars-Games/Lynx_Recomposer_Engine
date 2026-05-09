@@ -1,6 +1,8 @@
 #if !ILEN_ONLY_ECS
 
 #include <ilen-examples/gravity.h>
+#include <ilen-public/API/input-api.h>
+#include <ilen-public/API/physics-2d.h>
 
 using namespace ilen::game;
 using namespace ilen::core;
@@ -27,11 +29,28 @@ void Cube::Init() {
     coordinator->setComponent(entity, std::move(render)); 
 
     Rigidbody2D rigidbody{};
-    rigidbody.gravityScale = 1.0f;
+    rigidbody.gravityScale = 2.0f;
+    rigidbody.mass = 0.5f;
     coordinator->setComponent(entity, std::move(rigidbody));
 
     BoxCollider2D collider{};
     coordinator->setComponent(entity, std::move(collider));
+}
+
+int velocity = 15;
+
+void Cube::Update() {
+    using namespace ilen::engine::api;
+    using namespace ilen::input;
+    if(InputAPI::IsKeyDown(Key::D) || InputAPI::IsKeyDown(Key::Right)){
+        TransformAPI::Translate(entity, vec2(velocity, 0.0f) * time::Time::getDeltaTime());
+    }else if(InputAPI::IsKeyDown(Key::A) || InputAPI::IsKeyDown(Key::Left)){
+        TransformAPI::Translate(entity, vec2(-velocity, 0.0f) * time::Time::getDeltaTime());
+    }
+
+    if(InputAPI::IsKeyPressed(Key::Space)) {
+        PhysicsAPI::AddImpulse(entity, vec2(0, 100));
+    }
 }
 
 void Ground::Init() {   
@@ -40,8 +59,8 @@ void Ground::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = vec3(0.0f, -9.0f, 0.0f);
-    transform.scale = vec3(90.0f, 0.5f, 1.0f);
+    transform.position = vec3(0.0f, -6.7f, 0.0f);
+    transform.scale = vec3(30.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
@@ -68,7 +87,7 @@ void GravityCamera::Init() {
     CameraComponent camera{};
     camera.isPrimary = true;
     camera.fovDegrees = 70.0f;
-    camera.orthoSize = 20;
+    camera.orthoSize = 15;
     camera.nearClip = 5;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->setComponent(entity, std::move(camera));

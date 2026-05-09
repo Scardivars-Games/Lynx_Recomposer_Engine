@@ -72,6 +72,7 @@ namespace ilen::time{
             start = std::chrono::high_resolution_clock::now();
         }
 
+#ifndef ILEN_DISABLE_TIME_LOGGING
         ~ScopedTimer() {
             auto end = std::chrono::high_resolution_clock::now();
             auto startUs = std::chrono::time_point_cast<std::chrono::microseconds>(start).time_since_epoch().count();
@@ -83,6 +84,9 @@ namespace ilen::time{
             ILEN_LOG_P("PROFILER", "%s: %.4f ms\n", name, ms);
             //std::cout << "[Profiler] " << name << ": " << ms << " ms\n";
         }
+#else
+        ~ScopedTimer() = default;
+#endif
     };
 #else
     struct ScopedTimer{

@@ -15,7 +15,12 @@ namespace ilen::ecs::components::physics {
         float gravityScale = 1.0f;
 
         //Velocidad máxima del objeto
-        float terminalVelocity = 20.0f;
+        float terminalVelocity = 50.0f;
+
+        //Massa del objeto (para la física)
+        float mass = 1.0f;
+
+        vec2 prevPosition{0.0f}; // Esto es para calcular correctamente desde donde viene la colision, al chocar objetos dinamicos
 
         //Booleanos
         bool isInGround = false;

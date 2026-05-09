@@ -2,38 +2,6 @@
 #include <cmath>
 
 namespace ilen::maths::aabb {
-
-    //Como calcular esto: por cada eje se calcula la distancia minima para No Tocarse, se calcula la distancia entre los centros
-    // y por ultimo se ve cuanto overlap hay.
-    IntersectResult2D intersectAABB2D(const AABB2D& a, const AABB2D&b){
-        //Vector de a hacia b, infica la distancia y la Dirección.
-        vec2 diff = b.center - a.center;
-
-        //Determina cuanto se superponen las aabb (se suman las medias distancis, y luego, se resta la distancia entre los centros de los bloques.)
-        float overlapX = (a.halfExtents.x + b.halfExtents.x) - std::abs(diff.x);
-        float overlapY = (a.halfExtents.y + b.halfExtents.y) - std::abs(diff.y);
-
-        //Si ningun eje colisiona, descarte rápido
-        if(overlapX <= 0.0f || overlapY <= 0.0f){
-            return {.hit = false };
-        }
-
-        IntersectResult2D result;
-        result.hit = true;
-
-        if(overlapX < overlapY){
-            //El eje X esta más cerca del borde
-            result.depth = overlapX;
-
-            //el diff apunta a b. Si es mayor a 0, b esta a la derecha, y sino, b esta a la izquierda
-            result.normal = vec2(diff.x < 0.0f ? 1.0f : -1.0f, 0.0f);
-        }else{
-            result.depth = overlapY;
-            result.normal = vec2(0.0f, diff.y < 0.0f ? 1.0f : -1.0f);
-        }
-        return result;
-    }
-
     IntersectResult3D intersectAABB3D(const AABB3D& a, const AABB3D&b){
         //Vector de a hacia b, infica la distancia y la Dirección.
         vec3 diff = b.center - a.center;

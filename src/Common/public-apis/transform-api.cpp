@@ -43,14 +43,44 @@ void TransformAPI::ExecuteAllAccumulatedTransform() {
     auto* orderArray = p_coordinator->getComponentArray<components::TransformOrder>();
     if(!orderArray) return;
 
+    std::vector<Entity> registeredEntities;
+    std::vector<TransformOrder> accumulatedOrders;
+    registeredEntities.reserve(ilen::ecs::MAX_ENTITIES);
+    accumulatedOrders.reserve(ilen::ecs::MAX_ENTITIES);
+
+
     for (auto& ta : s_threadAccumulators) {
         for (Entity e : ta.touched) {
-            auto& order = ta.orders[e];
+            /*auto& order = ta.orders[e];
             if (!order.hasOrders) continue;
 
             orderArray->updateData(e, std::move(order));
+            order = TransformOrder{};*/
+
+            auto& order = ta.orders[e];
+            if(!order.hasOrders) continue;
+
+            //Ver si esa entidad ya esta registrada
+            auto it = std::ranges::find(registeredEntities, e);
+            if(it != registeredEntities.end()){
+                //Existe, vamos a obtener el indice.
+                size_t index = std::distance(registeredEntities.begin(), it);
+                auto& actualOrder = accumulatedOrders[index];
+                actualOrder.translation += order.translation;
+                actualOrder.rotation += order.rotation;
+                actualOrder.scaleMultiplier *= order.scaleMultiplier;
+            }else {
+                //No existe.
+                registeredEntities.push_back(e);
+                accumulatedOrders.push_back(order);
+            }
+
             order = TransformOrder{};
         }
         ta.touched.clear();
+    }
+
+    for(size_t i = 0; i < registeredEntities.size(); i++){
+        orderArray->updateData(registeredEntities[i], std::move(accumulatedOrders[i]));
     }
 }

@@ -29,16 +29,11 @@ namespace ilen::ecs {
                 TagSystem tag = TagSystem::None,
                 LayerSystem layer = LayerSystem::None,
                 std::string name = "Entity"
-            ) : tags(tag), layers(layer)
-#ifdef ILEN_DEBUG
-            , name(name)
-#endif
+            ) : tags(tag), layers(layer), name(name)
             {}
 
             private:
-#ifdef ILEN_DEBUG
                 std::string name = "Entity"; //Nombre de la entidad
-#endif
 
                 //Físicas
                 TagSystem tags = TagSystem::None;
@@ -73,14 +68,12 @@ namespace ilen::ecs {
 
                 bool isActive() { return activeStatus; }
                 void setActive(bool status) { activeStatus = status; }
-#ifdef ILEN_DEBUG
+                
                 void setName(std::string newName) { name = newName; }
                 std::string getName() const {return name; }
 
                 TagSystem getTags() const {return tags; }
                 LayerSystem getLayers() const {return layers; }
-#endif
-
         }; 
     } //namespace components
 } // namespace ilen::ecs

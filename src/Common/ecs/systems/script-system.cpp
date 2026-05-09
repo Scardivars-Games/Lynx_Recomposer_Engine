@@ -3,6 +3,7 @@
 #include <ilen/game-logic/script-system.h>
 #include <ilen/core/engine-context.h>
 #include <ilen-public/API/transform.h>
+#include <ilen-public/API/physics-2d.h>
 
 
 namespace ilen::ecs::systems {
@@ -137,7 +138,8 @@ namespace ilen::ecs::systems {
         group.Wait();
 
         //Metodos para realizar serialmente tareas no thread-safe
-        ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();                
+        ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();   
+        ilen::engine::api::PhysicsAPI::ExecuteAllAccumulatedForces();            
         p_commandDispatcher->ExecuteAll();
     }
 }

@@ -7,6 +7,12 @@ namespace ilen::maths::aabb{
     using vec2 = ilen::maths::vector::vec2;
     using vec3 = ilen::maths::vector::vec3;
 
+    enum class CollisionResolutionType {
+        Static,
+        DynamicVsStatic,
+        DynamicVsDynamic
+    };
+
     //Caja AABB para el 2D
     struct AABB2D {
         vec2 center; //centro del AABB en espacio GLOBAL
@@ -85,7 +91,77 @@ namespace ilen::maths::aabb{
     };
 
     //Funciones con respecto a las intersecciones
-    IntersectResult2D intersectAABB2D(const AABB2D& a, const AABB2D&b);
+    template<CollisionResolutionType type>
+    IntersectResult2D intersectAABB2D(const AABB2D& a, const AABB2D&b, const vec2& a_prevCenter = vec2(0.0f), const vec2& b_prevCenter = vec2(0.0f)) {
+        //Vector de a hacia b, infica la distancia y la Dirección.
+        vec2 diff = b.center - a.center;
+
+        //Determina cuanto se superponen las aabb (se suman las medias distancis, y luego, se resta la distancia entre los centros de los bloques.)
+        float overlapX = (a.halfExtents.x + b.halfExtents.x) - std::abs(diff.x);
+        float overlapY = (a.halfExtents.y + b.halfExtents.y) - std::abs(diff.y);
+
+        //Si ningun eje colisiona, descarte rápido
+        if(overlapX <= 0.0f || overlapY <= 0.0f){
+            return {.hit = false };
+        }
+
+        IntersectResult2D result;
+        result.hit = true;
+        
+        if constexpr (type == CollisionResolutionType::Static){
+            if(overlapX < overlapY){
+                //El eje X esta más cerca del borde
+                result.depth = overlapX;
+
+                //el diff apunta a b. Si es mayor a 0, b esta a la derecha, y sino, b esta a la izquierda
+                result.normal = vec2(diff.x < 0.0f ? 1.0f : -1.0f, 0.0f);
+            }else{
+                result.depth = overlapY;
+                result.normal = vec2(0.0f, diff.y < 0.0f ? 1.0f : -1.0f);
+            }
+            return result;
+        } 
+        //Dynamiv Vs Static
+        else if constexpr (type == CollisionResolutionType::DynamicVsStatic){
+            float a_prevBottom = a_prevCenter.y - a.halfExtents.y;
+            float a_prevTop = a_prevCenter.y + a.halfExtents.y;
+            float b_top = b.center.y + b.halfExtents.y;
+            float b_bottom = b.center.y - b.halfExtents.y;
+
+            if(a_prevBottom >= b_top) {
+                result.depth = overlapY;
+                result.normal = vec2(0.0f, 1.0f);
+            }else if(a_prevTop <= b_bottom) {
+                result.depth = overlapY;
+                result.normal = vec2(0.0f, -1.0f);
+            } else {
+                result.depth = overlapX;
+                result.normal = vec2(diff.x < 0.0f ? 1.0f : -1.0f, 0.0f);
+            }
+        }
+        //Dynamic VS Dynamic
+        else if constexpr(type == CollisionResolutionType::DynamicVsDynamic){
+            float a_prevBottom = a_prevCenter.y - a.halfExtents.y;
+            float a_prevTop = a_prevCenter.y + a.halfExtents.y;
+            float b_prevTop = b_prevCenter.y + b.halfExtents.y;
+            float b_prevBottom = b_prevCenter.y - b.halfExtents.y;
+
+            if(a_prevBottom >= b_prevTop) {
+                result.depth = overlapY;
+                result.normal = vec2(0.0f, 1.0f);
+            }else if(a_prevTop <= b_prevBottom) {
+                result.depth = overlapY;
+                result.normal = vec2(0.0f, -1.0f);
+            }else {
+                result.depth = overlapX;
+                result.normal = vec2(diff.x < 0.0f ? 1.0f : -1.0f, 0.0f);
+            }
+        }
+
+        return result;
+    }
+
+
     IntersectResult3D intersectAABB3D(const AABB3D& a, const AABB3D&b);
 
     //Funciones para comprobar si un punto existe dentro de un AABB

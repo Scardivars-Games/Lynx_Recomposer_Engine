@@ -23,6 +23,7 @@ namespace ilen::render {
             
             void DrawIndexed(uint32_t indexCount) override;
             void DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset, size_t instanceDataSize) override;
+            void DrawWithoutMesh() override;
             
             void EndEncoding() override;
         private:

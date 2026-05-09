@@ -17,6 +17,7 @@ namespace ilen::ecs::systems {
             ComponentArray<physics::CollisionComponent2D>* collisionComponentArray = nullptr;
             ComponentArray<physics::BoxCollider2D>* boxColliderArray = nullptr;
             ComponentArray<TransformComponent>* transformComponentArray = nullptr;
+            ComponentArray<physics::PhysicsOrder>* physicsOrderArray = nullptr;
         };
 
         public:
@@ -46,6 +47,8 @@ namespace ilen::ecs::systems {
             void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
             void detectAndResolve(float dt, ArrayOfComponentsUsed* componentsArray);
             void syncEntities(ArrayOfComponentsUsed* componentsArray);
+            void applyForces(float dt, ArrayOfComponentsUsed* ComponentArray);
+            void registerPrevPosition(ArrayOfComponentsUsed* ComponentArray);
 
             //Construye un AABB 2D en el espacio del mundo (Transform y el BoxCollider)
             maths::aabb::AABB2D buildAABB(Entity e, ArrayOfComponentsUsed* componentsArray) const;

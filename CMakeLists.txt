@@ -117,7 +117,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
 if(APPLE)
     list(APPEND EXTERNAL_SYSTEM_SPECIFIC_COMMANDS
         -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_SOURCE_DIR}/toolchains/macos.toolchain.cmake
-        -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
+        #-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
         -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE:STRING="Automatic"
     )
 elseif(WIN32)   
@@ -182,7 +182,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 if(APPLE)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         message("Configuration for iOS")
-        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/iOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm)
+        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/iOS/*.mm src/Platform/apple/*.mm src/Platform/apple/*.cpp src/Renderer/Metal/*.mm)
         set(NATIVE_HEADERS src/Platform/iOS src/Platform/apple src/Renderer/Metal)
 
         target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
@@ -238,7 +238,7 @@ if(APPLE)
         message("Configuration for tvOS")
         
         # Asumiendo una estructura de carpetas similar a iOS pero para tvOS
-        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/tvOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm)
+        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/tvOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm src/Platform/apple/*.cpp)
         set(NATIVE_HEADERS src/Platform/tvOS src/Platform/apple src/Renderer/Metal)
 
         target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
@@ -299,7 +299,7 @@ if(APPLE)
     else()
         message("Configuration for macOS")
 
-        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/macOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm)
+        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/macOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm src/Platform/apple/*.cpp)
         set(NATIVE_HEADERS src/Platform/macOS src/Platform/apple src/Renderer/Metal)
 
         target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
@@ -413,3 +413,4 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=0
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_ONLY_ECS=0") #Desactiva el sistema de scripting del motor, forzando a ser solamente ECS.
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_SINGLECORE_TEST=0") #Fuerza al sistema de Jobs tener 1 solo hilo disponible
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_BASIC_LOGGIN=0") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)
+target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_TIME_LOGGING=1") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)

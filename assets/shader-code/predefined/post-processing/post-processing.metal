@@ -18,10 +18,14 @@ struct VertexOut {
 
 constant bool hasMotionBlur [[function_constant(slots::TextureBufferSlot_VelocityBuffer)]];
 
-vertex VertexOut post_processing_vertex(VertexIn in [[stage_in]], uint instanceID [[instance_id]]) {
+vertex VertexOut post_processing_vertex(uint vertexID [[vertex_id]]) {
     VertexOut out;
-    out.position = float4(in.position, 1.0);
-    out.uv = in.uv;
+    //out.position = float4(in.position, 1.0);
+    //out.uv = in.uv;
+    out.uv = float2((vertexID << 1) & 2, vertexID & 2);
+
+    out.position = float4(out.uv * 2.0 - 1.0, 0.0, 1.0);
+    out.position.y = -out.position.y;
     return out;
 }
 

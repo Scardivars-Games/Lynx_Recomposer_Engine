@@ -26,6 +26,8 @@
     <string>AppIcon</string>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.adventure-games</string>
     <!--Soporte a Game Mode en iOS/macOS-->
     <key>LSSupportsGameMode</key><true/>
     <!--Esto supuestamente permite usar resolucion retina en macOS-->

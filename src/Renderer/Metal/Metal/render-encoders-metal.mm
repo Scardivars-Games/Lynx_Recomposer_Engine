@@ -83,6 +83,10 @@ namespace ilen::render {
         [_commandEncoder drawIndexedPrimitives:_primitiveType indexCount:indexCount indexType:_indexType indexBuffer:_indexBuffer indexBufferOffset:0];
     }
 
+    void MetalRenderEncoder::DrawWithoutMesh(){
+        [_commandEncoder drawPrimitives:_primitiveType vertexStart:0 vertexCount:3];
+    }
+
     void MetalRenderEncoder::DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset, size_t instanceDataSize){
         if(!_indexBuffer){
             ILEN_ERROR_P(DEBUG_PREFIX, "Ilen engine necesita un Index Buffer para dibujar!!! Revisar el orden de llamadas para detectar el error.");

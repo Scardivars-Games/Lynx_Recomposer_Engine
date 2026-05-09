@@ -11,7 +11,7 @@ namespace ilen::game{
     class Cube : public GameObject {
         public:
             void Init() override;
-            //void Update() override;
+            void Update() override;
     };
 
     class Ground : public GameObject {

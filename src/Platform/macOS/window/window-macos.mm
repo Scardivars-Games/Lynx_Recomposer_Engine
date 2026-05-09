@@ -1,8 +1,9 @@
 
 #if defined (__APPLE__) && ILEN_MACOS
 
-#include "window/window-macos.h"
+#include <window/window-macos.h>
 #include <ilen/headers/ilen-logs.h>
+#include <ilen/input/input-buffer.h>
 
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -64,6 +65,20 @@ using namespace ilen::enumerations;
         self.nativeWindow->_windowSizeChanged.store(true);
     }
 }
+@end
+
+@interface IlenView : NSView
+@end
+
+@implementation IlenView
+
+-(BOOL)acceptsFirstResponder {
+    return YES;
+}
+
+- (void)keyDown:(NSEvent *)event {}
+- (void)mouseDown:(NSEvent *)event {}
+- (void)mouseMoved:(NSEvent *)event {}
 @end
 
 namespace ilen::window {
@@ -145,7 +160,7 @@ namespace ilen::window {
             //Nueva logica de generación de superficie (si esto funciona, borrar la anterior por legibilidad)
             //La idea aquí es un inyectar un CAMetalLayer a una NSView, y nosotros administrar toda la vida de los
             //gráficos en pantalla, algo que de por sí hace el motor y la MTKView esta arruinandolo.
-            nativeView = [[NSView alloc] initWithFrame:frame];
+            nativeView = [[IlenView alloc] initWithFrame:frame];
             [nativeView setWantsLayer:YES]; //Necesario para poder asignarle el layer de Metal.
             
             //Layer de Metal
@@ -171,6 +186,8 @@ namespace ilen::window {
             
             [nativeWindow setIsVisible:YES];
             [nativeWindow makeKeyAndOrderFront:nil];
+            [nativeWindow makeFirstResponder:nativeView];
+            
             [NSApp activateIgnoringOtherApps:YES];
 
             if(windowProperties & ILEN_WINDOW_PROPERTY_FULLSCREEN){
@@ -185,7 +202,69 @@ namespace ilen::window {
     void WindowNativeMacOS::pollEvents() {
         @autoreleasepool {
             NSEvent* event;
+            
+            auto& input = ilen::input::InputBuffer::Get();
+            
+            //Limpiamos los deltas anteriores
+            input.NewFrame();
+            
             while((event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate distantPast] inMode:NSDefaultRunLoopMode dequeue:YES])){
+                NSEventType type = [event type];
+                switch (type) {
+                    case NSEventTypeKeyDown:
+                        input.SetKeyState(ilen::input::TranslateNativeKey([event keyCode]), true);
+                        break;
+                    case NSEventTypeKeyUp:
+                        input.SetKeyState(ilen::input::TranslateNativeKey([event keyCode]), false);
+                        break;
+                    case NSEventTypeFlagsChanged: {
+                        uint16_t k = [event keyCode];
+                        NSUInteger f = [event modifierFlags];
+                        bool p = false;
+                        if(k == 56 || k == 60) p = (f & NSEventModifierFlagShift);
+                        else if (k == 59 || k == 62) p = (f & NSEventModifierFlagControl);
+                        else if (k == 58 || k == 61) p = (f & NSEventModifierFlagOption);
+                        else if (k == 55 || k == 54) p = (f & NSEventModifierFlagCommand);
+                        input.SetKeyState(ilen::input::TranslateNativeKey(k), p);
+                        break;
+                    }
+                    //Click izquierdo
+                    case NSEventTypeLeftMouseUp:
+                    case NSEventTypeLeftMouseDown: {
+                        auto& ptr = input.GetPointer(0); //Mouse es siempre 0
+                        ptr.type = ilen::input::PointerType::Mouse;
+                        ptr.isDown = (type == NSEventTypeLeftMouseDown);
+                        break;
+                    }
+                        
+                    //Click derecho
+                    case NSEventTypeRightMouseUp:
+                    case NSEventTypeRightMouseDown:
+                        input.GetPointerState().rightClick = (type == NSEventTypeRightMouseDown);
+                        break;
+                        
+                    //Puntero del mouse
+                    case NSEventTypeMouseMoved:
+                    case NSEventTypeLeftMouseDragged:
+                    case NSEventTypeRightMouseDragged: {
+                        NSPoint loc = [event locationInWindow];
+                        NSPoint local = [nativeView convertPoint:loc fromView: nil];
+                        float scale = [nativeWindow backingScaleFactor];
+                        
+                        auto& ptr = input.GetPointer(0);
+                        ptr.x = local.x * scale;
+                        ptr.y = _drawableSize.height - (local.y * scale);
+                        break;
+                    }
+                        
+                    case NSEventTypeScrollWheel:
+                        input.GetPointerState().scrollWheel = [event scrollingDeltaY];
+                        break;
+                        
+                    default:
+                        break;
+                }
+                
                 [NSApp sendEvent:event];
             }
         }
