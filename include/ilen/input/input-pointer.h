@@ -16,6 +16,7 @@ namespace ilen::input {
         PointerType type = PointerType::Unknow;
         float x = 0, y = 0;
         bool isDown = false; //Clock o contacto del dedo
+        bool previousIsDown = false; //Para saber si se acabe de presionar o no
         float pressure = 1.0f; //Esto creo que le sacara más provecho una tableta digitalizadora
     };
 

@@ -8,18 +8,23 @@
 
 
 namespace ilen::game{
-    class Cube : public GameObject {
+    class Cube final : public GameObject {
         public:
             void Init() override;
             void Update() override;
     };
 
-    class Ground : public GameObject {
+    class PointerPos final: public GameObject {
+        void Init() override;
+        void Update() override;
+    };
+
+    class Ground final : public GameObject {
         public:
             void Init() override;
     };
 
-    class GravityCamera : public GameObject {
+    class GravityCamera final : public GameObject {
         public:
             void Init() override;
     };

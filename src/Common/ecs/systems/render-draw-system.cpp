@@ -96,7 +96,7 @@ namespace ilen::ecs::systems {
                 renderItems.push_back({entity, key});
             }*/
 
-            const mat4& viewMatrix = activeCamera->getViewMatrix();
+            const mat4& viewMatrix = activeCamera->viewMatrix;
 
             size_t numberOfThreads = p_jobSystem->AvailableThreads();
             //Preparar la lista de las render entities comprobando que esten asignado los componentes necesarios para dibujar.
@@ -165,7 +165,7 @@ namespace ilen::ecs::systems {
             lastRenderItems = renderItems; //Así podemos acceder a la lista lista para dibujar en otras funciones que lo necesiten sin tener que recalcular
 
             //TODO: Implementar soporte para Instanced Rendering, y Frames in flight por parte del Renderer.
-            encoder->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->getViewProjectionCameraBuffer());
+            encoder->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->cameraBuffer.get());
 
             size_t totalOfItem = renderItems.size();
             size_t chunkSize = (totalOfItem + numberOfThreads - 1) / numberOfThreads;

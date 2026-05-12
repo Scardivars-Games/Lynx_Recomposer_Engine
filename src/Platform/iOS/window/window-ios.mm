@@ -3,6 +3,8 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #include <ilen/headers/core.h>
+#include <ilen/input/input-buffer.h>
+#include <input/apple-controllers.h>
 
 @interface IlenView : UIView
 @property (nonatomic, assign) ilen::window::WindowNativeIOS* owner;
@@ -17,6 +19,8 @@
 - (instancetype)initWithFrame:(CGRect)frame{
     if(self = [super initWithFrame:frame]){
         self.contentScaleFactor = [UIScreen mainScreen].scale;
+        self.multipleTouchEnabled = YES;
+        self.userInteractionEnabled = YES;
     }
     return self;
 }
@@ -41,6 +45,61 @@
         }
     }
 }
+
+//Capturar cuando un dedo toca la pantalla
+-(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
+    auto& input =ilen::input::InputBuffer::Get();
+    
+    for(UITouch *touch in touches) {
+        int slot = input.GetFreePointerSlot();
+        if(slot != -1) {
+            //Hay un slot válido para recibir el puntero.
+            input.ModifyPointerSlot((uintptr_t)touch, slot, true);
+            
+            auto& ptr = input.GetPointer(slot);
+            ptr.isDown = true;
+            ptr.previousIsDown = false;
+            ptr.type = ilen::input::PointerType::Touch;
+            
+            CGPoint loc = [touch locationInView:self];
+            float scale = self.contentScaleFactor;
+            
+            ptr.x = loc.x * scale;
+            ptr.y = self.owner->actualHeight - (loc.y * scale); //Necesitamos invertir y porque el motor requiere que el 0,0 sea la esquina inferior inzquierda.
+
+            ptr.pressure = touch.force / touch.maximumPossibleForce;
+        }
+    }
+}
+
+-(void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
+    auto& input = ilen::input::InputBuffer::Get();
+    
+    for(UITouch *touch in touches) {
+        if(input.PointerSlotIsActive((uintptr_t)touch)) {
+            uint32_t slot = input.GetPointerSlot((uintptr_t)touch);
+            auto& ptr = input.GetPointer(slot);
+            
+            CGPoint loc = [touch locationInView:self];
+            float scale = self.contentScaleFactor;
+            ptr.x = loc.x * scale;
+            ptr.y = self.owner->actualHeight - (loc.y * scale); //Necesitamos invertir y porque el motor requiere que el 0,0 sea la esquina inferior inzquierda.
+            ptr.pressure = touch.force / touch.maximumPossibleForce;
+        }
+    }
+}
+
+-(void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    auto& input = ilen::input::InputBuffer::Get();
+    
+    for(UITouch *touch in touches) {
+        if(input.PointerSlotIsActive((uintptr_t)touch)){
+            uint32_t slot = input.GetPointerSlot((uintptr_t)touch);
+            input.GetPointer(slot).isDown = false;
+            input.ModifyPointerSlot((uintptr_t)touch, slot, false);
+        }
+    }
+}
 @end
 
 namespace ilen::window{
@@ -58,6 +117,8 @@ namespace ilen::window{
         actualWidth = 0;
         actualHeight = 0;
         _windowChanged.store(false);
+        
+        AddGameControllerNotifications();
         
         nativeWindow = (__bridge UIWindow*)metadata.mobileNativeWindow;
         
@@ -94,7 +155,9 @@ namespace ilen::window{
     }
     
     void WindowNativeIOS::pollEvents() {}
+    void WindowNativeIOS::updateGamepads() { UpdateGamePadsApple(); }
     bool WindowNativeIOS::shouldClose() {return false; }
+    bool WindowNativeIOS::shouldPause() {return isOutOfFocus; }
     void* WindowNativeIOS::getNativeWindow() const { return (__bridge void*)nativeWindow; }
     const void* WindowNativeIOS::getNativeView() const { return (__bridge void*)nativeView; }
 

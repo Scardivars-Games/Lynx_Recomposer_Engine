@@ -74,4 +74,6 @@ namespace ilen::render {
             slots::VertexBufferAttribute_Color,
             slots::VertexBufferAttribute_UV,
         });
+
+    const static VertexBufferLayout ILEN_VERTEXLESS_LAYOUT = computeAlignedVertexBuffer({}, {});
 }

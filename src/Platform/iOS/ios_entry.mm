@@ -4,6 +4,8 @@
 #include <ilen/core/lifetime.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/core/exceptions.h>
+#include <ilen/input/input-buffer.h>
+#include <window/window-ios.h>
 
 @class SceneDelegate;
 
@@ -114,6 +116,18 @@
     [self engineCleanup];
 }
 
+-(void)sceneWillResignActive:(UIScene *)scene {
+    //Acaba de entrar a foreground
+    ilen::input::InputBuffer::Get().ForceResetData();
+    auto win = static_cast<ilen::window::WindowNativeIOS*>(self.app->getEngineContext()->p_gameWindow->getNativeWindow());
+    win->isOutOfFocus = true;
+}
+
+-(void)sceneDidBecomeActive:(UIScene *)scene {
+    //Obtuvo el foco la app
+    auto win = static_cast<ilen::window::WindowNativeIOS*>(self.app->getEngineContext()->p_gameWindow->getNativeWindow());
+    win->isOutOfFocus = false;
+}
 @end
 
 

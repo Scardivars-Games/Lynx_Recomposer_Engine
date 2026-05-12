@@ -45,9 +45,23 @@ namespace ilen::ecs::systems {
                         
                         auto* order = orderArray->getData(entity);
                         if(order && order->hasOrders) {
-                            transform->position += order->translation;
-                            transform->rotation += order->rotation;
-                            transform->scale *= order->scaleMultiplier;
+                            if(order->isNewPos){
+                                transform->position = order->translation;
+                            }else{
+                                transform->position += order->translation;
+                            }
+
+                            if(order->isNewRot){
+                                transform->rotation = order->rotation;
+                            }else{
+                                transform->rotation += order->rotation;
+                            }
+
+                            if(order->isNewScale){
+                                transform->scale = order->scaleMultiplier;
+                            }else{
+                                transform->scale *= order->scaleMultiplier;
+                            }
 
                            /* if(order->translation.y > 0 || order->translation.y < 0) {
                                 ILEN_LOG_P("Prueba de gravedad", "La entidad con nombre %s fue modificada su posicion con estos parametros: %s", p_coordinator->getComponent<EntityMetadataComponent>(entity)->getName().c_str(), vector::to_string(order->translation).c_str());

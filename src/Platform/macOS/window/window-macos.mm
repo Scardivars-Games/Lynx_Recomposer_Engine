@@ -4,6 +4,7 @@
 #include <window/window-macos.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/input/input-buffer.h>
+#include <input/apple-controllers.h>
 
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -65,6 +66,17 @@ using namespace ilen::enumerations;
         self.nativeWindow->_windowSizeChanged.store(true);
     }
 }
+
+-(void)windowDidResignKey:(NSNotification *)notification{
+    //Perdio el foco, actualizar
+    ilen::input::InputBuffer::Get().ForceResetData();
+    self.nativeWindow->isOutOfFocus = true;
+}
+
+-(void) windowDidBecomeKey:(NSNotification *)notification{
+    //Acaba de ganar el foco la app.
+    self.nativeWindow->isOutOfFocus = false;
+}
 @end
 
 @interface IlenView : NSView
@@ -99,6 +111,9 @@ namespace ilen::window {
             int width = metadata.startWidth;
             int height = metadata.startHeight;
             std::string title = metadata.applicationName;
+
+            AddGameControllerNotifications();
+
             IlenWindowPropertiesFlags windowProperties = metadata.windowPropertiesFlags;
             
             [NSApplication sharedApplication];
@@ -206,7 +221,7 @@ namespace ilen::window {
             auto& input = ilen::input::InputBuffer::Get();
             
             //Limpiamos los deltas anteriores
-            input.NewFrame();
+            //input.NewFrame();
             
             while((event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:[NSDate distantPast] inMode:NSDefaultRunLoopMode dequeue:YES])){
                 NSEventType type = [event type];
@@ -253,7 +268,7 @@ namespace ilen::window {
                         
                         auto& ptr = input.GetPointer(0);
                         ptr.x = local.x * scale;
-                        ptr.y = _drawableSize.height - (local.y * scale);
+                        ptr.y = local.y * scale;
                         break;
                     }
                         
@@ -268,6 +283,10 @@ namespace ilen::window {
                 [NSApp sendEvent:event];
             }
         }
+    }
+
+    void WindowNativeMacOS::updateGamepads() {
+        UpdateGamePadsApple();
     }
 
     bool WindowNativeMacOS::checkWindowResize(uint32_t &outWidth, uint32_t &outHeight){
@@ -289,6 +308,10 @@ namespace ilen::window {
 
     bool WindowNativeMacOS::shouldClose() {
         return closeRequested;
+    }
+
+    bool WindowNativeMacOS::shouldPause() {
+        return isOutOfFocus;
     }
 
     void* WindowNativeMacOS::getNativeWindow() const  { return (__bridge void*)nativeWindow; }

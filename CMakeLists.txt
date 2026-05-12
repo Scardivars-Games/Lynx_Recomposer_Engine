@@ -348,6 +348,7 @@ if(APPLE)
         "-framework MetalKit" 
         "-framework Metal"
         "-framework QuartzCore"
+        "-framework GameController"
     )
 
     #HUD de Metal para debuggear

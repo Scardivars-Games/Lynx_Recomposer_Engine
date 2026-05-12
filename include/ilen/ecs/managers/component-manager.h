@@ -68,7 +68,7 @@ namespace ilen::ecs {
                 indexToEntityMap.fill(NULL_ENTITY);
 
 #if ILEN_DEBUG
-                PrintDiagnostics();
+                //PrintDiagnostics();
 #endif
             }
 

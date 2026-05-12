@@ -18,7 +18,9 @@ namespace ilen::window{
         public:
             virtual ~WindowNative() = default;
             virtual void pollEvents() = 0;
+            virtual void updateGamepads() = 0;
             virtual bool shouldClose() = 0;
+            virtual bool shouldPause() = 0; //Esto es para indicar que la app debe pausar su ejecución.
             virtual void* getNativeWindow() const = 0;
             virtual const void* getNativeView() const = 0;
             virtual bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) = 0;
@@ -35,11 +37,14 @@ namespace ilen::window{
             //class WindowNative; //Esta clase es la que enlazará esta clase con la implementación del OS.
             //Up is old engine architecture.
 
-            void processEvents();
+            void processEvents(); 
+            void updateGamepads();
             bool shouldClose();
+            bool shouldPause();
 
             void* getWindow();
             const void* getSurface(); //View en Apple ecosystem.
+            void* getNativeWindow();
 
             static std::unique_ptr<IWindow> CreateWindow(const ilen::application::ApplicationMetadata& metadata);
 

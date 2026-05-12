@@ -24,6 +24,13 @@ namespace ilen::window
         }
     }
 
+    void IWindow::updateGamepads() {
+        if (p_windowNative)
+        {
+            p_windowNative->updateGamepads();
+        }
+    }
+
     bool IWindow::shouldClose()
     {
         if (p_windowNative)
@@ -31,6 +38,13 @@ namespace ilen::window
             return p_windowNative->shouldClose();
         }
         return true;
+    }
+
+    bool IWindow::shouldPause(){
+        if(p_windowNative){
+            return p_windowNative->shouldPause();
+        }
+        return false; //No pausar si no hay window
     }
 
     void* IWindow::getWindow()
@@ -49,6 +63,10 @@ namespace ilen::window
             return p_windowNative->getNativeView();
         }
         return nullptr;
+    }
+
+    void* IWindow::getNativeWindow() {
+        return p_windowNative.get();
     }
 
    /* bool IWindow::checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) {

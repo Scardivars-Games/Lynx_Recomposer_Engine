@@ -1,8 +1,14 @@
-# Archivo OBJ para un triángulo simple
+# Archivo OBJ para un triángulo normalizado (1x1 unidades)
 # Lista de vértices (x, y, z)
-v 0.5 0.0 0.0
+
+# Vértice inferior derecho
+v 0.5 -0.5 0.0
+
+# Vértice superior central
 v 0.0 0.5 0.0
-v -0.5 0.0 0.0
+
+# Vértice inferior izquierdo
+v -0.5 -0.5 0.0
 
 # Definición de la cara
 f 1 2 3

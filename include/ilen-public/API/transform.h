@@ -19,6 +19,7 @@ namespace ilen::engine::api {
             static void Init(const ilen::EngineContext* context);
 
             static void Translate(Entity entity, vec3 delta);
+            static void SetPosition(Entity entity, vec3 newPosition);
             static void Rotate(Entity entity, vec3 eulerAngles);
             static void Rotate(Entity entity, vec3 axis, float angle);
             static void Scale(Entity entity, vec3 scaleFactor);

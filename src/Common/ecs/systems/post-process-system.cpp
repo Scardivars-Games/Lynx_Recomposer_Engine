@@ -130,7 +130,7 @@ void PostProcessSystem::Update() {
                 //new
                 ilen::job_system::JobGroup group;
 
-                encoderPtr->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->getViewProjectionCameraBuffer());
+                encoderPtr->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->cameraBuffer.get());
 
                 for (size_t i = 0; i < numChunks; i++) {
                     size_t chunckStart = i * chunkSize;
@@ -375,6 +375,7 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
     //Nota importante, si esto se esta ejecutando es porque estan activados los efectos de postProcesado.
     IlenRenderPipelineDescriptor postProcessRenderPSO {postProcessMat};
     postProcessRenderPSO.constantValuesForPipelines = constants;
+    postProcessRenderPSO.vertexLayout = ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_VERTEXLESS;
 
     toReturn.push_back(postProcessRenderPSO);
     return toReturn;

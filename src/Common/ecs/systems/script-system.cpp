@@ -4,6 +4,8 @@
 #include <ilen/core/engine-context.h>
 #include <ilen-public/API/transform.h>
 #include <ilen-public/API/physics-2d.h>
+#include <ilen-public/API/entity-api.h>
+#include <ilen-public/API/camera-api.h>
 
 
 namespace ilen::ecs::systems {
@@ -11,6 +13,11 @@ namespace ilen::ecs::systems {
         p_coordinator = engineContext->p_coordinator.get();
         p_jobSystem = engineContext->p_jobSystem.get();
         p_commandDispatcher = engineContext->p_commandDispatcher.get();
+
+        //Inicializar apis
+        ilen::engine::api::EntityAPI::Init(engineContext);
+        ilen::engine::api::CameraAPI::Init(engineContext);
+
 
         for(auto const& entity: entities){
             auto scriptComponent = p_coordinator->getComponent<ilen::ecs::components::ScriptingBridgeComponent>(entity);
@@ -39,6 +46,7 @@ namespace ilen::ecs::systems {
             size_t numChunks = (total + chunkSize - 1) / chunkSize;
 
             auto* scriptComponentArray = p_coordinator->getComponentArray<ilen::ecs::components::ScriptingBridgeComponent>();
+            ilen::engine::api::CameraAPI::GetMainCameraPointer();
 
             {
                 ilen::time::ScopedTimer timer("Scripting Update method -- Paralelized execution");
@@ -139,7 +147,9 @@ namespace ilen::ecs::systems {
 
         //Metodos para realizar serialmente tareas no thread-safe
         ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();   
-        ilen::engine::api::PhysicsAPI::ExecuteAllAccumulatedForces();            
+        ilen::engine::api::PhysicsAPI::ExecuteAllAccumulatedForces();        
+        ilen::engine::api::EntityAPI::ResetMetadataPointer();    
+        ilen::engine::api::CameraAPI::ResetMainCameraPointer();
         p_commandDispatcher->ExecuteAll();
     }
 }

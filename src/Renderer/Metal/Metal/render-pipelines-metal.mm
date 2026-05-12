@@ -52,6 +52,9 @@ namespace ilen::render {
                 case enumerations::ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_GLOBAL:
                     layout = ILEN_GLOBAL_VERTEX_LAYOUT;
                     break;
+                case enumerations::ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_VERTEXLESS:
+                    layout = ILEN_VERTEXLESS_LAYOUT;
+                    break;
                 default:
                     layout = ILEN_GLOBAL_VERTEX_LAYOUT;
                     break;
@@ -59,8 +62,9 @@ namespace ilen::render {
 
 
             void* cachedVertexDescriptor = nullptr;
-            {
-                 std::lock_guard lock(_psoMutex);
+            if(descriptor.vertexLayout != enumerations::ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_VERTEXLESS) {
+                std::lock_guard lock(_psoMutex);
+                
                 auto it = m_vertexBufferDescriptors.find(layout);
 
                 if(it != m_vertexBufferDescriptors.end()){

@@ -76,6 +76,17 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key><true/>
 	<!--Soporte a Game Mode en iOS/macOS-->
 	<key>LSSupportsGameMode</key><true/> 
+	
+
+	<key>GCSupportedGameControllers</key>
+    <array>
+        <dict>
+            <key>ProfileName</key>
+            <string>ExtendedGamepad</string>
+        </dict>
+    </array>
+    <key>GCSupportsControllerUserInteraction</key>
+    <true/>
 </dict>
 </plist>
 

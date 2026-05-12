@@ -50,6 +50,7 @@ namespace ilen::enumerations {
         ILEN_VERTEX_LAYOUT_PARTICLES = 3,
         ILEN_VERTEX_LAYOUT_DEBUG = 4,
         ILEN_VERTEX_LAYOUT_POST_PROCESS = 5,
+        ILEN_VERTEX_LAYOUT_VERTEXLESS = 6, //Renderizar sin ningun descriptor de vertices
     };
 
     //RenrerQueue de los Materiales (Usado para organizar las draw calls, y saber el estado a asignar en el PSO)}

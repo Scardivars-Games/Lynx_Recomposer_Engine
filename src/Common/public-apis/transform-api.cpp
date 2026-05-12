@@ -30,11 +30,15 @@ void TransformAPI::Rotate(Entity e, vec3 axis, float angle) {
 }
 
 void TransformAPI::Scale(Entity e, vec3 factor) {
-    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= factor; });
+    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= factor; o.isNewScale = true;});
 }
 
 void TransformAPI::Scale(Entity e, float uniform) {
-    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= uniform; });
+    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= uniform; o.isNewScale = true;});
+}
+
+void TransformAPI::SetPosition(Entity e, vec3 newPos){
+        accumulate(e, [&](TransformOrder& o){ o.translation += newPos; o.isNewPos = true; });
 }
 
 void TransformAPI::ExecuteAllAccumulatedTransform() {
@@ -69,6 +73,12 @@ void TransformAPI::ExecuteAllAccumulatedTransform() {
                 actualOrder.translation += order.translation;
                 actualOrder.rotation += order.rotation;
                 actualOrder.scaleMultiplier *= order.scaleMultiplier;
+                if(order.isNewPos)
+                    actualOrder.isNewPos = true;
+                if(order.isNewRot)
+                    actualOrder.isNewRot = true;
+                if(order.isNewScale)
+                    actualOrder.isNewScale = true;
             }else {
                 //No existe.
                 registeredEntities.push_back(e);

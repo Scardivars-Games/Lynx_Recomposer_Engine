@@ -23,7 +23,9 @@ namespace ilen::window
 
             //Implementación de la clase
             void pollEvents() override;
+            void updateGamepads() override;
             bool shouldClose() override;
+            bool shouldPause() override;
             void* getNativeWindow() const override;
             const void*  getNativeView() const override;
             bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) override;
@@ -32,6 +34,7 @@ namespace ilen::window
             NSWindow* nativeWindow = nil;
             NSView* nativeView = nil;
             bool closeRequested = false;
+            bool isOutOfFocus = false;
             AppDelegate* appDelegate = nil;
         
             std::atomic<bool> _windowSizeChanged;

@@ -36,6 +36,7 @@ namespace ilen::ecs::systems {
             auto* visibilityComponentArray = p_coordinator->getComponentArray<VisibilityComponent>();
             auto* staticRenderDataArray = p_coordinator->getComponentArray<StaticRenderingData>();
             auto* staticMatRenderDataArray = p_coordinator->getComponentArray<StaticMaterialRenderingData>();
+            auto* metadataDataArray = p_coordinator->getComponentArray<EntityMetadataComponent>();
 
             ilen::job_system::JobGroup group;
 
@@ -43,13 +44,21 @@ namespace ilen::ecs::systems {
                 size_t start = i * chunkSize;
                 size_t end = std::min(start + chunkSize, total);
 
-                p_jobSystem->SubmitJob([this, start, end, entityList, renderComponentArray, visibilityComponentArray, staticRenderDataArray, staticMatRenderDataArray]() {
+                p_jobSystem->SubmitJob([this, start, end, entityList, renderComponentArray, visibilityComponentArray, staticRenderDataArray, staticMatRenderDataArray, metadataDataArray]() {
                     for(size_t j = start; j < end; j++){
                         Entity entity = entityList[j];
+                        auto* metadata = metadataDataArray->getData(entity);
                         auto* render = renderComponentArray->getData(entity);
                         if(!render) continue;
+                        
+                        if(!metadata->isActive()){
+                            SetVisibilityValue(*render, entity, visibilityComponentArray, false);
+                            continue;
+                        }
 
-                        HaveVisibilityDefined(*render, entity, visibilityComponentArray);
+
+
+                        SetVisibilityValue(*render, entity, visibilityComponentArray, true);
                         CheckMeshStatus(*render, entity, staticRenderDataArray);
                         CheckRenderPipelineStatus(*render, entity, staticMatRenderDataArray);
                     }
@@ -73,7 +82,7 @@ namespace ilen::ecs::systems {
         }
     }
 
-    void RenderSystem::HaveVisibilityDefined(const RenderComponent &render, const Entity &entity, ComponentArray<VisibilityComponent>* componentArray) {
+    void RenderSystem::SetVisibilityValue(const RenderComponent &render, const Entity &entity, ComponentArray<VisibilityComponent>* componentArray, bool newValue) {
         //auto visibility = p_Coordinator->getComponent<VisibilityComponent>(entity);
         VisibilityComponent* visibility = nullptr;
         
@@ -82,8 +91,10 @@ namespace ilen::ecs::systems {
         }
 
         if (visibility == nullptr) {
-            componentArray->updateData(entity, VisibilityComponent{});
+            componentArray->updateData(entity, VisibilityComponent{newValue});
             //p_coordinator->setComponent(entity, VisibilityComponent{});
+        }else{
+            visibility->isVisible = newValue;
         }
     }
 

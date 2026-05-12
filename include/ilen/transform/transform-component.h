@@ -25,10 +25,10 @@ namespace ilen::ecs::components {
             std::vector<Entity> childrens;
 
             matrix::mat4 getWorldMatrix() const { return localToWorldMatrix; }
-        private:
+        //private:
             matrix::mat4 localToWorldMatrix;
 
-        friend class ilen::ecs::systems::TransformSystem;
+        //friend class ilen::ecs::systems::TransformSystem;
     };
 
     struct TransformOrder {
@@ -37,17 +37,8 @@ namespace ilen::ecs::components {
         vec3 scaleMultiplier = vec3(1.0f);
 
         bool hasOrders = false;
-    };
-
-    struct Traslate_TransformOrder{
-        vec3 traslation;
-    };
-
-    struct Rotation_TransformOrder {
-        vec3 rotation;
-    };
-
-    struct Scale_TransformOrder {
-        vec3 scale;
+        bool isNewPos = false; //Si es true, el valor de translation es el valor del transform final, no es una traslacion
+        bool isNewRot = false; //Si es true, el valor de la rotacion es directamente escena
+        bool isNewScale = false; //Si es true, el valor del multiplier es la nueva escala. Si es false, multiplica a la escala anterior.
     };
 }

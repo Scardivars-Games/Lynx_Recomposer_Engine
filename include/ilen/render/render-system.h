@@ -40,7 +40,7 @@ namespace ilen::ecs::systems {
             MaterialManager* p_materialManager = nullptr;
 
             //Métodos privados
-            void HaveVisibilityDefined(const RenderComponent& render, const Entity& entity, ComponentArray<VisibilityComponent>* componentArray);
+            void SetVisibilityValue(const RenderComponent& render, const Entity& entity, ComponentArray<VisibilityComponent>* componentArray, bool newValue);
             void CheckMeshStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticRenderingData>* componentArray) const;
             void CheckRenderPipelineStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticMaterialRenderingData>* componentArray) const;
 

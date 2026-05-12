@@ -135,7 +135,7 @@ private:
 
     const static inline char* DEBUG_PREFIX = "JOB_SYSTEM";
 
-    static constexpr int SPIN_COUNT = 1000;
+    static constexpr int SPIN_COUNT = 0;
 
     void WorkLoop() {
         while (!shouldStop) {
