@@ -3,6 +3,7 @@
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #include <ilen/headers/core.h>
+#include <input/apple-controllers.h>
 
 @interface IlenViewTV : UIView
 @property (nonatomic, assign) ilen::window::WindowNativeTVOS* owner;
@@ -65,6 +66,7 @@ namespace ilen::window {
         actualHeight = 0;
         _windowChanged.store(false);
         
+        AddGameControllerNotifications();
         // Asumimos que en el metadata pasas el puntero de la UIWindow desde el SceneDelegate
         nativeWindow = (__bridge UIWindow*)metadata.mobileNativeWindow;
         
@@ -104,6 +106,15 @@ namespace ilen::window {
     bool WindowNativeTVOS::shouldClose() {
         return false;
     }
+
+    bool WindowNativeTVOS::shouldPause() {
+        return isOutOfFocus;
+    }
+
+    void WindowNativeTVOS::updateGamepads() {
+        UpdateGamePadsApple();
+    }
+
 
     void* WindowNativeTVOS::getNativeWindow() const {
         return (__bridge void*)nativeWindow;

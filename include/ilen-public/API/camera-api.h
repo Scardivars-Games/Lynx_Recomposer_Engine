@@ -6,6 +6,8 @@
 #include <ilen/game-logic/script-system.h>
 #include <ilen/maths/vector.h>
 #include <ilen/maths/matrix.h>
+#include <vector>
+#include <functional>
 
 namespace ilen::engine::api {
     using namespace ilen::maths::vector;
@@ -16,7 +18,9 @@ namespace ilen::engine::api {
             static vec3 ConvertNDCToWorld(const ilen::ecs::components::CameraComponent* camera, const vec2& ndcPos);
             static vec3 ConvertScreenToWorld(const ilen::ecs::components::CameraComponent* camera, const vec2& screenPos);
 
-            const static inline ilen::ecs::components::CameraComponent* mainCamera = nullptr; //Para poder ser usado directamente por los scripts
+            static void MakeMainCameraFollowThisEntity(ilen::ecs::Entity entityToFollow);
+
+            static inline ilen::ecs::components::CameraComponent* mainCamera = nullptr; //Para poder ser usado directamente por los scripts
         private:
             static void Init(const ilen::EngineContext* context);
             static void ResetMainCameraPointer();
@@ -28,6 +32,10 @@ namespace ilen::engine::api {
 
             static inline ilen::ecs::ECSCoordinator* p_coordinator = nullptr;
             static inline ilen::ecs::systems::CameraSystem* p_cameraSystem = nullptr;
+
+            //Para deferir tareas cuando la main camera no es posible acceder a ella
+            inline static std::vector<std::function<void()>> defferedTask;
+            inline static void ProcessDeferredTasks();
 
             friend class ilen::ecs::systems::ScriptingSystem;
     };

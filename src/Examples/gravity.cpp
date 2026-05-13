@@ -10,7 +10,7 @@ using namespace ilen::game;
 using namespace ilen::core;
 using namespace ilen::ecs::components;
 using namespace ilen::ecs::components::physics;
-
+using namespace ilen::engine::api;
 
 void Cube::Init() {
     ILEN_LOG_P("Gravedad", "Inicializado prueba de gravedad");
@@ -37,6 +37,8 @@ void Cube::Init() {
 
     BoxCollider2D collider{};
     coordinator->setComponent(entity, std::move(collider));
+
+    //CameraAPI::MakeMainCameraFollowThisEntity(entity);
 }
 
 int velocity = 15;
@@ -157,6 +159,15 @@ void GravityCamera::Init() {
     camera.nearClip = 5;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->setComponent(entity, std::move(camera));
+}
+
+void GravityCamera::LateUpdate() {
+    //Obtener posicion de la camara
+    vec3 playerPos = TransformAPI::GetEntityPosition(EntityAPI::GetEntityByName("Cubo de prueba"));
+    vec3 actualPos = TransformAPI::GetEntityPosition(entity);
+    vec3 newPos(playerPos.x, actualPos.y, actualPos.z);
+    ILEN_LOG_P("AYUDA", vector::to_string(newPos).c_str());
+    TransformAPI::SetPosition(entity, newPos);
 }
 
 #endif //!ILEN_ONLY_ECS

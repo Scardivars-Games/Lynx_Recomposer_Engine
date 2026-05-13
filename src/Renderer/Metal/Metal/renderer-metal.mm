@@ -252,6 +252,7 @@ bool MetalRender::acquireDrawable(){
 }
 
     void MetalRender::endFrame() {
+        //ILEN_LOG("Drawable: %i", _actualFrame);
         if(!_drawableAcquired){
             acquireDrawable();
         }

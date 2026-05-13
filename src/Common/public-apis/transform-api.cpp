@@ -1,4 +1,5 @@
 #include <ilen-public/API/transform.h>
+#include <ilen/transform/transform-system.h>
 
 using namespace ilen::engine::api;
 using namespace ilen::ecs::components;
@@ -10,6 +11,7 @@ void TransformAPI::Init(const ilen::EngineContext* context) {
     s_threadAccumulators.resize(numThreads + 1);
     
     p_coordinator->registerComponent<components::TransformOrder>();
+    p_transformSys = p_coordinator->getSystem<systems::TransformSystem>().get();
 
     for (auto& ta : s_threadAccumulators) {
         ta.orders.resize(ilen::ecs::MAX_ENTITIES);           // pre-alocado
@@ -38,7 +40,27 @@ void TransformAPI::Scale(Entity e, float uniform) {
 }
 
 void TransformAPI::SetPosition(Entity e, vec3 newPos){
-        accumulate(e, [&](TransformOrder& o){ o.translation += newPos; o.isNewPos = true; });
+    accumulate(e, [&](TransformOrder& o){ o.translation += newPos; o.isNewPos = true; });
+}
+
+//Este método modifica el sistema de parenting del transform.
+//entity es la entidad a la cual se le va a añadir una entidad hijo. En otras palabras, es la entidad padre.
+//newChildren es la entidad nueva que cambia de padre y se hace hijo de entity
+void TransformAPI::AddChildren(Entity entity, Entity newChildren){
+    auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
+    auto* transformParent =  transformArray->getData(entity);
+    auto* transformChildren = transformArray->getData(newChildren);
+    auto it = std::ranges::find(transformParent->childrens, newChildren);
+
+    if(it == transformParent->childrens.end()){
+        //Esta entidad no existe entre sus hijos
+        transformParent->childrens.push_back(newChildren);
+        transformChildren->parent = entity;
+    }
+}
+
+vec3 TransformAPI::GetEntityPosition(Entity entity) {
+    return p_coordinator->getComponent<TransformComponent>(entity)->position;
 }
 
 void TransformAPI::ExecuteAllAccumulatedTransform() {
@@ -93,4 +115,8 @@ void TransformAPI::ExecuteAllAccumulatedTransform() {
     for(size_t i = 0; i < registeredEntities.size(); i++){
         orderArray->updateData(registeredEntities[i], std::move(accumulatedOrders[i]));
     }
+}
+
+void TransformAPI::ExecuteOrdersInTheTransformSystem(){
+    p_transformSys->ExecuteTransformOrders();
 }

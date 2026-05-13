@@ -13,6 +13,7 @@ namespace ilen::ecs::systems {
 
 namespace ilen::engine::api {
     using namespace ilen::ecs;
+    using namespace ilen::maths::vector;
 
     class TransformAPI {
         public:
@@ -25,8 +26,12 @@ namespace ilen::engine::api {
             static void Scale(Entity entity, vec3 scaleFactor);
             static void Scale(Entity entity, float uniformScale);
 
+            static void AddChildren(Entity entity, Entity newChildren);
+            static vec3 GetEntityPosition(Entity entity);
+
         private:
             static inline ilen::ecs::ECSCoordinator* p_coordinator = nullptr;
+            static inline ilen::ecs::systems::TransformSystem* p_transformSys = nullptr;
 
             // Estructura densa por hilo (la más rápida posible)
             struct ThreadAccumulator {
@@ -50,6 +55,7 @@ namespace ilen::engine::api {
             }
 
             static void ExecuteAllAccumulatedTransform();
+            static void ExecuteOrdersInTheTransformSystem();
 
         friend class ilen::ecs::systems::ScriptingSystem;
     };

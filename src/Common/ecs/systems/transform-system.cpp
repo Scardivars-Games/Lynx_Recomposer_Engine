@@ -24,63 +24,10 @@ namespace ilen::ecs::systems {
         //obtener arrays
         auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
         auto* orderArray = p_coordinator->getComponentArray<TransformOrder>();
-        if(!transformArray) return;
-
-        {
-            ilen::time::ScopedTimer timer("Transform system -- Fase 1");
-            ilen::job_system::JobGroup phase1;
-
-            for(size_t i = 0; i < numChunks; i++){
-                size_t start = i * chunkSize;
-                size_t end = std::min(start + chunkSize, total);
-
-                p_jobSystem->SubmitJob([this, &entityList, start, end, transformArray, orderArray]() {
-                    for(size_t j = start; j < end; j++){
-                        Entity entity = entityList[j];
-
-                        auto* transform = transformArray->getData(entity);
-                        if(!transform) continue;
-                        
-                        if(!orderArray) continue;
-                        
-                        auto* order = orderArray->getData(entity);
-                        if(order && order->hasOrders) {
-                            if(order->isNewPos){
-                                transform->position = order->translation;
-                            }else{
-                                transform->position += order->translation;
-                            }
-
-                            if(order->isNewRot){
-                                transform->rotation = order->rotation;
-                            }else{
-                                transform->rotation += order->rotation;
-                            }
-
-                            if(order->isNewScale){
-                                transform->scale = order->scaleMultiplier;
-                            }else{
-                                transform->scale *= order->scaleMultiplier;
-                            }
-
-                           /* if(order->translation.y > 0 || order->translation.y < 0) {
-                                ILEN_LOG_P("Prueba de gravedad", "La entidad con nombre %s fue modificada su posicion con estos parametros: %s", p_coordinator->getComponent<EntityMetadataComponent>(entity)->getName().c_str(), vector::to_string(order->translation).c_str());
-                            }*/
-
-                            //Reset
-                            order->translation = vec3(0.0f);
-                            order->rotation = vec3(0.0f);
-                            order->scaleMultiplier = vec3(1.0f);
-                            order->hasOrders = false;
-                        }
-                    }
-                }, &phase1);
-            }
-
-            phase1.Wait();
-        }        
+        if(!transformArray) return;      
         
-        
+        ExecuteTransformOrders();
+
         {
             ilen::time::ScopedTimer timer("Transform system -- Fase 2");
 
@@ -209,6 +156,74 @@ namespace ilen::ecs::systems {
                 phase2.Wait();
             }
         }*/
+    }
+
+    void TransformSystem::ExecuteTransformOrders(){
+        {
+            ilen::time::ScopedTimer timer("Transform system -- Fase 1");
+            ilen::job_system::JobGroup phase1;
+
+            std::vector<Entity> entityList(entities.begin(), entities.end());
+            size_t total = entityList.size();        if(total == 0) return;
+
+            size_t numThreads = p_jobSystem->AvailableThreads();
+            size_t chunkSize = (total + numThreads -1 ) / numThreads;
+            size_t numChunks = (total + chunkSize - 1) / chunkSize;
+
+            //obtener arrays
+            auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
+            auto* orderArray = p_coordinator->getComponentArray<TransformOrder>();
+            if(!transformArray) return;      
+
+            for(size_t i = 0; i < numChunks; i++){
+                size_t start = i * chunkSize;
+                size_t end = std::min(start + chunkSize, total);
+
+                p_jobSystem->SubmitJob([this, &entityList, start, end, transformArray, orderArray]() {
+                    for(size_t j = start; j < end; j++){
+                        Entity entity = entityList[j];
+
+                        auto* transform = transformArray->getData(entity);
+                        if(!transform) continue;
+                        
+                        if(!orderArray) continue;
+                        
+                        auto* order = orderArray->getData(entity);
+                        if(order && order->hasOrders) {
+                            if(order->isNewPos){
+                                transform->position = order->translation;
+                            }else{
+                                transform->position += order->translation;
+                            }
+
+                            if(order->isNewRot){
+                                transform->rotation = order->rotation;
+                            }else{
+                                transform->rotation += order->rotation;
+                            }
+
+                            if(order->isNewScale){
+                                transform->scale = order->scaleMultiplier;
+                            }else{
+                                transform->scale *= order->scaleMultiplier;
+                            }
+
+                           /* if(order->translation.y > 0 || order->translation.y < 0) {
+                                ILEN_LOG_P("Prueba de gravedad", "La entidad con nombre %s fue modificada su posicion con estos parametros: %s", p_coordinator->getComponent<EntityMetadataComponent>(entity)->getName().c_str(), vector::to_string(order->translation).c_str());
+                            }*/
+
+                            //Reset
+                            order->translation = vec3(0.0f);
+                            order->rotation = vec3(0.0f);
+                            order->scaleMultiplier = vec3(1.0f);
+                            order->hasOrders = false;
+                        }
+                    }
+                }, &phase1);
+            }
+
+            phase1.Wait();
+        }        
     }
 
     void TransformSystem::calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, ilen::job_system::JobGroup* group, ComponentArray<TransformComponent>* componentArray){

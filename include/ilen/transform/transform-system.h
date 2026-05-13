@@ -17,13 +17,12 @@ namespace ilen::ecs::systems {
     class TransformSystem : public ilen::ecs::ISystem {
         public:
             void Init(const ilen::EngineContext* engineContext) override;
-
             void Update() override;
-
+            void ExecuteTransformOrders();
         private:
             void calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, ilen::job_system::JobGroup* group, ComponentArray<TransformComponent>* componentArray);
     };
 }
 
-REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::TransformSystem, ilen::ecs::SystemPhase::PreRender, 10)
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::TransformSystem, ilen::ecs::SystemPhase::PreRender, 1)
 REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::TransformSystem, ilen::ecs::components::TransformComponent)

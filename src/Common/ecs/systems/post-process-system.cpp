@@ -197,7 +197,7 @@ void PostProcessSystem::Update() {
                                     auto entity = renderListItems[current + i].entity;
                                     //auto* transform = p_coordinator->getComponent<components::TransformComponent>(entity);
                                     auto* transform = transformComponentArray->getData(entity);
-                                    auto currentMatrix = transform->getWorldMatrix();
+                                    auto currentMatrix = transform->localToWorldMatrix;
 
                                     //Buscamos la matriz del frame anterios SOLO LEERLA
                                     //auto prevIt = previousFrameMatrices.find(entity);
@@ -233,7 +233,7 @@ void PostProcessSystem::Update() {
                                     auto* transform = transformComponentArray->getData(entity);
 
                                     structs::InstanceDataForVelocityBuffer instanceBufferData{};
-                                    auto currentMatrix = transform->getWorldMatrix();
+                                    auto currentMatrix = transform->localToWorldMatrix;
 
                                     auto prevIt = std::lower_bound(previousFrameMatrices.begin(), previousFrameMatrices.end(), entity, [](const auto& p, Entity e){ return p.first < e; });
                                     maths::matrix::mat4 previousMatrix = (prevIt != previousFrameMatrices.end())
@@ -274,7 +274,7 @@ void PostProcessSystem::Update() {
 
                     if(transform){
                         //previousTransforms[item.entity] = transform->getWorldMatrix();
-                        previousTransforms.push_back({item.entity, transform->getWorldMatrix()});
+                        previousTransforms.push_back({item.entity, transform->localToWorldMatrix});
                     }
                 }
 

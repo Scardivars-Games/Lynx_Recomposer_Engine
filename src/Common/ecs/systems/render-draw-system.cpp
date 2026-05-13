@@ -137,7 +137,7 @@ namespace ilen::ecs::systems {
                                 continue; //No es visible
                             }
 
-                            vec4 viewPOS = viewMatrix * transform->getWorldMatrix().data[3];
+                            vec4 viewPOS = viewMatrix * transform->localToWorldMatrix.data[3];
                             float depth = std::abs(viewPOS.z);
 
                             uint64_t key = GenerateSortKey(staticMaterial->pso.lock(), depth, staticMaterial->runtimeMaterialID, 0, staticMesh->runtimeMeshID);
@@ -241,7 +241,7 @@ namespace ilen::ecs::systems {
                             for (size_t i = 0; i < totalOfInstance; i++) {
                                 //auto* transform = p_coordinator->getComponent<TransformComponent>(renderItems[current + i].entity);
                                 auto* transform = transformComponentArray->getData(renderItems[current + i].entity);
-                                matrixVector[i] = transform->getWorldMatrix();
+                                matrixVector[i] = transform->localToWorldMatrix;
                             }
 
                             uint32_t offset = instanceBuffer->UploadInstanceData(matrixVector.data(), sizeof(mat4) * totalOfInstance);
@@ -264,7 +264,7 @@ namespace ilen::ecs::systems {
                             for (size_t i = 0; i < totalOfInstance; i++) {
                                 //auto* transform = p_coordinator->getComponent<TransformComponent>(renderItems[current + i].entity);
                                 auto* transform = transformComponentArray->getData(renderItems[current + i].entity);
-                                auto worldMatrix = transform->getWorldMatrix();
+                                auto worldMatrix = transform->localToWorldMatrix;
                                 uint32_t offset = instanceBuffer->UploadInstanceData(worldMatrix.data, sizeof(mat4));
                                 auto indexCount = meshPtr->indexCount;
 

@@ -20,16 +20,29 @@ Entity ECSCoordinator::createEntity(){
     std::string newName = "Entity_" + std::to_string(noNamedIndex);
     noNamedIndex++;
     components::EntityMetadataComponent metadata {TagSystem::None, LayerSystem::Default, newName};
-    auto entity = entityManager ->createEntity();
+    auto entity = entityManager -> createEntity();
 
     setComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
+
+    m_nameToEntityMap[newName] = entity;
     return entity;
 }
 
 Entity ECSCoordinator::createEntity(components::EntityMetadataComponent&& metadata){
     auto entity = entityManager->createEntity();
+    auto entityName = metadata.getName();
     setComponent<components::EntityMetadataComponent>(entity, std::move(metadata));
+
+    m_nameToEntityMap[entityName] = entity;
     return entity;
+}
+
+Entity ECSCoordinator::getEntityByName(std::string name){
+    if(m_nameToEntityMap.count(name)){
+        return m_nameToEntityMap[name];
+    }
+
+    return NULL_ENTITY;
 }
 
 void ECSCoordinator::destroyEntity(Entity entity){

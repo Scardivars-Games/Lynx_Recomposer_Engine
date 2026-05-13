@@ -21,7 +21,10 @@ namespace ilen::window
             ~WindowNativeTVOS() override = default;
             
             void pollEvents() override;
+            void updateGamepads() override;
             bool shouldClose() override;
+            bool shouldPause() override;
+            
             void* getNativeWindow() const override;
             const void* getNativeView() const override;
             bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) override;
@@ -30,6 +33,8 @@ namespace ilen::window
             UIWindow* nativeWindow = nullptr;
             UIView* nativeView = nullptr;
             UIViewController* rootViewController = nullptr;
+            bool isOutOfFocus = false;
+
             
             // Gestión de estado de la ventana
             std::atomic<bool> _windowChanged{false};

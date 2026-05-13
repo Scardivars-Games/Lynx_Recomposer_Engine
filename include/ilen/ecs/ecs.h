@@ -45,6 +45,7 @@ namespace ilen::ecs {
             //Entidaded
             Entity createEntity();
             Entity createEntity(components::EntityMetadataComponent&& metadata);
+            Entity getEntityByName(std::string name);
             void destroyEntity(Entity entity);
 
             //Componentes
@@ -148,6 +149,9 @@ namespace ilen::ecs {
             std::unique_ptr<EntityManager> entityManager;
             std::unique_ptr<ComponentManager> componentManager;
             std::unique_ptr<SystemManager> systemManager;
+
+            //Para localizar rápidamente entidad por Nombre
+            std::unordered_map<std::string, Entity> m_nameToEntityMap;
             
             ilen::job_system::CommandBufferDispatcher* p_commandDispatcher = nullptr;
     };

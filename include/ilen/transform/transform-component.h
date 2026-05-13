@@ -24,7 +24,7 @@ namespace ilen::ecs::components {
             Entity parent = NULL_ENTITY;
             std::vector<Entity> childrens;
 
-            matrix::mat4 getWorldMatrix() const { return localToWorldMatrix; }
+            //matrix::mat4 getWorldMatrix() const { return localToWorldMatrix; }
         //private:
             matrix::mat4 localToWorldMatrix;
 

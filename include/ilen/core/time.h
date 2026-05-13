@@ -72,7 +72,7 @@ namespace ilen::time{
             start = std::chrono::high_resolution_clock::now();
         }
 
-#ifndef ILEN_DISABLE_TIME_LOGGING
+#if !ILEN_DISABLE_TIME_LOGGING
         ~ScopedTimer() {
             auto end = std::chrono::high_resolution_clock::now();
             auto startUs = std::chrono::time_point_cast<std::chrono::microseconds>(start).time_since_epoch().count();

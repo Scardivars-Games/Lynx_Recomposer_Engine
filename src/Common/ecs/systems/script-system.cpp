@@ -72,13 +72,16 @@ namespace ilen::ecs::systems {
             
             {
                 ilen::time::ScopedTimer timer("Scripting Update method -- API pools executian, and ECS command pool execution");
-                ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();                
+                ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();         
+                ilen::engine::api::PhysicsAPI::ExecuteAllAccumulatedForces();               
                 p_commandDispatcher->ExecuteAll();
             }
+            ilen::engine::api::TransformAPI::ExecuteOrdersInTheTransformSystem();
         }
     }
 
     void ScriptingSystem::FixedUpdate() const {
+            ilen::time::ScopedTimer timer("Scripting Update method -- Fixed Update");
             std::vector<Entity> entityList(entities.begin(), entities.end());
             size_t total = entityList.size();
             if(total == 0) return;
@@ -115,6 +118,7 @@ namespace ilen::ecs::systems {
     }
 
     void ScriptingSystem::LateUpdate() const {
+        ilen::time::ScopedTimer timer("Scripting Update method -- Late Update");
         std::vector<Entity> entityList(entities.begin(), entities.end());
         size_t total = entityList.size();
         if(total == 0) return;

@@ -14,6 +14,7 @@ namespace ilen::engine::api {
         public:
             static void SetActive(Entity entity, bool newState);
             static bool isActive(Entity entity);
+            static Entity GetEntityByName(std::string entityName);
         private:
             static void Init(const ilen::EngineContext* context);
             static void ResetMetadataPointer(); //Resetea el puntero de los metadatos, para obtener uno válido el próximo frame.

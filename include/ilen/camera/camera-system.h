@@ -13,7 +13,7 @@ namespace ilen::ecs::systems {
             void Init(const EngineContext* engineContext) override;
             void Update() override;
 
-            const components::CameraComponent* getMainCamera() const;
+            components::CameraComponent* getMainCamera() const;
         private:
             render::IRenderer* p_Renderer = nullptr;
             components::CameraComponent* m_mainCamera = nullptr;
@@ -21,5 +21,5 @@ namespace ilen::ecs::systems {
 }
 
 
-REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::CameraSystem, ilen::ecs::SystemPhase::PreRender, 1)
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::CameraSystem, ilen::ecs::SystemPhase::PreRender, 2)
 REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::CameraSystem, ilen::ecs::components::CameraComponent)

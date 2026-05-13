@@ -120,6 +120,8 @@ namespace ilen{
             registerCallback(engineContext.get());
         }
 
+        engineContext->p_coordinator->sortSystems();
+
 #if !ILEN_ONLY_ECS
         //Guardamos una referencia al puntero de scripting
         scriptingSystemPtr = engineContext->p_coordinator->getSystem<ilen::ecs::systems::ScriptingSystem>();
@@ -227,7 +229,7 @@ namespace ilen{
 
 
         if(!engineContext->p_gameWindow->shouldPause()){
-       // ILEN_WARNING("FPS: %.2f", 1.0/frameTime);
+        ILEN_WARNING("FPS: %.2f", 1.0/frameTime);
 #if !IGNORE_RENDERING
                 //Calculamos el FIXED Update
                 {
@@ -286,7 +288,7 @@ namespace ilen{
 
         //Preparamos el input para los eventos en el proximo frame (se coloca aquí porque hay eventos que llegan cuando quieren como en iOS, lo cual dificultaria la logica de numerosas funciones del sistema para comprobar si es nuevo o no):
         ilen::input::InputBuffer::Get().NewFrame();
-#if !ILEN_IOS //Si estamos en iOS, no es necesario esto, creo?
+#if !ILEN_IOS || !ILEN_TVOS //Si estamos en iOS, no es necesario esto, creo?
         application::Application::stopUntilNextFrame();
 #endif
 

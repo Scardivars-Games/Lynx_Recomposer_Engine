@@ -12,6 +12,7 @@ namespace ilen::ecs::systems {
 namespace ilen::ecs::components {
     using namespace ilen::enumerations;
     using namespace ilen::maths::matrix;
+    using namespace ilen::maths::vector;
 
     class CameraComponent {
         friend class ilen::ecs::systems::CameraSystem;
@@ -25,6 +26,13 @@ namespace ilen::ecs::components {
             float orthoSize = 10.0f;
             float nearClip = 0.1f;
             float farClip  = 1000.0f;
+
+            //Para que siga a un objeto, o lo mire.
+            Entity toFollowEntity = NULL_ENTITY;
+            vec3 cameraOffsetWithFollowEntity = vec3(0.0f);
+            Entity toLookAtEntity = NULL_ENTITY;
+
+            Entity cameraEntity = NULL_ENTITY; //Acceso directo de la entidad que contiene la camara para un fácil acceso.
 
       /*      //Getters.
             const mat4& getViewMatrix() const { return viewMatrix; }

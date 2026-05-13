@@ -26,6 +26,15 @@ namespace ilen::ecs::systems {
             descriptor.count = 1; //Solo hay una cámara por buffer
             descriptor.stride = 0; //Misma cosa
             cameraComponent->cameraBuffer = p_Renderer->createBuffer(descriptor, nullptr);
+
+
+            if (cameraComponent->isPrimary == true) {
+                m_mainCamera = cameraComponent;
+            }
+
+            if(cameraComponent->cameraEntity == NULL_ENTITY){
+                cameraComponent->cameraEntity = entity;
+            }
         }
     }
 
@@ -42,10 +51,14 @@ namespace ilen::ecs::systems {
             }
 
             const float aspectRatio = static_cast<float>(viewportWidth) / static_cast<float>(viewportHeight);
+            auto* cameraComponentArray = p_coordinator->getComponentArray<CameraComponent>();
+            auto* transformComponentArray = p_coordinator->getComponentArray<TransformComponent>();
 
             for (auto const& entity: entities) {
-                auto* cameraComponent = p_coordinator->getComponent<CameraComponent>(entity);
-                auto* transformComponent = p_coordinator->getComponent<TransformComponent>(entity);
+                //auto* cameraComponent = p_coordinator->getComponent<CameraComponent>(entity);
+                //auto* transformComponent = p_coordinator->getComponent<TransformComponent>(entity);
+                auto* cameraComponent = cameraComponentArray->getData(entity);
+                auto* transformComponent = transformComponentArray->getData(entity);
 
                 if (!cameraComponent || !transformComponent) {
                     continue; //Esta cámara no es válida
@@ -54,9 +67,29 @@ namespace ilen::ecs::systems {
                 if (cameraComponent->isPrimary == true) {
                     m_mainCamera = cameraComponent;
                 }
-            //ILEN_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
+                //ILEN_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
+                //Esto es temporal, a futuro habra un sistema de cámara especiales que hara esta chamba, ejecutandose antes del transform system, para que no se tenga que recalcular la matriz
+                /*if(cameraComponent->toFollowEntity != NULL_ENTITY) {
+                    //Necesita seguir a un objeto
+                    auto* toFollowTransform = transformComponentArray->getData(cameraComponent->toFollowEntity);
+                    transformComponent->position = toFollowTransform->position + cameraComponent->cameraOffsetWithFollowEntity;
 
-                cameraComponent->viewMatrix = matrix::inverse(transformComponent->getWorldMatrix());
+                    constexpr float DEG_TO_RAD = 3.14159265359f / 180.0f;
+                    vec3 rotRadians = transformComponent->rotation * DEG_TO_RAD;
+                    
+                    // Re-generamos la matriz TRS solo para la cámara
+                    matrix::mat4 localMatrix = matrix::createTRS(transformComponent->position, rotRadians, transformComponent->scale);
+                    
+                    // Si la cámara tiene padre, multiplicamos. Si es raíz (lo más común), se queda así.
+                    if(transformComponent->parent != NULL_ENTITY) {
+                        auto* parentTransform = transformComponentArray->getData(transformComponent->parent);
+                        transformComponent->localToWorldMatrix = parentTransform->localToWorldMatrix * localMatrix;
+                    } else {
+                        transformComponent->localToWorldMatrix = localMatrix;
+                    }
+                }*/
+
+                cameraComponent->viewMatrix = matrix::inverse(transformComponent->localToWorldMatrix);
                 //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewMatrix).c_str());
 
                 if (cameraComponent->projectionType == ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_PERSPECTIVE) {
@@ -82,7 +115,7 @@ namespace ilen::ecs::systems {
         }
     }
 
-    const components::CameraComponent* CameraSystem::getMainCamera() const {
+    components::CameraComponent* CameraSystem::getMainCamera() const {
         return m_mainCamera;
     }
 }
