@@ -169,19 +169,11 @@ add_dependencies(ILEN_FILE_BINARIZATION ilen-modules)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
 
 
-#Command used by all Platforms
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND $<TARGET_FILE:ILEN_FILE_BINARIZATION>
-    ARGS --ilen-folder ${CMAKE_SOURCE_DIR}
-    COMMENT "Organizing and binarizing all asset of the engine"
-    VERBATIM
-)
-
-
 #Commands for the Apple Ecosystem
 if(APPLE)
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
         message("Configuration for iOS")
+        set(ILEN_TARGET_NAME "iOS")
         file(GLOB_RECURSE NATIVE_SOURCES src/Platform/iOS/*.mm src/Platform/apple/*.mm src/Platform/apple/*.cpp src/Renderer/Metal/*.mm)
         set(NATIVE_HEADERS src/Platform/iOS src/Platform/apple src/Renderer/Metal)
 
@@ -229,14 +221,9 @@ if(APPLE)
             COMMENT "Compilando shader de metal para ser usados en iOS"
             VERBATIM
         )
-
-        #iOS need also assets folder in the bundle
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
-        )
     elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
         message("Configuration for tvOS")
-        
+        set(ILEN_TARGET_NAME "tvOS")
         # Asumiendo una estructura de carpetas similar a iOS pero para tvOS
         file(GLOB_RECURSE NATIVE_SOURCES src/Platform/tvOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm src/Platform/apple/*.cpp)
         set(NATIVE_HEADERS src/Platform/tvOS src/Platform/apple src/Renderer/Metal)
@@ -291,13 +278,9 @@ if(APPLE)
             COMMENT "Compilando shader de metal para ser usados en tvOS"
             VERBATIM
         )
-
-        # Copia de assets al bundle
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
-        )
     else()
-        message("Configuration for macOS")
+        message("Configuration for macOS")  
+        set(ILEN_TARGET_NAME "macOS")
 
         file(GLOB_RECURSE NATIVE_SOURCES src/Platform/macOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm src/Platform/apple/*.cpp)
         set(NATIVE_HEADERS src/Platform/macOS src/Platform/apple src/Renderer/Metal)
@@ -337,11 +320,6 @@ if(APPLE)
             COMMENT "Compilando shader de metal para ser usados en MacOS"
             VERBATIM
         )
-
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/Platform/macOS/icon" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
-        )
     endif()
     #common libs in Apple
     target_link_libraries(${PROJECT_NAME} PRIVATE
@@ -358,7 +336,8 @@ if(APPLE)
     endif()
 elseif(LINUX)
     message("Configuring for Linux")
-
+    set(ILEN_TARGET_NAME "linux")
+    
     file(GLOB_RECURSE NATIVE_SOURCES src/Platform/linux/*.cpp src/Renderer/Vulkan/*.cpp)
     set(NATIVE_HEADERS src/Platform/linux src/Renderer/Vulkan)
     target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
@@ -392,6 +371,29 @@ endif()
 
 add_dependencies(${PROJECT_NAME} ILEN_METAL_COMPILER)
 add_dependencies(${PROJECT_NAME} ILEN_FILE_BINARIZATION)
+
+#Command used by all Platforms
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND $<TARGET_FILE:ILEN_FILE_BINARIZATION>
+    ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --compile-target ${ILEN_TARGET_NAME}
+    COMMENT "Organizing and binarizing all asset of the engine"
+    VERBATIM
+)
+
+#Copia de recursos según OS:
+if(APPLE)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/Platform/macOS/icon" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
+        )
+    else()
+        # Copia de assets al bundle
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
+        )
+    endif()
+endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:ILEN_DEBUG>)
 

@@ -45,6 +45,8 @@ namespace ilen::render {
             void endFrame() override;
             void endEncoding(IGPUParallelCommandEncoder* encoder) override;
             void regenerateEncoderDescriptor() override;
+            inline void defineSupportedGPUCompression() override;
+        
             bool acquireDrawable();
 
             std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data = nullptr) override;
@@ -54,7 +56,9 @@ namespace ilen::render {
             std::unique_ptr<IGPUParallelCommandEncoder> getParallelCommandEncoder() override;
             std::unique_ptr<IGPUParallelCommandEncoder> createNewParallelCommandEncoder(IlenParallelEncoderDescriptor&& descriptor) override;
             std::unique_ptr<IGPUTexture> createNewPlatformTexture(const IlenGPUTextureDescriptor& descriptor) override;
-        
+            std::shared_ptr<IGPUTexture> createTexture(const IlenGPUTextureDescriptor& descriptor, const void* initialData = nullptr) override;
+            std::shared_ptr<IGPUSampler> createSampler(const IlenGPUSamplerDescriptor& descriptor) override;
+
             IGPUTexture* getDrawableTexturePtr() override;
             std::vector<IGPUTexture*> getAllSceneTexturesPtr() override;
 

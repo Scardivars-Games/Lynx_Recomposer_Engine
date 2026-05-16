@@ -16,7 +16,7 @@ namespace ilen::render {
 
     class MetalTexture final: public IGPUTexture {
         public:
-            MetalTexture(const IlenGPUTextureDescriptor& descriptor,  MetalViewPredefinedValues predefinedVal, id<MTLDevice> device);
+            MetalTexture(const IlenGPUTextureDescriptor& descriptor,  MetalViewPredefinedValues predefinedVal, id<MTLDevice> device, const void* initialData = nullptr, id<MTLCommandQueue> cmdQueue = nullptr);
             MetalTexture(id<MTLTexture> givenNativeTexture); //Necesario para por ejemplo, usar la textura del CAMetalLayer sin tener que hacer el código del inicio del frame un infierno.
             ~MetalTexture() override;
             void* getNativeTexture() override;

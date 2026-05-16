@@ -47,7 +47,7 @@ namespace ilen::ecs::systems {
             void Update() override;
             const std::vector<components::RenderItem>& getLastUsedRenderItemList() const { return lastRenderItems; }
         private:
-            static uint64_t GenerateSortKey(const std::shared_ptr<IGPURenderPipeline> &pso, float depth, uint16_t materialRuntimeID, uint8_t drawIndex, uint16_t meshID);
+            static uint64_t GenerateSortKey(const std::shared_ptr<IGPURenderPipeline> &pso, float depth, uint16_t materialRuntimeID, uint16_t textureRuntimeID, uint8_t drawIndex, uint16_t meshID);
 
             ilen::render::IRenderer* p_Renderer = nullptr;
             CameraSystem* p_cameraSystem = nullptr;

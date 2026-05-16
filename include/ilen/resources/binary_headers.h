@@ -36,4 +36,21 @@ namespace ilen::binary::headers {
         uint32_t vertexFunctionSize;
         uint32_t fragmentFunctionSize;
     };
+    
+    struct TexturePayloadInfo {
+        ilen::enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format;
+        uint64_t offset; //En que byte empiezan los datos de esta estructura
+        uint64_t dataSize; //Tamaño de los datos de esa textura en el formato.
+    };
+
+
+    struct IlenTextureHeader {
+        char magicNumber[20]; //ILEN_TEXTURE -> ERUTXET_NELI
+        uint32_t version;
+        uint32_t width;
+        uint32_t height;
+        uint32_t channels;
+        uint32_t mipLevels;
+        uint32_t payloadCount; //Tamaño del bloque de datos.
+    };
 }

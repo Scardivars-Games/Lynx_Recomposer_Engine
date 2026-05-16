@@ -314,10 +314,10 @@ void PostProcessSystem::Update() {
                 encoder->SetPipelineState(postProcessPresentPSO.get());
                 //encoder->SetVertexBuffer(slots::RenderBufferSlot_VertexMain, quadPtr->vertexBuffer.get());
                 //encoder->SetIndexBuffer(quadPtr->indexBuffer.get());
-                encoder->SetTexture(0, nativeTexture[0]); //Esto siempre será la textura base de color con los datos renderizados.
+                encoder->SetFragmentTexture(0, nativeTexture[0]); //Esto siempre será la textura base de color con los datos renderizados.
                 size_t actualImageIndex = 1;
                 if (core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
-                    encoder->SetTexture(slots::TextureBufferSlot_VelocityBuffer, imagesAttach[actualImageIndex]);
+                    encoder->SetFragmentTexture(slots::TextureBufferSlot_VelocityBuffer, imagesAttach[actualImageIndex]);
                 }
                 encoder->DrawWithoutMesh();
                 //encoder->DrawIndexed(quadPtr->indexCount);

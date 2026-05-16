@@ -18,6 +18,9 @@ namespace ilen::resources {
     namespace render_pipeline {
         class PipelineManager;
     }
+    namespace texture {
+        class TextureManager;
+    }
 }
 
 namespace ilen::window{
@@ -47,6 +50,8 @@ namespace ilen {
         std::unique_ptr<ilen::resources::shaders::ShaderManager> p_shaderManager;
         std::unique_ptr<ilen::resources::materials::MaterialManager> p_materialManager;
         std::unique_ptr<ilen::resources::render_pipeline::PipelineManager> p_renderPipelineManager;
+        std::unique_ptr<ilen::resources::texture::TextureManager> p_textureManager;
+
 
         //Ahora es responsabilidad del coordinador entregar los sistemas :)
         /*//ECS Systems (shared ptrs)

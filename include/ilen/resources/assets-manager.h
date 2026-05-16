@@ -31,11 +31,12 @@ namespace ilen::graphics {
 //Administra una base de datos, en formato JSON, con cada objeto y elemento que administre el motor. Su comportamiento será el de un Singleton.
 namespace ilen::resources {
     //ID de datos predefinidos
-    static const uint32_t ErrorShaderID = 6;
-    static const uint32_t ErrorMaterialID = 4;
-    static const uint32_t QuadMeshID = 2;
-    static const uint32_t PostProcessPresentShaderID = 8;
-    static const uint32_t PostProcessCalculateShaderID = 9;
+    static constexpr uint32_t ErrorShaderID = 6;
+    static constexpr uint32_t ErrorMaterialID = 4;
+    static constexpr uint32_t QuadMeshID = 2;
+    static constexpr uint32_t PostProcessPresentShaderID = 8;
+    static constexpr uint32_t PostProcessCalculateShaderID = 9;
+    static constexpr uint32_t ErrorTextureID = 11;
 
 
     class AssetsManager {

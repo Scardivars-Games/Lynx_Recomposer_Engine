@@ -58,8 +58,9 @@ namespace ilen::ecs::systems {
             auto* staticMeshArray = p_coordinator->getComponentArray<StaticRenderingData>();
             auto* staticMaterialArray = p_coordinator->getComponentArray<StaticMaterialRenderingData>();
             auto* visibleArray = p_coordinator->getComponentArray<VisibilityComponent>();
+            auto* staticTextureArray = p_coordinator->getComponentArray<StaticTextureRenderingData>();
 
-            if(!transformComponentArray || !staticMeshArray || !staticMaterialArray || !visibleArray){
+            if(!transformComponentArray || !staticMeshArray || !staticMaterialArray || !visibleArray || !staticTextureArray){
                 p_Renderer->returnParallelCommandEncoder(std::move(encoder));
                 return; //Es imposible ejecutar este sistema si esos componentes aún no existen.
             }
@@ -117,30 +118,31 @@ namespace ilen::ecs::systems {
                     size_t end = std::min(start + chunkSize, totalEntities);
                     perThreadRenderItems[i].reserve(chunkSize);
 
-                    p_jobSystem->SubmitJob([this, start, end, entityList, transformComponentArray, staticMeshArray, staticMaterialArray, visibleArray, i, &perThreadRenderItems, viewMatrix](){
+                    p_jobSystem->SubmitJob([this, start, end, entityList, transformComponentArray, staticMeshArray, staticMaterialArray, visibleArray, i, &perThreadRenderItems, viewMatrix, staticTextureArray](){
                         for(size_t j = start; j < end; j++){
                             Entity entity = entityList[j];
                             auto* transform = transformComponentArray->getData(entity);
                             auto* staticMesh = staticMeshArray->getData(entity);
                             auto* staticMaterial = staticMaterialArray->getData(entity);
                             auto* visible = visibleArray->getData(entity);
+                            auto* texture = staticTextureArray->getData(entity);
 
-                            if (!transform || !staticMesh || !staticMaterial || !visible) {
+                            if (!transform || !staticMesh || !staticMaterial || !visible || !texture) {
                                 continue; //No cumple los requisitos para poder dibujarse en pantalla
-                            }
-
-                            if (staticMesh->staticBuffers.lock() == nullptr || staticMaterial->pso.lock() == nullptr) {
-                                continue; //Buffer o PSO no válido para el objeto
                             }
 
                             if (visible->isVisible == false) {
                                 continue; //No es visible
                             }
 
+                            if (staticMesh->staticBuffers.lock() == nullptr || staticMaterial->pso.lock() == nullptr || texture->staticTexture.lock() == nullptr) {
+                                continue; //Buffer o PSO no válido para el objeto
+                            }
+
                             vec4 viewPOS = viewMatrix * transform->localToWorldMatrix.data[3];
                             float depth = std::abs(viewPOS.z);
 
-                            uint64_t key = GenerateSortKey(staticMaterial->pso.lock(), depth, staticMaterial->runtimeMaterialID, 0, staticMesh->runtimeMeshID);
+                            uint64_t key = GenerateSortKey(staticMaterial->pso.lock(), depth, staticMaterial->runtimeMaterialID, texture->runtimeTexID, 0, staticMesh->runtimeMeshID);
 
                             perThreadRenderItems[i].push_back({entity, key});
                         }
@@ -180,10 +182,11 @@ namespace ilen::ecs::systems {
                 size_t chunckStart = i * chunkSize;
                 size_t chunckEnd = std::min(chunckStart + chunkSize, totalOfItem);
 
-                p_jobSystem->SubmitJob( [this, encoderPtr, &renderItems, chunckStart, chunckEnd, instanceBuffer, staticMeshArray, staticMaterialArray, transformComponentArray]() {
+                p_jobSystem->SubmitJob( [this, encoderPtr, &renderItems, chunckStart, chunckEnd, instanceBuffer, staticMeshArray, staticMaterialArray, transformComponentArray, staticTextureArray]() {
                     //Cache para el batching
                     IGPURenderPipeline* lastPSO = nullptr;
                     uint16_t lastMaterialID = 0;
+                    uint16_t lastTextureID = 0;
                     uint16_t lastMeshID = 0;
 
                     auto cmd = encoderPtr->GetThreadEncoder();
@@ -208,10 +211,12 @@ namespace ilen::ecs::systems {
                         ///auto* staticMaterial = p_coordinator->getComponent<StaticMaterialRenderingData>(entity);
                         auto* staticMesh = staticMeshArray->getData(entity);
                         auto* staticMaterial = staticMaterialArray->getData(entity);
+                        auto* staticTexture = staticTextureArray->getData(entity);
 
                         size_t totalOfInstance = batchEnd - current;
                         auto pso =  staticMaterial->pso.lock().get();
                         auto materialID = staticMaterial->runtimeMaterialID;
+                        auto textureID = staticTexture->runtimeTexID;
                         auto meshID = staticMesh->runtimeMeshID;
 
                         if (pso != lastPSO) {
@@ -219,8 +224,16 @@ namespace ilen::ecs::systems {
                             lastPSO = pso;
                         }
 
-                        if (materialID != lastMaterialID) {
-                            //Aquí iria el binding con los Uniforms del material
+                        if (materialID != lastMaterialID || textureID != lastTextureID) {
+                            //Vincular la _MainTex, que es obligatoria
+                            auto texLink = staticTexture->staticTexture.lock();
+                            if(texLink && texLink->texture && texLink->sampler){
+                                cmd->SetFragmentTexture(0, texLink->texture.get());
+                                cmd->SetFragmentSampler(0, texLink->sampler.get());
+                            }
+
+                            //Aquie iria la vinculacion con el buffer con el resto de elementos que requira el material.
+                            lastTextureID = textureID;
                             lastMaterialID = materialID;
                         }
                         auto* meshPtr = staticMesh->staticBuffers.lock().get();
@@ -299,34 +312,63 @@ namespace ilen::ecs::systems {
         p_Renderer->returnParallelCommandEncoder(std::move(encoder));
     }
 
-    uint64_t RenderDrawSystem::GenerateSortKey(const std::shared_ptr<IGPURenderPipeline> &pso, float depth, uint16_t materialRuntimeID, uint8_t drawIndex, uint16_t meshID) {
+    uint64_t RenderDrawSystem::GenerateSortKey(const std::shared_ptr<IGPURenderPipeline> &pso, float depth, uint16_t materialRuntimeID, uint16_t textureRuntimeID, uint8_t drawIndex, uint16_t meshID) {
         const auto queue = pso->getRenderQueue();
         const auto psoID = pso->getID();
-        const auto queueKey = static_cast<uint64_t>(queue);
-
-        auto drawKey = static_cast<uint64_t>(drawIndex) & 0xFF;
-
+        
         uint64_t finalKey = 0;
 
-        finalKey |= (queueKey << 56); //Bits más a la izquierda indican en que Schema se dibuja
+        // Queue (8 bits): Siempre a la izquierda para separar los esquemas de dibujado
+        finalKey |= (static_cast<uint64_t>(queue) & 0xFF) << 56; 
 
         if (queue <= ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_ALPHA_TEST) {
-            //Son objetos opacos
+            // ---------------------------------------------------------------------
+            // OBJETOS OPACOS
+            // Ordenados por costo de hardware: PSO > Textura > Material > Mesh
+            // ---------------------------------------------------------------------
 
-            finalKey |= ((uint64_t)psoID << 40); // Siguientes 16 asignan el ID del PSO en uso.
-            finalKey |= ((uint64_t)materialRuntimeID << 24);
-            finalKey |= ((uint64_t)meshID << 8);
-            finalKey |= drawKey;
+            // PSO: 12 bits (Máximo 4,096 shaders en el juego)
+            finalKey |= (static_cast<uint64_t>(psoID) & 0xFFF) << 44;
+
+            // Textura: 14 bits (Máximo 16,384 texturas en memoria)
+            finalKey |= (static_cast<uint64_t>(textureRuntimeID) & 0x3FFF) << 30;
+
+            // Material: 14 bits (Máximo 16,384 instancias de material)
+            finalKey |= (static_cast<uint64_t>(materialRuntimeID) & 0x3FFF) << 16;
+
+            // Mesh: 12 bits (Máximo 4,096 modelos 3D distintos cargados a la vez)
+            finalKey |= (static_cast<uint64_t>(meshID) & 0xFFF) << 4;
+
+            // DrawIndex: 4 bits (Máximo 16 sub-meshes por modelo)
+            finalKey |= (static_cast<uint64_t>(drawIndex) & 0xF);
+
         } else {
-            //SOn elementos transparentes. Importa más el orden en pantalla, que el PSO activo. Además se debe dibujar de atras hacia adelante.
+            // ---------------------------------------------------------------------
+            // OBJETOS TRANSPARENTES
+            // El orden Z es el rey. Ordenados de atrás hacia adelante.
+            // ---------------------------------------------------------------------
+            
             float clampedDepth = std::min(depth, 655.35f);
             auto depthValue = static_cast<uint64_t>(clampedDepth * 100) & 0xFFFF;
             auto invertedDepthKey = 0xFFFF - depthValue;
 
-            finalKey |= (invertedDepthKey << 40);
-            finalKey |= ((uint64_t)psoID << 24);
-            finalKey |= ((uint64_t)materialRuntimeID << 8);
-            finalKey |= drawKey;
+            // Profundidad Invertida: 16 bits
+            finalKey |= (invertedDepthKey & 0xFFFF) << 40;
+
+            // PSO: 12 bits
+            finalKey |= (static_cast<uint64_t>(psoID) & 0xFFF) << 28;
+
+            // Textura: 14 bits
+            finalKey |= (static_cast<uint64_t>(textureRuntimeID) & 0x3FFF) << 14;
+
+            // Material: 10 bits (Máximo 1,024 materiales transparentes a la vez)
+            finalKey |= (static_cast<uint64_t>(materialRuntimeID) & 0x3FF) << 4;
+            
+            // DrawIndex: 4 bits
+            finalKey |= (static_cast<uint64_t>(drawIndex) & 0xF);
+            
+            // Nota: En objetos transparentes, la profundidad rompe casi todo el batching, 
+            // por lo que el MeshID se omite para dar espacio a los demás identificadores.
         }
 
         return finalKey;

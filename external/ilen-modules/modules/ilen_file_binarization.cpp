@@ -2,7 +2,9 @@
 #include <sstream>
 #include <filesystem>
 #include <fstream>
-#include <external/json/json.hpp>
+#include <json/json.hpp>
+#define STB_IMAGE_IMPLEMENTATION //Esto es para el STB
+#include <images/stb_image.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/headers/enumerations.h>
 #include <ilen/graphics/meshes.h>
@@ -19,6 +21,8 @@
 #include <set>
 #include <future>
 #include <mutex>
+#include <astcenc.h>
+#include <bc7enc.h>
 
 namespace ilen::core::threading {
     std::thread::id g_MainThreadId;
@@ -110,6 +114,19 @@ static std::map<std::string, ILEN_GPU_RENDER_QUEUE_TYPE> stringToCorrectRenderQu
 
 const std::vector<std::string> ILEN_ASSET_MANIFEST_ASSETS_TYPES = { ILEN_ASSET_MANIFEST_MODEL, ILEN_ASSET_MANIFEST_TEXTURES, ILEN_ASSET_MANIFEST_AUDIO, ILEN_ASSET_MANIFEST_MATERIALS, ILEN_ASSET_MANIFEST_SHADERS };
 
+enum class CompileTargetOptions {
+    Windows,
+    Linux,
+    macOS,
+    macOS_arm,
+    macOS_x86_64,
+    Android,
+    iOS,
+    tvOS,
+    Undefined,
+};
+
+CompileTargetOptions actualCompileOption = CompileTargetOptions::Undefined;
 
 using json = nlohmann::json;
 
@@ -168,12 +185,16 @@ void processScalarProperties(const nlohmann::json& jsonData, const std::string& 
 template<typename VecType>
 void processVectorProperties(const nlohmann::json& jsonData, const std::string& key, std::unordered_map<std::string, ilen::graphics::MaterialProperty>& properties);
 
+std::vector<uint8_t> CompressToBC7(const uint8_t* pixels, int width, int height);
+std::vector<uint8_t> CompressToASTC(const uint8_t* pixels, int width, int height);
 
 int main(int argc, char* argv[]){
     std::filesystem::path folderPath;
 
     jobSystem.Initializate();
     ilen::time::Time::Init();
+
+    bc7enc_compress_block_init();
 
     for(int i = 0; i < argc; i++){
         std::string arg = argv[i];
@@ -184,7 +205,35 @@ int main(int argc, char* argv[]){
                 std::cerr << "Error: El indicador --ilen-folder requiere una ruta a una carpeta." << std::endl;
                 return 1;
             }
+        } else if(arg == "--compile-target" || arg == "-t"){
+            if(i + 1 < argc){
+                std::string target = std::string(argv[i + 1]);
+                ILEN_LOG_P("Binarization", "Data: %s", target.c_str());
+                if(target == "macOS"){
+                    actualCompileOption = CompileTargetOptions::macOS;
+                }else if(target == "iOS"){
+                    actualCompileOption = CompileTargetOptions::iOS;
+                }else if (target == "tvOS") {
+                    actualCompileOption = CompileTargetOptions::tvOS;
+                }else if(target == "windows") {
+                    actualCompileOption = CompileTargetOptions::Windows;
+                }else if(target == "linux") {
+                    actualCompileOption = CompileTargetOptions::Linux;
+                }else if(target == "android"){
+                    actualCompileOption = CompileTargetOptions::Android;
+                }else {
+                    actualCompileOption = CompileTargetOptions::Undefined;
+                }
+            } else {
+                std::cerr << "Error: El indicador --compile-target requiere un valor de target." << std::endl;
+                return 1;
+            }
         }
+    }
+
+    if(actualCompileOption == CompileTargetOptions::Undefined){
+        std::cerr << "Se requiere un target para usar esta libreria. Añádela con el comando --compile-target <target>." << std::endl;
+        return -1;
     }
 
     //Pasos para poder binarizar
@@ -762,6 +811,181 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
         }
     }
 
+    //Guardando las texturas
+    if(manifestData.contains(ILEN_ASSET_MANIFEST_TEXTURES)) {
+        std::string targetFolder = "textures";
+        std::filesystem::path binaryTextureFolder = binaryDataFolder / targetFolder;
+
+        if(!std::filesystem::exists(binaryTextureFolder)) {
+            std::filesystem::create_directories(binaryTextureFolder);
+        }
+
+        auto data = manifestData[ILEN_ASSET_MANIFEST_TEXTURES];
+        size_t total = data.size();
+        size_t threads = jobSystem.AvailableThreads();
+        size_t chunkSize = (total + threads - 1) / threads;
+        size_t numChunks = (total + chunkSize - 1) / chunkSize;
+
+        ILEN_LOG_P(DEBUG_PREFIX, "Texturas - Total: %i, Chunks: %i", total, numChunks);
+
+        ilen::job_system::JobGroup group;
+        std::vector<std::unordered_map<std::string, uint32_t>> localFriendlyNameToID(numChunks);
+        std::vector<std::unordered_map<uint32_t, TextureAsset>> localIDToTextureAsset(numChunks);
+
+        for(size_t i = 0; i < numChunks; i++) {
+            size_t start = i * chunkSize;
+            size_t end = std::min(start + chunkSize, total);
+
+            jobSystem.SubmitJob([=, &sourceAssetFolders, &engineSourceFolder, &binaryTextureFolder, &data, &localFriendlyNameToID, &localIDToTextureAsset]() {
+                for(size_t j = start; j < end; j++){
+                    std::string filePath = data[j][ILEN_ASSET_MANIFEST_ASSET_PATH];
+                    auto texturePath = sourceAssetFolders / filePath;
+
+                    // Calculamos la ruta de destino ANTES de hacer nada
+                    auto savePath = binaryTextureFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / "textures");
+                    savePath.replace_extension(".ilentex");
+
+                    // --- 1. LÓGICA DE CACHÉ ---
+                    bool needsBinarization = true;
+
+                    if (std::filesystem::exists(savePath)) {
+                        // Obtener la fecha de la última modificación de ambos archivos
+                        auto sourceTime = std::filesystem::last_write_time(texturePath);
+                        auto targetTime = std::filesystem::last_write_time(savePath);
+
+                        // Si el binario es más nuevo o igual que el PNG original, no hay cambios.
+                        if (targetTime >= sourceTime) {
+                            needsBinarization = false;
+                        }
+                    }
+
+                    // Si no necesita binarizarse, nos saltamos el costo de CPU
+                    if (!needsBinarization) {
+                        // ¡IMPORTANTE! Aunque no comprimamos, TENEMOS que registrar la textura en el mapa 
+                        // para que el assets.b_ilenmanifest final sepa que existe.
+                        uint32_t id = data[j][ILEN_ASSET_MANIFEST_ASSET_ID];
+                        std::string name = data[j][ILEN_ASSET_MANIFEST_ASSET_NAME];
+                        std::string path = std::filesystem::relative(savePath, binaryTextureFolder).string();
+
+                        localFriendlyNameToID[i][name] = id;
+                        localIDToTextureAsset[i].emplace(id, TextureAsset(id, path));
+                        
+                        ILEN_LOG_P(DEBUG_PREFIX, "Saltando textura ya cacheada: %s", name.c_str());
+                        continue; // Pasar a la siguiente textura del bucle
+                    }
+
+                    int width, height, channels;
+                    //Dato importante, stbi_load fuerza la carga en 4 canales, algo importante para la compresión de las texturas.
+                    uint8_t* rawPixels = stbi_load(texturePath.string().c_str(), &width, &height, &channels, 4);
+
+                    if(!rawPixels) {
+                        ILEN_WARNING_P(DEBUG_PREFIX, "Fallo la carga de la textura cruda: %s", texturePath.string().c_str());
+                        continue;
+                    }
+
+                    std::vector<ilen::binary::headers::TexturePayloadInfo> toc; //1 payload por cada textura usada
+                    std::vector<std::vector<uint8_t>> compressedBlobs;
+
+                    bool needsASTC = (actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_arm || actualCompileOption == CompileTargetOptions::iOS || actualCompileOption == CompileTargetOptions::tvOS || actualCompileOption == CompileTargetOptions::Android);
+                    bool needsBC7 = (actualCompileOption == CompileTargetOptions::Windows || actualCompileOption == CompileTargetOptions::Linux || actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_x86_64);
+                
+                    //Comprimir a ASTC
+                    if(needsASTC){
+                        auto blob = CompressToASTC(rawPixels, width, height);
+                        compressedBlobs.push_back(blob);
+
+                        ilen::binary::headers::TexturePayloadInfo info{};
+                        info.format = ilen::enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
+                        info.dataSize = blob.size();
+                        toc.push_back(info);
+                    }
+
+                    //Comprimir usando BC7
+                    if(needsBC7) {
+                        auto blob = CompressToBC7(rawPixels, width, height);
+                        compressedBlobs.push_back(blob);
+
+                        ilen::binary::headers::TexturePayloadInfo info{};
+                        info.format = ilen::enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
+                        info.dataSize = blob.size();
+                        toc.push_back(info);
+                    }
+
+                    //Fallback por si es desconocida la plataforma
+                    if(toc.empty()){
+                        size_t byteSize = width * height * 4;
+                        std::vector<uint8_t> blob(rawPixels, rawPixels + byteSize);
+                        compressedBlobs.push_back(blob);
+
+                        ilen::binary::headers::TexturePayloadInfo info{};
+                        info.format = ilen::enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA8_UNORM;
+                        info.dataSize = blob.size();
+                        toc.push_back(info);
+                    }
+
+                    stbi_image_free(rawPixels);
+
+                    //Calculo de los offsets
+                    uint64_t currentOffset = sizeof(ilen::binary::headers::IlenTextureHeader) + (sizeof(ilen::binary::headers::TexturePayloadInfo) * toc.size());
+
+                    for(size_t k = 0; k < toc.size(); k++){
+                        toc[k].offset = currentOffset;
+                        currentOffset += toc[k].dataSize;
+                    }
+
+                    //Generar el archivo binario
+                    ilen::binary::headers::IlenTextureHeader header{};
+                    strncpy(header.magicNumber, "ERUTXET_NELI", sizeof(header.magicNumber) - 1);
+                    header.version = 1;
+                    header.width = width;
+                    header.height = height;
+                    header.channels = 4;
+                    header.mipLevels = 1;
+                    header.payloadCount = toc.size();
+
+                    //auto savePath = binaryTextureFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / targetFolder);
+                    //savePath.replace_extension(".ilentex");
+
+                    if(!std::filesystem::exists(savePath.parent_path())){
+                        std::error_code ec;
+                        std::filesystem::create_directories(savePath.parent_path(), ec);
+                    }
+
+                    std::ofstream outFile(savePath, std::ios::binary);
+                    //Escribiendo los datos
+                    outFile.write(reinterpret_cast<const char*>(&header), sizeof(ilen::binary::headers::IlenTextureHeader));
+                    outFile.write(reinterpret_cast<const char*>(toc.data()), sizeof(ilen::binary::headers::TexturePayloadInfo) * toc.size());
+                    for(const auto& blob: compressedBlobs){
+                        outFile.write(reinterpret_cast<const char*>(blob.data()), blob.size());
+                    }
+                    outFile.close();
+
+                    //Registrar en el manifiesto
+                    uint32_t id = data[j][ILEN_ASSET_MANIFEST_ASSET_ID];
+                    std::string name = data[j][ILEN_ASSET_MANIFEST_ASSET_NAME];
+                    std::string path = std::filesystem::relative(savePath, binaryDataFolder).string();
+
+                    localFriendlyNameToID[i][name] = id;
+                    localIDToTextureAsset[i].emplace(id, TextureAsset(id, path));
+                }   
+            }, &group);
+        }
+
+        group.Wait();
+
+        //Integrar los resultados en el hilo principal
+        for(size_t i = 0; i < numChunks; i++){
+            for(auto [name, id]: localFriendlyNameToID[i]){
+                friendlyNameToID[name] = id;
+            }
+            for(auto [id, asset]: localIDToTextureAsset[i]){
+                idToTextureAsset.emplace(id, asset);
+            }
+        }
+
+        ILEN_LOG_P(DEBUG_PREFIX, "Texturas binarizadas de forma correcta");
+    }
+
     //3 - Generar un manifiesto para los binarios.
     //No necesito un manifiesto en JSON, mejor volcar los mapas de memoria en un archivo, así no tenemos que volver a cargar y configurar estos, sino que sea solo una lectura.
 
@@ -955,4 +1179,80 @@ void processVectorProperties(const nlohmann::json& jsonData, const std::string& 
             }
         }
     }
+}
+
+//Funciones para la ayuda de compresión de las texturas (IA GENERATED CODE, not refactorized nor supervised creation) <-- Esto significa que es un posible vector de probelmas, ya que no se como funciona su algoritmo, porque no lo supervise, solo fue Ctrl+C, Ctrl+V
+// --- COMPRESIÓN BC7 (PC) ---
+std::vector<uint8_t> CompressToBC7(const uint8_t* pixels, int width, int height) {
+    // BC7 usa bloques de 4x4 pixeles. Cada bloque se comprime a 16 bytes.
+    int blocksX = (width + 3) / 4;
+    int blocksY = (height + 3) / 4;
+    
+    std::vector<uint8_t> compressedData(blocksX * blocksY * 16);
+    uint8_t* destPtr = compressedData.data();
+
+    bc7enc_compress_block_params params;
+    bc7enc_compress_block_params_init(&params); // Calidad por defecto
+    // params.m_max_partitions_mode = ... (Puedes ajustar la calidad aquí)
+
+    for (int y = 0; y < height; y += 4) {
+        for (int x = 0; x < width; x += 4) {
+            uint32_t block4x4[16] = {0}; // 16 pixeles RGBA (4x4)
+
+            // Extraer el bloque de 4x4 de la imagen original (con padding si estamos en los bordes)
+            for (int by = 0; by < 4; ++by) {
+                for (int bx = 0; bx < 4; ++bx) {
+                    int px = std::min(x + bx, width - 1);
+                    int py = std::min(y + by, height - 1);
+                    // stb_image devuelve pixeles en formato RGBA (4 canales, 8 bits cada uno)
+                    const uint8_t* pSrc = pixels + ((py * width) + px) * 4;
+                    // Empaquetar RGBA en un uint32_t (Little Endian)
+                    block4x4[by * 4 + bx] = pSrc[0] | (pSrc[1] << 8) | (pSrc[2] << 16) | (pSrc[3] << 24);
+                }
+            }
+
+            // Comprimir el bloque y avanzar el puntero de destino
+            bc7enc_compress_block(destPtr, block4x4, &params);
+            destPtr += 16;
+        }
+    }
+    return compressedData;
+}
+
+// --- COMPRESIÓN ASTC (APPLE / MÓVIL) ---
+std::vector<uint8_t> CompressToASTC(const uint8_t* pixels, int width, int height) {
+    // Configuración para ASTC 4x4 (Excelente calidad, 8 bits por pixel)
+    astcenc_config config;
+    astcenc_config_init(ASTCENC_PRF_LDR, 4, 4, 1, ASTCENC_PRE_MEDIUM, 0, &config);
+
+    astcenc_context* context;
+    astcenc_context_alloc(&config, 1, &context, nullptr); // 1 hilo por contexto interno
+
+    astcenc_image image;
+    image.dim_x = width;
+    image.dim_y = height;
+    image.dim_z = 1;
+    image.data_type = ASTCENC_TYPE_U8;
+    
+    // ASTC pide un array de punteros a los "slices" (solo tenemos 1 porque es 2D)
+    void* data_slices[1] = { (void*)pixels };
+    image.data = data_slices;
+
+    // Calcular tamaño de salida (ASTC 4x4 da 16 bytes por bloque)
+    int blocksX = (width + 3) / 4;
+    int blocksY = (height + 3) / 4;
+    std::vector<uint8_t> compressedData(blocksX * blocksY * 16);
+
+    astcenc_swizzle swizzle = {
+        ASTCENC_SWZ_R,
+        ASTCENC_SWZ_G,
+        ASTCENC_SWZ_B,
+        ASTCENC_SWZ_A,
+    };
+
+    // Comprimir
+    astcenc_compress_image(context, &image, &swizzle, compressedData.data(), compressedData.size(), 0);
+
+    astcenc_context_free(context);
+    return compressedData;
 }

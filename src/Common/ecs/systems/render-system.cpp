@@ -10,11 +10,13 @@ namespace ilen::ecs::systems {
         p_renderPipelineManager = engineContext->p_renderPipelineManager.get();
         p_materialManager = engineContext->p_materialManager.get();
         p_commandDispatcher = engineContext->p_commandDispatcher.get();
+        p_textureManager = engineContext->p_textureManager.get();
 
         //Registramos los componentes que requiere esta cosa
         p_coordinator->registerComponent<VisibilityComponent>();
         p_coordinator->registerComponent<StaticRenderingData>();
         p_coordinator->registerComponent<StaticMaterialRenderingData>();
+        p_coordinator->registerComponent<StaticTextureRenderingData>();
     }
 
     void RenderSystem::Update() {
@@ -23,6 +25,7 @@ namespace ilen::ecs::systems {
             //Actualizando el estado de los elementos cargados en paralelo
             p_meshManager->UpdateProcess();
             p_renderPipelineManager->UpdatePipelineWorks();
+            p_textureManager->UpdateProcess();
 
             std::vector<Entity> entityList(entities.begin(), entities.end());
             size_t total = entityList.size();
@@ -36,6 +39,7 @@ namespace ilen::ecs::systems {
             auto* visibilityComponentArray = p_coordinator->getComponentArray<VisibilityComponent>();
             auto* staticRenderDataArray = p_coordinator->getComponentArray<StaticRenderingData>();
             auto* staticMatRenderDataArray = p_coordinator->getComponentArray<StaticMaterialRenderingData>();
+            auto* staticTexRenderDataArray = p_coordinator->getComponentArray<StaticTextureRenderingData>();
             auto* metadataDataArray = p_coordinator->getComponentArray<EntityMetadataComponent>();
 
             ilen::job_system::JobGroup group;
@@ -44,7 +48,7 @@ namespace ilen::ecs::systems {
                 size_t start = i * chunkSize;
                 size_t end = std::min(start + chunkSize, total);
 
-                p_jobSystem->SubmitJob([this, start, end, entityList, renderComponentArray, visibilityComponentArray, staticRenderDataArray, staticMatRenderDataArray, metadataDataArray]() {
+                p_jobSystem->SubmitJob([this, start, end, entityList, renderComponentArray, visibilityComponentArray, staticRenderDataArray, staticMatRenderDataArray, metadataDataArray, staticTexRenderDataArray]() {
                     for(size_t j = start; j < end; j++){
                         Entity entity = entityList[j];
                         auto* metadata = metadataDataArray->getData(entity);
@@ -61,6 +65,7 @@ namespace ilen::ecs::systems {
                         SetVisibilityValue(*render, entity, visibilityComponentArray, true);
                         CheckMeshStatus(*render, entity, staticRenderDataArray);
                         CheckRenderPipelineStatus(*render, entity, staticMatRenderDataArray);
+                        CheckTextureStatus(*render, entity, staticTexRenderDataArray);
                     }
                 }, &group);
             }
@@ -153,6 +158,29 @@ namespace ilen::ecs::systems {
                 componentArray->updateData(entity, std::move(data));
                 //p_coordinator->setComponent(entity, std::move(data));
             }
+        }
+    }
+
+    void RenderSystem::CheckTextureStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticTextureRenderingData>* componentArray) const {
+        StaticTextureRenderingData* staticTexData = nullptr;
+        
+        if(componentArray){
+            staticTexData = componentArray->getData(entity);
+        }
+
+        if(staticTexData == nullptr){
+            //Solicitar la carga de estos datos
+            auto solitudeResult = p_textureManager->getTextureHandler(render.mainTexID);
+            auto runtimeID = p_textureManager->getTextureRuntimeID(render.mainTexID);
+
+            if(solitudeResult.lock() != nullptr && runtimeID != 0){
+                //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
+                StaticTextureRenderingData data{solitudeResult, runtimeID};
+                componentArray->updateData(entity, std::move(data));
+                //p_coordinator->setComponent(entity, std::move(data));
+            }
+            //continue; //Salta a la siguiente entidad, esta no puede hacer nada.
+            //No hace continue porque sino anularia para ese frame empezar la creación del PSO
         }
     }
 }

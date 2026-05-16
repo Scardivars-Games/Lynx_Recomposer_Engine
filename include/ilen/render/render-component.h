@@ -8,6 +8,7 @@
 #include <ilen/render/renderer.h>
 #include <ilen/resources/mesh-manager.h>
 #include <ilen/graphics/meshes.h>
+#include <ilen/graphics/texture.h>
 /*
 namespace ilen::graphics {
     struct MeshGPULink;
@@ -18,9 +19,9 @@ namespace ilen::ecs::components {
     using namespace ilen::graphics;
 
     struct RenderComponent {
-        uint32_t meshID;
-        uint32_t mainTexID;
-        uint32_t materialID;   
+        uint32_t meshID = 2;
+        uint32_t mainTexID = 10;
+        uint32_t materialID = 5;   
     };
 
     //Puntero debil a los buffers fijos en la GPU. Deben solicitarse al MeshManager el puntero y antes de operar hacer un .lock() para obtener un shared_ptr válido para ese frame. En que de que no se obtenga algo válido, volver a solicitar los meshes.
@@ -41,6 +42,16 @@ namespace ilen::ecs::components {
         StaticMaterialRenderingData(std::weak_ptr<render::IGPURenderPipeline> pso, uint32_t runtimeID) : pso(pso), runtimeMaterialID(runtimeID) {};
         std::weak_ptr<render::IGPURenderPipeline> pso;
         uint32_t runtimeMaterialID = 0;
+    };
+
+    struct StaticTextureRenderingData {
+        //Porque tener esto separado??? Para que los elementos claves usandos al renderizar sean combinados de la forma más sana posible durante el sorting al renderizar.
+        StaticTextureRenderingData() = default;
+        StaticTextureRenderingData(std::weak_ptr<TextureGPULink> tex, uint32_t runtimeID)
+            : staticTexture(tex), runtimeTexID(runtimeID) {}
+        
+        std::weak_ptr<TextureGPULink> staticTexture = {};
+        uint32_t runtimeTexID = 0;
     };
 
     struct VisibilityComponent {

@@ -4,7 +4,9 @@ project(ILEN_MODULES LANGUAGES CXX VERSION 0.1)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(${PARENT_INCLUDE_DIR})
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Forzar dependencias estáticas" FORCE)
+
+include_directories(${PARENT_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/include)
 
 add_executable(ILEN_METAL_COMPILER modules/ilen_metal_compiler.cpp)
 add_executable(ILEN_SLANG_COMPILER modules/ilen_slang_converter.cpp)
@@ -54,11 +56,51 @@ target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE ${ASSIMP_LIBRARIES})
 
 #END ASSIMP
 
+#SLANG
 target_compile_definitions(ILEN_SLANG_COMPILER PRIVATE "MODULE_SOURCE_FOLDER=\"${CMAKE_SOURCE_DIR}\"")
 
 add_custom_command(TARGET ILEN_SLANG_COMPILER POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/external/slang" "$<TARGET_FILE_DIR:ILEN_SLANG_COMPILER>/slang"
 )
+
+#TEXTURE_COMPRESSION
+set(ASTCENC_CLI OFF CACHE BOOL "Desactivar ejecutable CLI de astc-encoder" FORCE)
+
+set(ASTCENC_SHAREDLIB OFF CACHE BOOL "Disable ASTC shared libs" FORCE)
+set(ASTCENC_CLI OFF CACHE BOOL "Disable ASTC command line tool" FORCE)
+set(ASTCENC_UNIVERSAL_BUILD OFF CACHE BOOL "Disable ASTC internal lipo scripts" FORCE)
+add_subdirectory(external/astc-encoder)
+
+file(GLOB BC7ENC_SOURCES "external/bc7enc/*.cpp" "external/bc7enc/*.c")
+
+# ¡CUIDADO! Como su repositorio era un ejecutable, seguramente tiene un 
+# archivo con una función 'int main()'. Si lo compilamos junto a nuestro motor, 
+# chocará con tu propio main.cpp. Vamos a excluir cualquier archivo de prueba o consola:
+list(FILTER BC7ENC_SOURCES EXCLUDE REGEX "(main\\.cpp|tool\\.cpp|test\\.cpp)$")
+
+# Ahora creamos nosotros la librería estática usando sus archivos limpios:
+add_library(BC7_Wrapper STATIC ${BC7ENC_SOURCES})
+
+# Le decimos a nuestra nueva librería dónde están sus propios headers
+target_include_directories(BC7_Wrapper PUBLIC "external/bc7enc")
+
+target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE BC7_Wrapper)
+target_include_directories(ILEN_FILE_BINARIZATION PRIVATE "external/bc7enc" "external/astc-encoder/Source")
+
+if(APPLE)
+    target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE astcenc-native-static)
+endif()
+
+#OLD IDEA
+# Enlazamos automáticamente dependiendo de la arquitectura de la computadora
+#if(APPLE AND CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "arm64")
+    # Para Mac con Apple Silicon (M1/M2/M3)
+#    target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE astcenc-neon-static)
+#else()
+    # Para PC (Windows/Linux) o Mac con Intel
+#    target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE astcenc-avx2-static)
+#endif()
+
 install(TARGETS ILEN_METAL_COMPILER DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_FILE_BINARIZATION DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_SLANG_COMPILER DESTINATION executable/$<CONFIG>)

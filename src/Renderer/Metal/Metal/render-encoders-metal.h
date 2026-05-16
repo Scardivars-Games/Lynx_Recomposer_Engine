@@ -19,7 +19,8 @@ namespace ilen::render {
             void SetVertexBuffer(uint32_t slot, IGPUBuffer* buffer) override;
             void SetIndexBuffer(IGPUBuffer* buffer) override;
             void SetInstancedBuffer(uint32_t slot, IGPUBuffer* buffer) override;
-            void SetTexture(uint32_t slot, IGPUTexture* texture) override;
+            void SetFragmentTexture(uint32_t slot, IGPUTexture* texture) override;
+            void SetFragmentSampler(uint32_t slot, IGPUSampler* sampler) override;
             
             void DrawIndexed(uint32_t indexCount) override;
             void DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset, size_t instanceDataSize) override;

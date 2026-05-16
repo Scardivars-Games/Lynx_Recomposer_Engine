@@ -7,6 +7,7 @@
 #include <ilen/core/runtime_options.h>
 #include <ilen/core/engine-context.h>
 #include <ilen/ecs/system_registry.h>
+#include <ilen/resources/texture-manager.h>
 
 //API públicas del motor
 #include <ilen-public/API/input-api.h>
@@ -78,6 +79,7 @@ namespace ilen{
         engineContext->p_shaderManager = std::make_unique<ilen::resources::shaders::ShaderManager>(engineContext.get());
         engineContext->p_materialManager = std::make_unique<ilen::resources::materials::MaterialManager>(engineContext.get());
         engineContext->p_renderPipelineManager = std::make_unique<ilen::resources::render_pipeline::PipelineManager>(engineContext.get());
+        engineContext->p_textureManager = std::make_unique<ilen::resources::texture::TextureManager>(engineContext.get());
 
 /*
         //Registro sistemas.

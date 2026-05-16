@@ -7,6 +7,7 @@
 #include <Metal/parallel-command-encoder-metal.h>
 #include <Metal/texture-metal.h>
 #include <Metal/instance-buffer-metal.h>
+#include <Metal/sampler-metal.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/window/window.h>
 
@@ -35,21 +36,8 @@ namespace ilen::render {
                 //Es imposible crear el dispositivo de Metal!!! (Fallback a OpenGL)
                 ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se logro crear el contexto de Metal. Dispositivo inválido");
             }
-            /*Irrelevante ahora que usamos CAMetalLayer
-             metalView.device = _device;
-            metalView.framebufferOnly = NO;
-            metalView.drawableSize = metalView.bounds.size;
-            metalView.paused = YES;
-            metalView.enableSetNeedsDisplay = YES;
-            metalView.autoResizeDrawable = YES;
-            #if TARGET_OS_OSX
-            metalView.needsDisplay = YES;
-            [metalView setNeedsLayout:YES];
-            [metalView layoutSubtreeIfNeeded];
-             
-             metalView.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
-             metalView.preferredFramesPerSecond = GraphicsOptions::actualFPS;
-            #endif*/
+            
+            defineSupportedGPUCompression();
             
             ILEN_LOG("Device: %p", _metalLayer.device);
             ILEN_LOG("DrawableSize: %.0f x %.0f", _metalLayer.drawableSize.width, _metalLayer.drawableSize.height);
@@ -386,7 +374,8 @@ void MetalRender::generateFrameTextures(){
                         descriptor.height = height;
                         descriptor.width = width;
                         descriptor.presentation = enumerations::ILEN_GPU_TEXTURE_PRESENTATION_TYPE::ILEN_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
-                        descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF;
+                        //descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF;
+                        descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG16_FLOAT;
                         descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET | ILEN_GPU_TEXTURE_USAGE_SHADER_READ;
                         descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
                         descriptor.label = label;
@@ -408,7 +397,7 @@ void MetalRender::generateFrameTextures(){
                     descriptor.height = height;
                     descriptor.width = width;
                     descriptor.presentation = enumerations::ILEN_GPU_TEXTURE_PRESENTATION_TYPE::ILEN_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
-                    descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH;
+                    descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_32_FLOAT;
                     descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET;
                     descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
                     descriptor.label = label;
@@ -449,6 +438,14 @@ std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::createNewParallelComman
 
 std::unique_ptr<IGPUTexture> MetalRender::createNewPlatformTexture(const IlenGPUTextureDescriptor &descriptor){
     return std::make_unique<MetalTexture>(descriptor, _predefinedValues, _device);
+}
+
+std::shared_ptr<IGPUSampler> MetalRender::createSampler(const IlenGPUSamplerDescriptor &descriptor){
+    return MetalSampler::getOrCreate(descriptor, _device);
+}
+
+std::shared_ptr<IGPUTexture> MetalRender::createTexture(const IlenGPUTextureDescriptor &descriptor, const void* initialData){
+    return std::make_shared<MetalTexture>(descriptor, _predefinedValues, _device, initialData, _commandQueue);
 }
 
 void MetalRender::regenerateEncoderDescriptor(){
@@ -501,7 +498,24 @@ std::unique_ptr<IGPUInstanceBuffer> MetalRender::createInstanceBuffer(size_t buf
     Renderer* Renderer::create(void* native_surface){
         return new MetalRender(native_surface);
     }*/
+
+
+void MetalRender::defineSupportedGPUCompression() {
+    if([_device supportsFamily:MTLGPUFamilyApple6]){
+        compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
+    }
+#if ILEN_MACOS
+    else if([_device supportsBCTextureCompression]){
+        compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
+    }
+#endif
+    else {
+        compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
+    }
 }
+
+}
+
 
 #endif // defined (__APPLE__)
 

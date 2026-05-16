@@ -26,7 +26,7 @@ void Cube::Init() {
 
     RenderComponent render{};
     render.meshID = 2;
-    render.mainTexID = 0;
+    render.mainTexID = 14;
     render.materialID = 5;
     coordinator->setComponent(entity, std::move(render)); 
 
@@ -80,7 +80,6 @@ void PointerPos::Init() {
 
     RenderComponent render{};
     render.meshID = 1;
-    render.mainTexID = 0;
     render.materialID = 5;
     coordinator->setComponent(entity, std::move(render)); 
 
@@ -133,7 +132,6 @@ void Ground::Init() {
 
     RenderComponent render{};
     render.meshID = 2;
-    render.mainTexID = 0;
     render.materialID = 5;
     coordinator->setComponent(entity, std::move(render)); 
 

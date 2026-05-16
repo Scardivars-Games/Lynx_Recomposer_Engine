@@ -33,7 +33,15 @@ vertex VertexOut basic_vertex(
 }
 
 fragment float4 basic_fragment(
-    VertexOut in [[stage_in]]
+    VertexOut in [[stage_in]],
+    texture2d<float> mainTexture [[texture(0)]],
+    sampler textureSampler [[sampler(0)]]
 ) {
-    return in.color;
+    float4 texColor = mainTexture.sample(textureSampler, in.uv);
+    
+    if(texColor.a < 0.1) {
+        discard_fragment();
+    }
+    
+    return texColor * in.color;
 }

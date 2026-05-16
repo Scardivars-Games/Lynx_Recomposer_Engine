@@ -6,6 +6,7 @@
 #include <Metal/buffers-metal.h>
 #include <ilen/headers/ilen-logs.h>
 #include <ilen/render/render-constants.h>
+#include <Metal/sampler-metal.h>
 
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
@@ -67,12 +68,19 @@ namespace ilen::render {
     }
 
 
-    void MetalRenderEncoder::SetTexture(uint32_t slot, IGPUTexture *texture){
+    void MetalRenderEncoder::SetFragmentTexture(uint32_t slot, IGPUTexture *texture){
         MetalTexture* nativeTexture = static_cast<MetalTexture*>(texture);
         id<MTLTexture> metalTexture = (__bridge id<MTLTexture>)nativeTexture->getNativeTexture();
         
         [_commandEncoder setFragmentTexture:metalTexture atIndex:slot];
     }
+
+void MetalRenderEncoder::SetFragmentSampler(uint32_t slot, IGPUSampler *sampler){
+    MetalSampler* metalSampler = static_cast<MetalSampler*>(sampler);
+    id<MTLSamplerState> nativeSampler = (__bridge id<MTLSamplerState>)metalSampler->getNativeSampler();
+    
+    [_commandEncoder setFragmentSamplerState:nativeSampler atIndex:0];
+}
 
     void MetalRenderEncoder::DrawIndexed(uint32_t indexCount){
         if(!_indexBuffer){

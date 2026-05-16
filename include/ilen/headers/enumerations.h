@@ -90,18 +90,42 @@ namespace ilen::enumerations {
         ILEN_GPU_TEXTURE_TYPE_CUBE_MAP
     };
 
-    enum class ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE {
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN,
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH,
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_STENCIL, //Texture for depth + stencil.
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT_HALF, //16 bit - one channel.
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT, //32bit - one channel
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF, //16 bits - two channels
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2, //32 bits - two channels
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT3_HALF, //16 bits - three channels
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT3, //32 bits - three channels
-        ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID,
-    };
+    enum class ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE : uint32_t {
+            // ESTADO Y SISTEMA
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID = 0,
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN,         // Se resuelve dinámicamente al formato de la ventana (Ej: BGRA8)
+
+            // COLOR ESTÁNDAR (8-bit Unsigned Normalized) - Ideal para UI y Albedo
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_R8_UNORM,       // 8 bits - 1 canal (R)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG8_UNORM,      // 16 bits - 2 canales (R, G)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA8_UNORM,    // 32 bits - 4 canales (R, G, B, A)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA8_SRGB,     // 32 bits - 4 canales (Con corrección Gamma para Albedo)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_BGRA8_UNORM,    // 32 bits - Formato nativo en pantallas de Apple/Windows
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_BGRA8_SRGB,
+
+            // HIGH DYNAMIC RANGE (Flotantes de 16-bit / "Half") - HDR y Post-Procesado
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_R16_FLOAT,      // 16 bits - 1 canal (Equivalente a tu FLOAT_HALF)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG16_FLOAT,     // 32 bits - 2 canales (Equivalente a tu FLOAT2_HALF)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA16_FLOAT,   // 64 bits - 4 canales (El estándar de facto para buffers HDR)
+
+            // PRECISIÓN ALTA (Flotantes de 32-bit) - Ideal para G-Buffers y Computación
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_R32_FLOAT,      // 32 bits - 1 canal (Equivalente a tu FLOAT)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG32_FLOAT,     // 64 bits - 2 canales (Equivalente a tu FLOAT2)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGB32_FLOAT,    // 96 bits - 3 canales (Precaución: A veces emulado por el driver)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA32_FLOAT,   // 128 bits - 4 canales (Cálculos de físicas/posiciones exactas)
+
+            // PROFUNDIDAD Y STENCIL (Depth & Stencil)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_16_UNORM, // 16 bits de profundidad pura (Para móviles de baja gama)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_32_FLOAT, // 32 bits de profundidad (Estándar moderno en PC/Consolas)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_24_STENCIL_8, // 24 bits profundidad + 8 bits stencil
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_32_FLOAT_STENCIL_8, // 32 bits profundidad + 8 bits stencil
+
+            // COMPRESIÓN DE BLOQUES (Assets de Juego) - Unificados
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM,      // Desktop/Intel (Bloques de 16 bytes)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_SRGB,       // Desktop/Intel (Bloques de 16 bytes, Gamma corregido)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM, // Apple/Móvil (Bloques de 16 bytes)
+            ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_SRGB   // Apple/Móvil (Bloques de 16 bytes, Gamma corregido)
+        };
 
     //Usos que tendra la textura
     enum ILEN_GPU_TEXTURE_USAGE_BIT_FLAGS{
@@ -115,6 +139,14 @@ namespace ilen::enumerations {
         ILEN_GPU_TEXTURE_PRESENTATION_PRESENT,//Esto significa que la textura se muestra en pantalla. En metal sería obtener el drawable (CAMetalDrawable).
         ILEN_GPU_TEXTURE_PRESENTATION_NOTPRESENT,
     };
+
+    //a la GPU le importa un comino esto, al final, no deja de ser un PIxel format
+    /*enum class ILEN_GPU_TEXTURE_FORMAT : uint32_t {
+        ILEN_GPU_TEXTURE_RGBA8_UNORM = 0,
+        ILEN_GPU_TEXTURE_ASTC_4x4_UNORM = 1,
+        ILEN_GPU_TEXTURE_BC7_UNORM = 2,
+        ILEN_GPU_TEXTURE_UNSUPPORTED = 3, // Esto es para poder regresar error de que no soporta texturas.
+    };*/
 
     //memorias en GPU que propiedades deben tener
     enum class ILEN_GPU_MEMORY_PROPERTY_TYPE {
@@ -134,6 +166,34 @@ namespace ilen::enumerations {
         ILEN_GPU_RENDER_PASS_LOAD_OPTION_DONT_CARE, //Me da igual, el driver optimiza
     };
 
+    //Enum para los samplers de textura
+    enum class ILEN_GPU_SAMPLER_FILTER_TYPE {
+        ILEN_GPU_SAMPLER_FILTER_NEAREST,
+        ILEN_GPU_SAMPLER_FILTER_LINEAR,
+    };
+
+    enum class ILEN_GPU_SAMPLER_MIP_FILTER_TYPE {
+        ILEN_GPU_SAMPLER_MIP_FILTER_NOT_MIPPED,
+        ILEN_GPU_SAMPLER_MIP_FILTER_NEAREST,
+        ILEN_GPU_SAMPLER_MIP_FILTER_LINEAR,
+    };
+
+    enum class ILEN_GPU_SAMPLER_ADDRESS_MODE {
+        ILEN_GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE,
+        ILEN_GPU_SAMPLER_ADDRESS_REPEAT,
+        ILEN_GPU_SAMPLER_ADDRESS_MIRRORED_REPEAT,
+        ILEN_GPU_SAMPLER_ADDRESS_CLAMP_TO_BORDER_COLOR
+    };
+
+    enum class ILEN_GPU_COMPARE_FUNCTION {
+        ILEN_GPU_COMPARE_NEVER,
+        ILEN_GPU_COMPARE_LESS,
+        ILEN_GPU_COMPARE_LESS_EQUAL,
+        ILEN_GPU_COMPARE_EQUAL,
+        ILEN_GPU_COMPARE_GREATER,
+        ILEN_GPU_COMPARE_GREATER_EQUAL,
+        ILEN_GPU_COMPARE_ALWAYS
+    };
 
     //Enum para las opciones gráficas. El int establecido es de 16 bits.
     enum ILEN_GRAPHICS_OPTIONS_BIT_FLAGS {

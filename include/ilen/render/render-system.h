@@ -2,6 +2,7 @@
 
 #include <ilen/resources/assets-manager.h>
 #include <ilen/resources/materials-manager.h>
+#include <ilen/resources/texture-manager.h>
 #include <ilen/ecs/types.h>
 #include <ilen/headers/enumerations.h>
 #include <cstddef>
@@ -22,7 +23,7 @@ namespace ilen::resources {
 }
 
 namespace ilen::ecs::systems {
-
+    using namespace ilen::resources::texture;
     using namespace ilen::resources::mesh;
     using namespace ilen::resources::materials;
     using namespace ilen::resources::render_pipeline;
@@ -38,11 +39,13 @@ namespace ilen::ecs::systems {
             MeshManager* p_meshManager = nullptr;
             PipelineManager* p_renderPipelineManager = nullptr;
             MaterialManager* p_materialManager = nullptr;
+            TextureManager* p_textureManager = nullptr;
 
             //Métodos privados
-            void SetVisibilityValue(const RenderComponent& render, const Entity& entity, ComponentArray<VisibilityComponent>* componentArray, bool newValue);
-            void CheckMeshStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticRenderingData>* componentArray) const;
-            void CheckRenderPipelineStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticMaterialRenderingData>* componentArray) const;
+            inline void SetVisibilityValue(const RenderComponent& render, const Entity& entity, ComponentArray<VisibilityComponent>* componentArray, bool newValue);
+            inline void CheckMeshStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticRenderingData>* componentArray) const;
+            inline void CheckRenderPipelineStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticMaterialRenderingData>* componentArray) const;
+            inline void CheckTextureStatus(const RenderComponent& render, const Entity& entity, ComponentArray<StaticTextureRenderingData>* componentArray) const;
 
             const char* DEBUG_PREFIX = "RENDER_SYSTEM";
     };

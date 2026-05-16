@@ -6,26 +6,113 @@ using namespace ilen::enumerations;
 
 MTLPixelFormat ilen::render::utils::metal::transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format, MTLPixelFormat viewFormat){
     switch (format) {
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN:
-            return viewFormat;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH:
-            return MTLPixelFormatDepth32Float;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_STENCIL:
-            return MTLPixelFormatDepth32Float_Stencil8;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT_HALF:
-            return MTLPixelFormatR16Float;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF:
-            return MTLPixelFormatRG16Float;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT3_HALF:
-            return MTLPixelFormatRGBA16Float;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT:
-            return MTLPixelFormatR32Float;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2:
-            return MTLPixelFormatRG32Float;
-        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT3:
-            return MTLPixelFormatRGBA32Float;
+        
+        // =========================================================================
+        // ESTADO Y SISTEMA
+        // =========================================================================
         case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID:
             return MTLPixelFormatInvalid;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN:
+            return viewFormat;
+
+        // =========================================================================
+        // COLOR ESTÁNDAR (8-bit Unsigned Normalized)
+        // =========================================================================
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_R8_UNORM:
+            return MTLPixelFormatR8Unorm;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG8_UNORM:
+            return MTLPixelFormatRG8Unorm;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA8_UNORM:
+            return MTLPixelFormatRGBA8Unorm;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA8_SRGB:
+            return MTLPixelFormatRGBA8Unorm_sRGB;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BGRA8_UNORM:
+            return MTLPixelFormatBGRA8Unorm;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BGRA8_SRGB:
+            return MTLPixelFormatBGRA8Unorm_sRGB;
+
+        // =========================================================================
+        // HIGH DYNAMIC RANGE (Flotantes de 16-bit)
+        // =========================================================================
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_R16_FLOAT:
+            return MTLPixelFormatR16Float;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG16_FLOAT:
+            return MTLPixelFormatRG16Float;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA16_FLOAT:
+            return MTLPixelFormatRGBA16Float;
+
+        // =========================================================================
+        // PRECISIÓN ALTA (Flotantes de 32-bit)
+        // =========================================================================
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_R32_FLOAT:
+            return MTLPixelFormatR32Float;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG32_FLOAT:
+            return MTLPixelFormatRG32Float;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGB32_FLOAT:
+            // IMPORTANTE: Metal no tiene soporte nativo para RGB32Float (3 canales de 32 bits).
+            // Por alineación de memoria en hardware, Apple te obliga a usar RGBA32Float.
+            // Retornamos Invalid para que el motor obligue al Asset Pipeline a añadir un canal Alpha.
+            return MTLPixelFormatInvalid; 
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA32_FLOAT:
+            return MTLPixelFormatRGBA32Float;
+
+        // =========================================================================
+        // PROFUNDIDAD Y STENCIL (Depth & Stencil)
+        // =========================================================================
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_16_UNORM:
+            return MTLPixelFormatDepth16Unorm;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_32_FLOAT:
+            return MTLPixelFormatDepth32Float;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_24_STENCIL_8:
+#if ILEN_MACOS
+            return MTLPixelFormatDepth24Unorm_Stencil8; // Solo existe en hardware Mac antiguo
+#else
+            return MTLPixelFormatDepth32Float_Stencil8; // Fallback automático para iOS/Apple Silicon
+#endif
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_32_FLOAT_STENCIL_8:
+            return MTLPixelFormatDepth32Float_Stencil8;
+
+        // =========================================================================
+        // COMPRESIÓN DE BLOQUES (Assets de Juego)
+        // =========================================================================
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM:
+#if ILEN_MACOS
+            return MTLPixelFormatBC7_RGBAUnorm;
+#else
+            return MTLPixelFormatInvalid; // iOS nunca ha soportado BC7
+#endif
+
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_SRGB:
+#if ILEN_MACOS
+            return MTLPixelFormatBC7_RGBAUnorm_sRGB;
+#else
+            return MTLPixelFormatInvalid;
+#endif
+
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM:
+            // En la nomenclatura de Metal, "LDR" (Low Dynamic Range) es el equivalente a UNORM para ASTC.
+            return MTLPixelFormatASTC_4x4_LDR;
+            
+        case ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_SRGB:
+            return MTLPixelFormatASTC_4x4_sRGB;
+
+        // =========================================================================
+        // FALLBACK
+        // =========================================================================
         default:
             return MTLPixelFormatInvalid;
     }
@@ -72,6 +159,30 @@ MTLLoadAction ilen::render::utils::metal::transformEngineToNativeLoadOption(ILEN
             return MTLLoadActionClear;
         case ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_DONT_CARE:
             return MTLLoadActionDontCare;
+    }
+}
+
+
+MTLSamplerMinMagFilter ilen::render::utils::metal::transformEngineToNativeSamplerMinMagFilter(enumerations::ILEN_GPU_SAMPLER_FILTER_TYPE filter){
+    switch (filter) {
+        case ILEN_GPU_SAMPLER_FILTER_TYPE::ILEN_GPU_SAMPLER_FILTER_LINEAR:
+            return MTLSamplerMinMagFilterLinear;
+        case ILEN_GPU_SAMPLER_FILTER_TYPE::ILEN_GPU_SAMPLER_FILTER_NEAREST:
+            return MTLSamplerMinMagFilterNearest;
+    }
+}
+
+
+MTLSamplerAddressMode ilen::render::utils::metal::transformEngineToNativeSamplerAddressMode(enumerations::ILEN_GPU_SAMPLER_ADDRESS_MODE addressMode){
+    switch (addressMode) {
+        case ILEN_GPU_SAMPLER_ADDRESS_MODE::ILEN_GPU_SAMPLER_ADDRESS_REPEAT:
+            return MTLSamplerAddressModeRepeat;
+        case ILEN_GPU_SAMPLER_ADDRESS_MODE::ILEN_GPU_SAMPLER_ADDRESS_MIRRORED_REPEAT:
+            return MTLSamplerAddressModeMirrorRepeat;
+        case ILEN_GPU_SAMPLER_ADDRESS_MODE::ILEN_GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE:
+            return MTLSamplerAddressModeClampToEdge;
+        case ILEN_GPU_SAMPLER_ADDRESS_MODE::ILEN_GPU_SAMPLER_ADDRESS_CLAMP_TO_BORDER_COLOR:
+            return MTLSamplerAddressModeClampToBorderColor;
     }
 }
 

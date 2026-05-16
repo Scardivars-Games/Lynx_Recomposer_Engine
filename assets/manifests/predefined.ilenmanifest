@@ -50,5 +50,17 @@
             "path": "shaders/predefined/post-processing-calculations.ilenshader"
         }
     ],
-    "totalOfElements": 9
+    "textures" : [
+        {
+            "id": 10,
+            "name": "default-texture",
+            "path": "textures/predefined/default_texture.png" 
+        },
+        {
+            "id": 11,
+            "name": "error-texture",
+            "path": "textures/predefined/error_texture.png"
+        }
+    ],
+    "totalOfElements": 11
 }
