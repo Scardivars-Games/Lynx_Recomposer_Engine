@@ -10,7 +10,7 @@ using namespace ilen::resources;
 using namespace ilen::core;
 
 void AssetsManager::loadManifiest(EngineContext* engineContext) {
-    m_manifestFileName = "assets.b_ilenmanifest";
+    m_manifestFileName = "assets.ilenmanifest";
 
     auto manifestPath = FileManager::fileRoute(m_manifestFileName, ILEN_FILE_TYPE_ASSETS_MANIFEST);
 

@@ -254,9 +254,9 @@ namespace ilen::maths::matrix{
             projectionMatrix[3][2] = (2 * farPlane * nearPlane) / (nearPlane - farPlane);
             projectionMatrix[2][3] = T(-1);
         }else {
-            projectionMatrix[2][2] = (farPlane) / (nearPlane - farPlane);
-            projectionMatrix[3][2] = (farPlane * nearPlane) / (nearPlane - farPlane);
-            projectionMatrix[2][3] = T(-1.0);
+            projectionMatrix[2][2] = (farPlane) / (farPlane - nearPlane);
+            projectionMatrix[3][2] = -(farPlane * nearPlane) / (farPlane - nearPlane);
+            projectionMatrix[2][3] = T(1.0);
         }
 
 
@@ -268,10 +268,13 @@ namespace ilen::maths::matrix{
         Matrix<T, 4, 4> projection(static_cast<T>(0.0));
 
         if (GraphicsAPI == ILEN_GPU_GRAPHICS_API_TYPE::OpenGL) {
-            projection[2][2] = static_cast<T>(-2.0) / (farPlane - nearPlane); //Ojo: En directX posiblemente deba usarse -1
+            // Right-Handed, rango Z [-1, 1]
+            projection[2][2] = static_cast<T>(-2.0) / (farPlane - nearPlane); 
             projection[3][2] = -(farPlane + nearPlane) / (farPlane - nearPlane);
-        }else {
-            projection[2][2] = static_cast<T>(1) / (farPlane - nearPlane);
+        } else {
+            // Right-Handed, rango Z [0, 1] (Vulkan, Metal, DirectX moderno)
+            // NOTA: El 1 ahora es negativo para invertir la Z de la cámara
+            projection[2][2] = static_cast<T>(1.0) / (farPlane - nearPlane);
             projection[3][2] = -nearPlane / (farPlane - nearPlane);
         }
 
@@ -282,7 +285,7 @@ namespace ilen::maths::matrix{
         projection[3][3] = static_cast<T>(1.0);
 
         return projection;
-    }
+}
 
     // Transponer matrix (Row-major -> Column-major)
     template<typename T, size_t Rows, size_t Cols>

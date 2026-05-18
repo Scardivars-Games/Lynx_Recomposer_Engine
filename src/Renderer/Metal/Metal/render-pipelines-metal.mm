@@ -10,6 +10,8 @@
 namespace ilen::render {
     std::map<VertexBufferLayout, void*> MetalRenderPipeline::m_vertexBufferDescriptors;
     std::mutex MetalRenderPipeline::_psoMutex;
+    std::vector<CachedDepthState> MetalRenderPipeline::_depthStencilStateCache;
+    std::mutex MetalRenderPipeline::_depthStencilCacheMutex;
 
     MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, IlenParallelEncoderDescriptor inUseGeneralEncoder, MetalViewPredefinedValues predefinedVal) : _pso(nil){
         using namespace ilen::render::utils::metal;
@@ -110,13 +112,13 @@ namespace ilen::render {
                 colorAttach.pixelFormat = MTLPixelFormatBGRA8Unorm; //Esto debería ser invalid, pero el simulador de iOS no le gusta
             }
             
-            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
+            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH && !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER )){
                 pipelineDescriptor.depthAttachmentPixelFormat = predefinedVal.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
             }
             
-            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL){
+            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL && !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER)){
                 pipelineDescriptor.stencilAttachmentPixelFormat = predefinedVal.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
@@ -126,7 +128,7 @@ namespace ilen::render {
                 
             }*/
             
-            if(descriptor.isSpecialPipeline){
+            if(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE){
                 //Special Pipelines son aquellos que no escriben en el buffer 0 (dibujado normal) Esto es principalmente para PSO de Post-Procesado
                 pipelineDescriptor.colorAttachments[0].writeMask = MTLColorWriteMaskNone;
             }
@@ -152,6 +154,14 @@ namespace ilen::render {
             
             if(!_pso){
                 ILEN_ERROR_P(DEBUG_PREFIX, "Error al crear el MTLRenderPipelineState. Error: %s.", [error.localizedDescription UTF8String]);
+            }
+            
+            //Generando el DepthStateStencil correspondiente
+            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH || ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL){
+                if(!(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER) || !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER)){
+                    bool depthWrite = !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER);
+                    _depthStencilState = getOrCreateDepthStencilState(device, depthWrite, descriptor.depthCompareFunction);
+                }
             }
         }
     }
@@ -211,6 +221,35 @@ namespace ilen::render {
             case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT3: return MTLVertexFormatFloat3;
             case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT4: return MTLVertexFormatFloat4;
             default: return MTLVertexFormatInvalid;
+        }
+    }
+
+    inline id<MTLDepthStencilState> MetalRenderPipeline::getOrCreateDepthStencilState(id<MTLDevice> device, bool writeEnabled, ILEN_GPU_COMPARE_FUNCTION compareFunction){
+        std::lock_guard<std::mutex> lock(_depthStencilCacheMutex);
+        
+        for(const auto& cached: _depthStencilStateCache) {
+            if(cached.writeEnabled == writeEnabled && cached.compareFunction == compareFunction){
+                return cached.state;
+            }
+        }
+        
+        //Crear uno nuevo porque no existe
+        @autoreleasepool {
+            MTLDepthStencilDescriptor *descriptor = [[MTLDepthStencilDescriptor alloc] init];
+            descriptor.depthWriteEnabled = writeEnabled;
+            descriptor.depthCompareFunction = transformEngineToNativeCompareFunction(compareFunction);
+            
+            id<MTLDepthStencilState> newState = [device newDepthStencilStateWithDescriptor:descriptor];
+            [descriptor release];
+            
+            if(!newState){
+                ILEN_ERROR_P(DEBUG_PREFIX, "No se pudo crear el MTLDepthStencilState.");
+                return nil;
+            }
+            
+            _depthStencilStateCache.push_back({writeEnabled, compareFunction, newState});
+            
+            return newState;
         }
     }
 }

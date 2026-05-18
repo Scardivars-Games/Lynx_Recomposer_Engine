@@ -14,6 +14,7 @@
 namespace ilen::render {
     MetalRenderEncoder::MetalRenderEncoder(id<MTLRenderCommandEncoder> encoder) : _commandEncoder(encoder), _indexBuffer(nil), _indexType(MTLIndexTypeUInt32), _primitiveType(MTLPrimitiveTypeTriangle){
         [_commandEncoder retain];
+        
     }
 
     MetalRenderEncoder::~MetalRenderEncoder(){
@@ -26,9 +27,27 @@ namespace ilen::render {
 
     void MetalRenderEncoder::SetPipelineState(IGPURenderPipeline *pso){
         MetalRenderPipeline* pipeline = static_cast<MetalRenderPipeline*>(pso);
+        
+        //Winding
+        if((pipeline->getPSODescriptor().renderPipelineOptionFlags & ILEN_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED) && isCullEnabled){
+            //No puede usar culling
+            [_commandEncoder setCullMode:MTLCullModeNone];
+            isCullEnabled = false;
+        }else{
+            //Activando el winding (descarte de vértices.)
+            [_commandEncoder setCullMode:MTLCullModeBack];
+            [_commandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
+            isCullEnabled = true;
+        }
+        
         id<MTLRenderPipelineState> pipelineState = (__bridge id<MTLRenderPipelineState>)pipeline->getNativeRenderPipeline();
         [_commandEncoder setRenderPipelineState:pipelineState];
-    }
+        
+        id<MTLDepthStencilState> depthStencilState = pipeline->getNativeDepthStencilState();
+        if(depthStencilState) {
+            [_commandEncoder setDepthStencilState:depthStencilState];
+        }
+     }
 
     void MetalRenderEncoder::SetGlobalBuffer(uint32_t slot, IGPUBuffer *buffer){
         using namespace ilen::render::slots;

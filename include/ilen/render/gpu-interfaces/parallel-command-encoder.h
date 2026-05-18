@@ -146,8 +146,22 @@ namespace ilen::render {
             if (nulls == colorAttachments.size()) {
                 sameSize = false;
             }
-            bool sameDepth = depthAttachment == first.depthAttachment;
-            bool sameStencil = stencilAttachment == first.stencilAttachment;
+            bool sameDepth = false;
+            if (depthAttachment != nullptr && first.depthAttachment != nullptr) {
+                sameDepth = (*depthAttachment == *first.depthAttachment); // Desreferenciamos
+            } else {
+                sameDepth = (depthAttachment == first.depthAttachment); // Ambos nulos
+            }
+
+            // ---------------------------------------------------------
+            // CORRECCIÓN: Comparación de Stencil Attachment
+            // ---------------------------------------------------------
+            bool sameStencil = false;
+            if (stencilAttachment != nullptr && first.stencilAttachment != nullptr) {
+                sameStencil = (*stencilAttachment == *first.stencilAttachment); // Desreferenciamos
+            } else {
+                sameStencil = (stencilAttachment == first.stencilAttachment); // Ambos nulos
+            }
 
             return sameSize && sameLabel && sameDepth && sameStencil && sameAttach;
         }

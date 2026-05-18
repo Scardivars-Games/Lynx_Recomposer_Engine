@@ -86,14 +86,14 @@ std::unordered_map<std::string, std::string> extensionToAssetType = {
     {".glsl", "shader-code"},
     {".spv", "shader-code"},
     {".slang", "shader-code"},
-    {".ilenshader", "shaders"},
+    {".meta_ilenshader", "shaders"},
     //Audio
     {".mp3", "audio"},
     {".wav", "audio"},
     {".flac", "audio"},
     //Materials
-    {".ilenmat", "materials"},
-    {".ilenmanifest", "manifests"}
+    {".meta_ilenmat", "materials"},
+    {".meta_ilenmanifest", "manifests"}
 };
 
 std::unordered_map<std::string, std::string> folderToManifestAssetGroup = {
@@ -247,7 +247,7 @@ int main(int argc, char* argv[]){
 
 void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 {
-    std::string m_manifestFileName = "assets.ilenmanifest";
+    std::string m_manifestFileName = "assets.meta_ilenmanifest";
 
     std::filesystem::path engineSourceFolder = ilenEngineFolder;
     std::filesystem::path sourceAssetFolders = engineSourceFolder / "assets";
@@ -282,7 +282,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
     } else {
         ILEN_LOG_P(DEBUG_PREFIX, "No se pudo abrir el archivo del manifiesto, o no existe en la ruta: %s", manifestPath.string().c_str());
         //Creamos una nueva lista
-        auto predefinedPath = sourceAssetFolders / "manifests" / "predefined.ilenmanifest";
+        auto predefinedPath = sourceAssetFolders / "manifests" / "predefined.meta_ilenmanifest";
         std::ifstream predefined(predefinedPath);
         if(predefined.is_open())
         {
@@ -315,7 +315,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
     //Este vector son las extensiones que no deben de registrarse en el assets.json, ya que otras clases gestionaran su uso.
     std::vector<std::string> extensionCantRegistrate = {
-        ".metal", ".hlsl", ".glsl", ".spv", ".ilenmanifest", ".mtl", ".msl", ".slang"
+        ".metal", ".hlsl", ".glsl", ".spv", ".meta_ilenmanifest", ".mtl", ".msl", ".slang"
     };
     std::string unsupportedFolder = "unsupported";
 
@@ -447,7 +447,7 @@ std::string generateFriendlyName(const std::string& filename){
 
 void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     using namespace ilen::resources;
-    std::string m_manifestFileName = "assets.ilenmanifest";
+    std::string m_manifestFileName = "assets.meta_ilenmanifest";
 
     std::filesystem::path engineSourceFolder = ilenEngineFolder;
     std::filesystem::path sourceAssetFolders = engineSourceFolder / "assets";
@@ -697,7 +697,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                 std::filesystem::create_directories(savePath.parent_path());
             }
 
-            savePath.replace_extension(".b_ilenshader");
+            savePath.replace_extension(".ilenshader");
 
             std::ofstream outFile(savePath,std::ios::binary);
             outFile.write(reinterpret_cast<const char*>(&header),sizeof(ilen::binary::headers::IlenShaderHeader));
@@ -792,7 +792,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                 std::filesystem::create_directories(savePath.parent_path());
             }
 
-            savePath.replace_extension(".b_ilenmat");
+            savePath.replace_extension(".ilenmat");
 
 
             //Orden de escritura!!!
@@ -990,7 +990,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     //No necesito un manifiesto en JSON, mejor volcar los mapas de memoria en un archivo, así no tenemos que volver a cargar y configurar estos, sino que sea solo una lectura.
 
     //4 - Guardar ese manifiesto
-    std::filesystem::path manifiestPath = binaryDataFolder / "manifests" / "assets.b_ilenmanifest";
+    std::filesystem::path manifiestPath = binaryDataFolder / "manifests" / "assets.ilenmanifest";
     if(!std::filesystem::exists(manifiestPath.parent_path())){
         std::filesystem::create_directories(manifiestPath.parent_path());
     }
@@ -1076,7 +1076,7 @@ ilen::graphics::MeshData loadModelData(std::filesystem::path modelPath){
         //std::filesystem::path meshFilePath = core::FileManager::fileRoute(meshPath, ILEN_FILE_TYPE_NONE);
         Assimp::Importer importer;
 
-        const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
+        const aiScene* scene = importer.ReadFile(modelPath, aiProcess_Triangulate | aiProcess_ConvertToLeftHanded | aiProcess_JoinIdenticalVertices);        
         if(!scene || !scene->HasMeshes()){
             ILEN_WARNING_P(DEBUG_PREFIX, "El objeto en la ruta %s no contenía ningún dato del tipo Mesh o ocurrió un error. Favor de revisar la información del archivo. Error: %s", modelPath.string().c_str(), importer.GetErrorString());
             return ilen::graphics::MeshData{};

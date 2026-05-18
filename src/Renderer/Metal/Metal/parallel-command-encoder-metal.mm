@@ -43,7 +43,7 @@ namespace ilen::render {
         _parallelEncoder = [buffer parallelRenderCommandEncoderWithDescriptor:renderPassDescriptor];
         _parallelEncoder.label = [NSString stringWithUTF8String: descriptor.label];
         [_parallelEncoder retain];
-
+        
         _descriptor = std::move(descriptor);
     }
 

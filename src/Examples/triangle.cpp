@@ -46,16 +46,34 @@ void Triangle::Update(){
 
 void FalseCamera::Init() {
     TransformComponent transform{};
-    transform.position = vec3(0.0f, 0.0f, -10.0f);
+    transform.position = vec3(0.0f, 3.0f, -10.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
 
     CameraComponent camera{};
     camera.isPrimary = true;
     camera.fovDegrees = 70.0f;
-    //camera.nearClip = 5;
+    camera.nearClip = 2;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->setComponent(entity, std::move(camera));
+}
+
+void Object3D::Init() {
+    TransformComponent transform{};
+    transform.position = vec3(0.0f, 0.0f, 0.0f);
+    transform.scale = vec3(3.0f);
+    coordinator->setComponent(entity, std::move(transform));
+
+    RenderComponent render{};
+    render.meshID = 16;
+    render.materialID = 5;
+    render.mainTexID = 13;
+    coordinator->setComponent(entity, std::move(render));
+}
+
+void Object3D::Update() {
+    using namespace ilen::engine::api;
+    TransformAPI::Rotate(entity, vec3(0, 50, 0) * ilen::time::Time::getDeltaTime());
 }
 
 #endif //!ILEN_ONLY_ECS

@@ -162,6 +162,26 @@ MTLLoadAction ilen::render::utils::metal::transformEngineToNativeLoadOption(ILEN
     }
 }
 
+MTLCompareFunction ilen::render::utils::metal::transformEngineToNativeCompareFunction(enumerations::ILEN_GPU_COMPARE_FUNCTION function){
+    switch (function) {
+        case enumerations::ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_NEVER:
+            return MTLCompareFunctionNever;
+        case enumerations::ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_LESS:
+            return MTLCompareFunctionLess;
+        case enumerations::ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_LESS_EQUAL:
+            return MTLCompareFunctionLessEqual;
+        case enumerations::ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_EQUAL:
+            return MTLCompareFunctionEqual;
+        case enumerations::ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_GREATER:
+            return MTLCompareFunctionGreater;
+        case enumerations::ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_GREATER_EQUAL:
+            return MTLCompareFunctionGreaterEqual;
+        case enumerations::ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_ALWAYS:
+            return MTLCompareFunctionAlways;
+        default:
+            return MTLCompareFunctionAlways;
+    }
+}
 
 MTLSamplerMinMagFilter ilen::render::utils::metal::transformEngineToNativeSamplerMinMagFilter(enumerations::ILEN_GPU_SAMPLER_FILTER_TYPE filter){
     switch (filter) {

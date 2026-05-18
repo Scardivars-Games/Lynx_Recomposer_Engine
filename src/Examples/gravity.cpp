@@ -148,13 +148,14 @@ void GravityCamera::Init() {
     TransformComponent transform{};
     transform.position = vec3(0.0f, 0.0f, -10.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
+    transform.rotation = vec3(0.0f, 0.0f, 0.0f);
     coordinator->setComponent(entity, std::move(transform));
 
     CameraComponent camera{};
     camera.isPrimary = true;
     camera.fovDegrees = 70.0f;
     camera.orthoSize = 15;
-    camera.nearClip = 5;
+    camera.nearClip = 2;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->setComponent(entity, std::move(camera));
 }

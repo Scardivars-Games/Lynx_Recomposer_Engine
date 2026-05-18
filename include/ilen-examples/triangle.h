@@ -21,6 +21,12 @@ namespace ilen::game{
         public:
             void Init() override;
     };
+
+    class Object3D: public GameObject {
+        public:
+            void Init() override;
+            void Update() override;
+    };
 }
 
 #endif //!ILEN_ONLY_ECS

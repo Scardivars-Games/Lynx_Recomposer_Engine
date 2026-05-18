@@ -32,6 +32,7 @@ namespace ilen::render {
             id<MTLBuffer> _indexBuffer;
             MTLIndexType _indexType; //Si los valores del index buffer son uint32_t o uint16_t
             MTLPrimitiveType _primitiveType;
+            bool isCullEnabled = true;
             static inline const char* DEBUG_PREFIX = "METAL_RENDER_ENCODER";
     };
 }

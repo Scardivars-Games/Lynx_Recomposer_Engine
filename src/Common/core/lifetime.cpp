@@ -31,6 +31,7 @@ namespace ilen{
         IlenGraphicsOptionsFlags defaultOptions = 0;
         defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS;
         defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR;
+        defaultOptions |= ILEN_GRAPHICS_OPTIONS_USE_DEPTH;
         
         ilen::core::options::GraphicsOptions::graphicsOptionsFlags = defaultOptions;
 
@@ -168,6 +169,13 @@ namespace ilen{
                 components::ScriptingBridgeComponent pointer_script{};
                 pointer_script.bind<ilen::game::PointerPos>();
                 engineContext->p_coordinator->setComponent(pointer, std::move(pointer_script));
+        }
+        {
+                components::EntityMetadataComponent model3D {TagSystem::None, LayerSystem::None, "Cash Register"};
+                auto model3DEntity = engineContext->p_coordinator->createEntity(std::move(model3D));
+                components::ScriptingBridgeComponent model3D_script{};
+                model3D_script.bind<ilen::game::Object3D>();
+                engineContext->p_coordinator->setComponent(model3DEntity, std::move(model3D_script));
         }
 
 

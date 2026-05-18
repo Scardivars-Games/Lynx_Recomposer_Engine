@@ -358,7 +358,7 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
 
     //Nota importante, si esto se esta ejecutando es porque estan activados los efectos de postProcesado.
     IlenRenderPipelineDescriptor postProcessPSO {postProcessMat};
-    postProcessPSO.isSpecialPipeline = true;
+    postProcessPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE;
     postProcessPSO.constantValuesForPipelines = constants;
 
     toReturn.push_back(postProcessPSO);
@@ -376,6 +376,10 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
     IlenRenderPipelineDescriptor postProcessRenderPSO {postProcessMat};
     postProcessRenderPSO.constantValuesForPipelines = constants;
     postProcessRenderPSO.vertexLayout = ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_VERTEXLESS;
+    postProcessRenderPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER;
+    postProcessRenderPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER;
+    postProcessRenderPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED; //Al ser vertexless, y 2D, no tiene sentido el culling.
+    
 
     toReturn.push_back(postProcessRenderPSO);
     return toReturn;

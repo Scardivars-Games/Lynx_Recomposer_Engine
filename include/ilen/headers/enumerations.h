@@ -205,6 +205,15 @@ namespace ilen::enumerations {
         ILEN_GRAPHICS_OPTIONS_USE_BLOOM = 1 << 12,
     };
 
+    //Enum para las opciones activas de cierto Pipeline, y así configurarlo correctamente sin violar las validacines de las APIs.
+    enum ILEN_RENDER_PIPELINES_OPTIONS_BIT_FLAGS {
+        ILEN_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE = 1 << 0, //Si es True, el render pipeline NO puede escribir la textura 0 de salida (la que normalmente muestra cosas en pantalla)
+        ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER = 1 << 1, //Si es true, la render pipeline NO configurara un espacio para asignar una textura de Depth
+        ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER = 1 << 2, //Si es true, la render pipeline NO  configurara un espacio para asignar una textura de Stencil
+        ILEN_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER = 1 << 3, //Necesario para elementos que leen el depth buffer, pero no escriben en él, como objetos transparentes.
+        ILEN_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED = 1 << 4, //Se requiere para indicar que este pso no requiere culling.
+    };
+
     //----FÍSICAS----//
     //Tags
     enum class ILEN_TAG_SYSTEM: uint32_t {

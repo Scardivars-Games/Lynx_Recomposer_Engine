@@ -3,7 +3,7 @@
 #include <ilen/headers/enumerations.h>
 #include <ilen/graphics/material.h>
 #include <ilen/render/gpu-interfaces/vertex-layouts.h>
-
+#include <ilen/core/bitflags.h>
 #include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
 
 namespace ilen::render {
@@ -25,8 +25,9 @@ namespace ilen::render {
         std::string fragmentFunctionName = "error_fragment";
         ILEN_GPU_RENDER_QUEUE_TYPE renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
         ILEN_VERTEX_LAYOUT_TYPE vertexLayout = ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_GLOBAL;
+        ILEN_GPU_COMPARE_FUNCTION depthCompareFunction = ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_LESS;
 
-        bool isSpecialPipeline = false;
+        IlenRenderPipelineOptionsFlags renderPipelineOptionFlags = 0; //Todo activado
         IlenParallelEncoderDescriptor* encoderDescriptor = nullptr; //Para obtener como debe construir el constructor
         std::vector<IlenConstantValuesForPipeline> constantValuesForPipelines;
         std::vector<structs::GlobalUniformIdentifier> psoGlobalUniformIdentifiers = {structs::NOT_DEFINED}; //Necesario para añdir los uniforms globales al shader.

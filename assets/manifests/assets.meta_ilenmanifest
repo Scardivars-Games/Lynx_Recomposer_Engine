@@ -3,12 +3,12 @@
     {
       "id": 4,
       "name": "error",
-      "path": "materials/predefined/error.ilenmat"
+      "path": "materials/predefined/error.meta_ilenmat"
     },
     {
       "id": 5,
       "name": "basic",
-      "path": "materials/predefined/basic.ilenmat"
+      "path": "materials/predefined/basic.meta_ilenmat"
     }
   ],
   "models": [
@@ -132,22 +132,22 @@
     {
       "id": 6,
       "name": "error",
-      "path": "shaders/predefined/error.ilenshader"
+      "path": "shaders/predefined/error.meta_ilenshader"
     },
     {
       "id": 7,
       "name": "basic",
-      "path": "shaders/predefined/basic.ilenshader"
+      "path": "shaders/predefined/basic.meta_ilenshader"
     },
     {
       "id": 8,
       "name": "post-processing",
-      "path": "shaders/predefined/post-processing.ilenshader"
+      "path": "shaders/predefined/post-processing.meta_ilenshader"
     },
     {
       "id": 9,
       "name": "post-processing-calculations",
-      "path": "shaders/predefined/post-processing-calculations.ilenshader"
+      "path": "shaders/predefined/post-processing-calculations.meta_ilenshader"
     }
   ],
   "textures": [

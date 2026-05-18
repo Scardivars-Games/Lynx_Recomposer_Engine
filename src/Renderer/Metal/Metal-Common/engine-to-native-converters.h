@@ -15,6 +15,7 @@ namespace ilen::render::utils::metal {
     //Converters requeridos por los Command encoders y PSO
     MTLStoreAction transformEngineToNativeStoreOption(enumerations::ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE option);
     MTLLoadAction transformEngineToNativeLoadOption(enumerations::ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE option);
+    MTLCompareFunction transformEngineToNativeCompareFunction(enumerations::ILEN_GPU_COMPARE_FUNCTION function);
 
     //Converters para el sampler
     MTLSamplerMinMagFilter transformEngineToNativeSamplerMinMagFilter(enumerations::ILEN_GPU_SAMPLER_FILTER_TYPE filter);
