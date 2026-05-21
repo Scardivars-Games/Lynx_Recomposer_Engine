@@ -359,6 +359,8 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
     //Nota importante, si esto se esta ejecutando es porque estan activados los efectos de postProcesado.
     IlenRenderPipelineDescriptor postProcessPSO {postProcessMat};
     postProcessPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE;
+    postProcessPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER;
+    postProcessPSO.depthCompareFunction = ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_EQUAL;
     postProcessPSO.constantValuesForPipelines = constants;
 
     toReturn.push_back(postProcessPSO);

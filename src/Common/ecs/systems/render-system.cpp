@@ -1,7 +1,6 @@
 #include <ilen/render/render-system.h>
 #include <ilen/core/engine-context.h>
 
-
 namespace ilen::ecs::systems {
     void RenderSystem::Init(const EngineContext *engineContext) {
         p_jobSystem = engineContext->p_jobSystem.get();
@@ -175,7 +174,7 @@ namespace ilen::ecs::systems {
 
             if(solitudeResult.lock() != nullptr && runtimeID != 0){
                 //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
-                StaticTextureRenderingData data{solitudeResult, runtimeID};
+                StaticTextureRenderingData data{solitudeResult, runtimeID, render.defaultSpriteInTextureID};
                 componentArray->updateData(entity, std::move(data));
                 //p_coordinator->setComponent(entity, std::move(data));
             }

@@ -56,16 +56,17 @@ namespace ilen {
 
         namespace structs {
             //Unimos las camaras para no tener que crear 2 buffers con datos redundantes.
-            struct CameraData {
+            struct alignas(256) CameraData {
                 float4x4 currentViewProjectionMatrix;
                 float4x4 previousViewProjectionMatrix;
             };
 
-            struct InstanceData {
+            struct alignas(256) InstanceData {
                 float4x4 modelMatrix;
+                float4 uvRect; //Obligatorio para obtener el UV de la textura.
             };
 
-            struct InstanceDataForVelocityBuffer {
+            struct alignas(256) InstanceDataForVelocityBuffer {
                 float4x4 actualModelMatrix;
                 float4x4 previousModelMatrix;
             };

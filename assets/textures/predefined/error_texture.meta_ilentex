@@ -1,0 +1,12 @@
+{
+    "atlas": {
+        "enabled": false,
+        "sprites": []
+    },
+    "settings": {
+        "compress": true,
+        "filter": "linear",
+        "sRGB": true
+    },
+    "version": 1
+}

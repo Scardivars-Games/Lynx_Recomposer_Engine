@@ -37,12 +37,16 @@ namespace ilen::binary::headers {
         uint32_t fragmentFunctionSize;
     };
     
-    struct TexturePayloadInfo {
+    struct alignas(4) IlenAtlasSpriteInfo {
+        uint32_t id;
+        float uvRect[4]; //[offsetX, offsetY, scaleX, scaleY].
+    };
+
+    struct alignas(8) TexturePayloadInfo {
         ilen::enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE format;
         uint64_t offset; //En que byte empiezan los datos de esta estructura
         uint64_t dataSize; //Tamaño de los datos de esa textura en el formato.
     };
-
 
     struct IlenTextureHeader {
         char magicNumber[20]; //ILEN_TEXTURE -> ERUTXET_NELI
@@ -52,5 +56,6 @@ namespace ilen::binary::headers {
         uint32_t channels;
         uint32_t mipLevels;
         uint32_t payloadCount; //Tamaño del bloque de datos.
+        uint32_t atlasSpriteCount; //Cuantos sprites posee este atlas (0 significa que es una textura simple).
     };
 }

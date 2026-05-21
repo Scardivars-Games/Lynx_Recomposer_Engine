@@ -5,6 +5,7 @@
 #include <ilen-public/API/physics-2d.h>
 #include <ilen-public/API/entity-api.h>
 #include <ilen-public/API/camera-api.h>
+#include <ilen-public/API/rendering-api.h>
 
 using namespace ilen::game;
 using namespace ilen::core;
@@ -21,7 +22,7 @@ void Cube::Init() {
 
     TransformComponent transform{};
     transform.position = vec3(0.0f, 20.0f, 0.0f);
-    transform.scale = vec3(1.0f, 1.0f, 1.0f);
+    transform.scale = vec3(3);
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
@@ -36,6 +37,7 @@ void Cube::Init() {
     coordinator->setComponent(entity, std::move(rigidbody));
 
     BoxCollider2D collider{};
+    collider.halfExtents = vec2(0.2f, 0.4f);
     coordinator->setComponent(entity, std::move(collider));
 
     //CameraAPI::MakeMainCameraFollowThisEntity(entity);
@@ -48,10 +50,17 @@ void Cube::Update() {
     using namespace ilen::input;
     if(InputAPI::IsKeyDown(Key::D) || InputAPI::IsKeyDown(Key::Right)){
         TransformAPI::Translate(entity, vec2(velocity, 0.0f) * time::Time::getDeltaTime());
+        RenderingAPI::FlipSpriteInX(entity, false);
     }else if(InputAPI::IsKeyDown(Key::A) || InputAPI::IsKeyDown(Key::Left)){
         TransformAPI::Translate(entity, vec2(-velocity, 0.0f) * time::Time::getDeltaTime());
+        RenderingAPI::FlipSpriteInX(entity, true);
     } else if(InputAPI::IsButtonDown(GamepadButton::LeftStick)) {
-        TransformAPI::Translate(entity, vec2(InputAPI::GetGamepadValue(GamepadSpecialValues::LeftStickHorizontal) * velocity, 0.0f) * time::Time::getDeltaTime());
+        float stickValue = InputAPI::GetGamepadValue(GamepadSpecialValues::LeftStickHorizontal);
+        if(stickValue != 0){
+            TransformAPI::Translate(entity, vec2(stickValue * velocity, 0.0f) * time::Time::getDeltaTime());
+            RenderingAPI::FlipSpriteInX(entity, stickValue > 0 ? false : true);
+        }
+
     }
 
     if(InputAPI::IsKeyPressed(Key::Space) || InputAPI::IsButtonPressed(GamepadButton::South)) {
@@ -74,13 +83,15 @@ void Cube::Update() {
 
 void PointerPos::Init() {
     TransformComponent transform{};
-    transform.position = vec3(0.0f, 0.0f, 0.0f);
+    transform.position = vec3(0.0f, 0.0f, 3.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
-    render.meshID = 1;
+    render.meshID = 2;
     render.materialID = 5;
+    render.mainTexID = 12;
+    render.defaultSpriteInTextureID = 10;
     coordinator->setComponent(entity, std::move(render)); 
 
 
@@ -126,7 +137,7 @@ void Ground::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = vec3(0.0f, -6.7f, 0.0f);
+    transform.position = vec3(0.0f, -6.7f, 1.0f);
     transform.scale = vec3(90.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
 

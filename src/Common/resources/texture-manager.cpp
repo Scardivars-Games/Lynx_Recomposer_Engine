@@ -74,6 +74,8 @@ namespace ilen::resources::texture {
 
             link.sampler = renderer->createSampler(samplerDesc);
 
+            link.atlasSprites = textureData.loadedAtlasSprites;
+
             return link;
         });
 

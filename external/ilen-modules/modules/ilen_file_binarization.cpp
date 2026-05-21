@@ -80,6 +80,7 @@ std::unordered_map<std::string, std::string> extensionToAssetType = {
     {".png", "textures"},
     {".jpg", "textures"},
     {".jpeg", "textures"},
+    {".meta_ilentex", "textures"},
     //Shaders
     {".metal", "shader-code"},
     {".hlsl", "shader-code"},
@@ -187,6 +188,7 @@ void processVectorProperties(const nlohmann::json& jsonData, const std::string& 
 
 std::vector<uint8_t> CompressToBC7(const uint8_t* pixels, int width, int height);
 std::vector<uint8_t> CompressToASTC(const uint8_t* pixels, int width, int height);
+void ApplyEdgeBleeding(uint8_t* pixels, int width, int height);
 
 int main(int argc, char* argv[]){
     std::filesystem::path folderPath;
@@ -315,7 +317,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
     //Este vector son las extensiones que no deben de registrarse en el assets.json, ya que otras clases gestionaran su uso.
     std::vector<std::string> extensionCantRegistrate = {
-        ".metal", ".hlsl", ".glsl", ".spv", ".meta_ilenmanifest", ".mtl", ".msl", ".slang"
+        ".metal", ".hlsl", ".glsl", ".spv", ".meta_ilenmanifest", ".mtl", ".msl", ".slang", ".meta_ilentex"
     };
     std::string unsupportedFolder = "unsupported";
 
@@ -842,8 +844,40 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                     auto texturePath = sourceAssetFolders / filePath;
 
                     // Calculamos la ruta de destino ANTES de hacer nada
-                    auto savePath = binaryTextureFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / "textures");
+                    auto metaPath = texturePath;
+                    metaPath.replace_extension(".meta_ilentex");
+
+                    auto savePath = binaryTextureFolder / std::filesystem::relative(texturePath, engineSourceFolder / "assets/textures");
                     savePath.replace_extension(".ilentex");
+
+                    ILEN_LOG_P(DEBUG_PREFIX, "Path de la textura es: %s", texturePath.c_str());
+                    ILEN_LOG_P(DEBUG_PREFIX, "Engine sources folder es: %s", engineSourceFolder.c_str());
+  
+
+
+                    if(!std::filesystem::exists(metaPath)){
+                        //No existe metadatos, los creamos.
+                        nlohmann::json defaultMetadata = {
+                            {"version", 1},
+                            {"settings", {
+                                {"compress", true},
+                                {"sRGB", true},
+                                {"filter", "linear"}
+                            }},
+                            {
+                                "atlas", {
+                                    {"enabled", false},
+                                    {"sprites", nlohmann::json::array()}
+                                }
+                            }
+                        };
+
+                        std::ofstream newMetaFile(metaPath);
+                        newMetaFile << defaultMetadata.dump(4);
+                        newMetaFile.close();
+
+                        ILEN_LOG_P(DEBUG_PREFIX, "Auto-generado .meta_ilentex por defecto para: %s", filePath.c_str());
+                    }
 
                     // --- 1. LÓGICA DE CACHÉ ---
                     bool needsBinarization = true;
@@ -852,9 +886,13 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                         // Obtener la fecha de la última modificación de ambos archivos
                         auto sourceTime = std::filesystem::last_write_time(texturePath);
                         auto targetTime = std::filesystem::last_write_time(savePath);
+                        auto metaTime = std::filesystem::last_write_time(metaPath);
+
+                        bool pngChanged = sourceTime > targetTime;
+                        bool metaChanged = metaTime > targetTime;
 
                         // Si el binario es más nuevo o igual que el PNG original, no hay cambios.
-                        if (targetTime >= sourceTime) {
+                        if (!pngChanged && !metaChanged) {
                             needsBinarization = false;
                         }
                     }
@@ -883,11 +921,49 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                         continue;
                     }
 
+                    ApplyEdgeBleeding(rawPixels, width, height); //Filtrado de la textura :)
+                    
+                    //Parseo de los metadatos y calculo del atlas de la textura
+                    std::vector<ilen::binary::headers::IlenAtlasSpriteInfo> atlasSprite;
+                    bool compressTexture = true;
+
+                    if(std::filesystem::exists(metaPath)) {
+                        std::ifstream metaFile(metaPath);
+                        json metaJson;
+                        metaFile >> metaJson;
+
+                        if(metaJson.contains("settings") && metaJson["settings"].contains("compress")){
+                            compressTexture = metaJson["settings"]["compress"];
+                        }
+
+                        //Calculo de las UV (0 - 1) para cada sprite en la textura
+                        if(metaJson.contains("atlas") && metaJson["atlas"]["enabled"] == true){
+                            for(const auto& sprite : metaJson["atlas"]["sprites"]) {
+                                ilen::binary::headers::IlenAtlasSpriteInfo spriteInfo{};
+                                spriteInfo.id = sprite["id"];
+
+                                float x = sprite["x"];
+                                float y = sprite["y"];
+                                float w = sprite["w"];
+                                float h = sprite["h"];
+
+                                //Conversion a espacio UV
+                                spriteInfo.uvRect[0] = x / static_cast<float>(width);
+                                spriteInfo.uvRect[1] = y / static_cast<float>(height);
+                                spriteInfo.uvRect[2] = w / static_cast<float>(width);
+                                spriteInfo.uvRect[3] = h / static_cast<float>(height);
+
+                                atlasSprite.push_back(spriteInfo);
+                            }
+                        }
+                    } 
+
+
                     std::vector<ilen::binary::headers::TexturePayloadInfo> toc; //1 payload por cada textura usada
                     std::vector<std::vector<uint8_t>> compressedBlobs;
 
-                    bool needsASTC = (actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_arm || actualCompileOption == CompileTargetOptions::iOS || actualCompileOption == CompileTargetOptions::tvOS || actualCompileOption == CompileTargetOptions::Android);
-                    bool needsBC7 = (actualCompileOption == CompileTargetOptions::Windows || actualCompileOption == CompileTargetOptions::Linux || actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_x86_64);
+                    bool needsASTC = compressTexture && (actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_arm || actualCompileOption == CompileTargetOptions::iOS || actualCompileOption == CompileTargetOptions::tvOS || actualCompileOption == CompileTargetOptions::Android);
+                    bool needsBC7 = compressTexture && (actualCompileOption == CompileTargetOptions::Windows || actualCompileOption == CompileTargetOptions::Linux || actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_x86_64);
                 
                     //Comprimir a ASTC
                     if(needsASTC){
@@ -926,7 +1002,11 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                     stbi_image_free(rawPixels);
 
                     //Calculo de los offsets
-                    uint64_t currentOffset = sizeof(ilen::binary::headers::IlenTextureHeader) + (sizeof(ilen::binary::headers::TexturePayloadInfo) * toc.size());
+                    uint64_t baseDataSize = sizeof(ilen::binary::headers::IlenTextureHeader) +
+                        (sizeof(ilen::binary::headers::TexturePayloadInfo) * toc.size()) +
+                        (sizeof(ilen::binary::headers::IlenAtlasSpriteInfo) * atlasSprite.size());
+                    
+                    uint64_t currentOffset = baseDataSize;
 
                     for(size_t k = 0; k < toc.size(); k++){
                         toc[k].offset = currentOffset;
@@ -942,6 +1022,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                     header.channels = 4;
                     header.mipLevels = 1;
                     header.payloadCount = toc.size();
+                    header.atlasSpriteCount = atlasSprite.size();
 
                     //auto savePath = binaryTextureFolder / std::filesystem::relative(engineSourceFolder / filePath, engineSourceFolder / targetFolder);
                     //savePath.replace_extension(".ilentex");
@@ -955,6 +1036,9 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                     //Escribiendo los datos
                     outFile.write(reinterpret_cast<const char*>(&header), sizeof(ilen::binary::headers::IlenTextureHeader));
                     outFile.write(reinterpret_cast<const char*>(toc.data()), sizeof(ilen::binary::headers::TexturePayloadInfo) * toc.size());
+                    if(!atlasSprite.empty()) {
+                        outFile.write(reinterpret_cast<const char*>(atlasSprite.data()), sizeof(ilen::binary::headers::IlenAtlasSpriteInfo) * atlasSprite.size());
+                    }
                     for(const auto& blob: compressedBlobs){
                         outFile.write(reinterpret_cast<const char*>(blob.data()), blob.size());
                     }
@@ -963,7 +1047,12 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                     //Registrar en el manifiesto
                     uint32_t id = data[j][ILEN_ASSET_MANIFEST_ASSET_ID];
                     std::string name = data[j][ILEN_ASSET_MANIFEST_ASSET_NAME];
-                    std::string path = std::filesystem::relative(savePath, binaryDataFolder).string();
+
+                    ILEN_LOG_P(DEBUG_PREFIX, "Save Path de la textura: %s", savePath.c_str());
+                    ILEN_LOG_P(DEBUG_PREFIX, "Binary Data Folder: %s", binaryDataFolder.c_str());
+
+                    std::string path = std::filesystem::relative(savePath, binaryDataFolder / "textures").string();
+                    ILEN_LOG_P(DEBUG_PREFIX, "Path guardado es : %s", path.c_str());
 
                     localFriendlyNameToID[i][name] = id;
                     localIDToTextureAsset[i].emplace(id, TextureAsset(id, path));
@@ -1255,4 +1344,35 @@ std::vector<uint8_t> CompressToASTC(const uint8_t* pixels, int width, int height
 
     astcenc_context_free(context);
     return compressedData;
+}
+
+void ApplyEdgeBleeding(uint8_t* pixels, int width, int height) {
+    // Un pase simple de dilatación para píxeles con Alpha 0
+    // Si un píxel es invisible, busca un vecino válido y copia su RGB
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            size_t idx = ((y * width) + x) * 4;
+            
+            if (pixels[idx + 3] == 0) { // Si el alpha es 0
+                // Buscar un vecino opaco (arriba, abajo, izquierda, derecha)
+                int neighborsX[] = {0, 0, -1, 1};
+                int neighborsY[] = {-1, 1, 0, 0};
+                
+                for (int i = 0; i < 4; ++i) {
+                    int nx = x + neighborsX[i];
+                    int ny = y + neighborsY[i];
+                    
+                    if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                        size_t nIdx = ((ny * width) + nx) * 4;
+                        if (pixels[nIdx + 3] > 0) { // Si el vecino es opaco
+                            pixels[idx]     = pixels[nIdx];     // R
+                            pixels[idx + 1] = pixels[nIdx + 1]; // G
+                            pixels[idx + 2] = pixels[nIdx + 2]; // B
+                            break; // Ya encontramos color, pasamos al siguiente
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

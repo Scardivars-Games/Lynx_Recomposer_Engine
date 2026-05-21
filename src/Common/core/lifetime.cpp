@@ -132,7 +132,7 @@ namespace ilen{
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        int elementosPrueba = 0;
+        int elementosPrueba = 1000;
 
         for (int i = 0; i < elementosPrueba; i++) {
                 auto entity = engineContext->p_coordinator->createEntity();
@@ -214,8 +214,8 @@ namespace ilen{
         ilen::time::Time::setNewFrame();
 
 #ifdef ILEN_DEBUG
-        //auto data = engineContext->p_coordinator->getDebugSnapshot();
-        //ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
+        auto data = engineContext->p_coordinator->getDebugSnapshot();
+        ILEN_WARNING_P("ECS DEBUG", data.toString().c_str());
 #endif
     }
 

@@ -24,11 +24,16 @@ vertex VertexOut basic_vertex(
     uint instanceID [[instance_id]]
 ) {
     VertexOut out;
+    //Datos de instancia
     float4x4 modelMatrix = instanceData[instanceID].modelMatrix;
+    float4 uvRect = instanceData[instanceID].uvRect;
+
+    //Proyección 3D
     float4x4 vpMatrix = camData->currentViewProjectionMatrix;
     out.position = vpMatrix * modelMatrix * float4(in.position, 1.0);
     out.color = in.color;
-    out.uv = in.uv;
+    //Calculo de UV
+    out.uv = (in.uv * uvRect.zw) + uvRect.xy;
     return out;
 }
 

@@ -20,6 +20,8 @@ void Triangle::Init() {
     RenderComponent render{};
     render.meshID = 2;
     render.materialID = 5;
+    render.mainTexID = 12;
+    render.defaultSpriteInTextureID = 10;
     coordinator->setComponent(entity, std::move(render));
 }
 

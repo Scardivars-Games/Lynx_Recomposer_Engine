@@ -6,6 +6,7 @@
 #include <ilen-public/API/physics-2d.h>
 #include <ilen-public/API/entity-api.h>
 #include <ilen-public/API/camera-api.h>
+#include <ilen-public/API/rendering-api.h>
 
 
 namespace ilen::ecs::systems {
@@ -17,6 +18,7 @@ namespace ilen::ecs::systems {
         //Inicializar apis
         ilen::engine::api::EntityAPI::Init(engineContext);
         ilen::engine::api::CameraAPI::Init(engineContext);
+        ilen::engine::api::RenderingAPI::Init(engineContext);
 
 
         for(auto const& entity: entities){

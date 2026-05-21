@@ -191,7 +191,7 @@ namespace ilen::ecs::systems {
 
                     auto cmd = encoderPtr->GetThreadEncoder();
 
-                    std::vector<mat4> matrixVector;
+                    //std::vector<mat4> matrixVector;
                     bool isIntanceBufferSet = false;
 
                     size_t current = chunckStart;
@@ -247,17 +247,51 @@ namespace ilen::ecs::systems {
                         if (totalOfInstance > m_minInstanceRenderingElements) {
                             //Instancing rendering
                             //ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
-                            if (matrixVector.size() < totalOfInstance) {
+                            /*if (matrixVector.size() < totalOfInstance) {
                                 matrixVector.resize(totalOfInstance);
-                            }
+                            }*/
+
+                            std::vector<structs::InstanceData> instanceDataVector(totalOfInstance);
 
                             for (size_t i = 0; i < totalOfInstance; i++) {
                                 //auto* transform = p_coordinator->getComponent<TransformComponent>(renderItems[current + i].entity);
-                                auto* transform = transformComponentArray->getData(renderItems[current + i].entity);
-                                matrixVector[i] = transform->localToWorldMatrix;
+                                auto actualEntity = renderItems[current + i].entity;
+                                auto* transform = transformComponentArray->getData(actualEntity);
+                                auto* texture = staticTextureArray->getData(actualEntity);
+                                structs::InstanceData instance;
+                                instance.modelMatrix = transform->localToWorldMatrix;
+
+                                vec4 finalUV{0.0f};
+
+                                auto texLink = texture->staticTexture.lock();
+                                if(texLink && texLink->atlasSprites.size() > texture->currentSpriteID){
+                                    //El id de sprite es menor que el tamaño del atlas del sprite. Es un índice válido
+                                    finalUV = texLink->atlasSprites[texture->currentSpriteID];
+
+                                }else{
+                                    ILEN_ERROR_P(DEBUG_PREFIX, "Error con la textura %s, el ID %i no existe en el atlas", texLink->texture->getDescriptor().label.c_str(), texture->currentSpriteID);
+                                    finalUV = texLink->atlasSprites[0]; //Por seguridad.
+                                }
+                                //ILEN_LOG_P(DEBUG_PREFIX, "Datos del uv: %s", ilen::maths::vector::to_string(instance.uvRect).c_str());
+                                //matrixVector[i] = transform->localToWorldMatrix;
+
+                                //Ajustando flip del sprite.
+                                if(texture->flipX){
+                                    finalUV.x = finalUV.x + finalUV.z;
+                                    finalUV.z = -finalUV.z;
+                                }
+
+                                if(texture->flipY){
+                                    finalUV.y = finalUV.y + finalUV.w;
+                                    finalUV.w = -finalUV.w;
+                                }
+
+                                instance.uvRect = finalUV;
+
+                                instanceDataVector[i] = instance;
                             }
 
-                            uint32_t offset = instanceBuffer->UploadInstanceData(matrixVector.data(), sizeof(mat4) * totalOfInstance);
+                            uint32_t offset = instanceBuffer->UploadInstanceData(instanceDataVector.data(), sizeof(structs::InstanceData) * totalOfInstance);
 
                             if (!isIntanceBufferSet) {
                                 cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());
@@ -277,11 +311,43 @@ namespace ilen::ecs::systems {
                             for (size_t i = 0; i < totalOfInstance; i++) {
                                 //auto* transform = p_coordinator->getComponent<TransformComponent>(renderItems[current + i].entity);
                                 auto* transform = transformComponentArray->getData(renderItems[current + i].entity);
-                                auto worldMatrix = transform->localToWorldMatrix;
-                                uint32_t offset = instanceBuffer->UploadInstanceData(worldMatrix.data, sizeof(mat4));
+                                auto* texture = staticTextureArray->getData(renderItems[current + i].entity);
+
+                               // auto worldMatrix = transform->localToWorldMatrix;
+
+                                structs::InstanceData instance;
+                                instance.modelMatrix = transform->localToWorldMatrix;
+                                vec4 finalUV{0.0f};
+
+                                auto texLink = texture->staticTexture.lock();
+                                if(texLink && texLink->atlasSprites.size() > texture->currentSpriteID){
+                                    //El id de sprite es menor que el tamaño del atlas del sprite. Es un índice válido
+                                    finalUV = texLink->atlasSprites[texture->currentSpriteID];
+                                }else{
+                                    ILEN_ERROR_P(DEBUG_PREFIX, "Error con la textura %s, el ID %i no existe en el atlas", texLink->texture->getDescriptor().label.c_str(), texture->currentSpriteID);
+                                    finalUV = texLink->atlasSprites[0]; //Por seguridad.
+                                }
+
+                                //Ajustando flip del sprite.
+                                if(texture->flipX){
+                                    finalUV.x = finalUV.x + finalUV.z;
+                                    finalUV.z = -finalUV.z;
+                                }
+
+                                if(texture->flipY){
+                                    finalUV.y = finalUV.y + finalUV.w;
+                                    finalUV.w = -finalUV.w;
+                                }
+                                
+                                instance.uvRect = finalUV;
+
+                                ILEN_LOG_P(DEBUG_PREFIX, "Datos del uv: %s, en textura %s", ilen::maths::vector::to_string(instance.uvRect).c_str(), texLink->texture->getDescriptor().label.c_str());
+                                ILEN_LOG_P(DEBUG_PREFIX, "Tamaño del struct %i", sizeof(structs::InstanceData));
+
+                                uint32_t offset = instanceBuffer->UploadInstanceData(&instance, sizeof(structs::InstanceData));
                                 auto indexCount = meshPtr->indexCount;
 
-                                cmd->DrawIndexedInstanced(indexCount, 1, offset, sizeof(structs::InstanceData));
+                                cmd->DrawIndexedInstanced(indexCount, 1, offset, 256);
                             }
                         }
 
