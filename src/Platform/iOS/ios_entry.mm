@@ -9,6 +9,31 @@
 
 @class SceneDelegate;
 
+@interface IlenWindow : UIWindow
+@end
+
+@implementation IlenWindow
+
+-(void)setRootViewController:(UIViewController *)rootViewController{
+    [super setRootViewController:rootViewController];
+    
+    if(rootViewController){
+        [rootViewController setNeedsUpdateOfHomeIndicatorAutoHidden];
+        [rootViewController setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
+    }
+}
+
+-(void)layoutSubviews {
+    [super layoutSubviews];
+    
+    UIViewController* vc = self.rootViewController;
+    if(vc) {
+        [vc setNeedsUpdateOfHomeIndicatorAutoHidden];
+        [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
+    }
+}
+@end
+
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
 
 @end
@@ -22,7 +47,7 @@
 
 @interface SceneDelegate : UIResponder<UIWindowSceneDelegate>
 
-@property (strong, nonatomic) UIWindow *window;
+@property (strong, nonatomic) IlenWindow *window;
 @property (nonatomic, assign) ilen::AppRuntime* app;
 @property (nonatomic, strong) CADisplayLink *displayLink;
 @property (nonatomic, assign) BOOL engineFailed;
@@ -42,7 +67,7 @@
     self.app = &ilen::AppRuntime::getInstance();
     
     UIWindowScene *windowScene = (UIWindowScene *)scene;
-    self.window = [[UIWindow alloc] initWithWindowScene:windowScene];
+    self.window = [[IlenWindow alloc] initWithWindowScene:windowScene];
     
     ilen::application::ApplicationMetadata metadata{};
     metadata.applicationName = "ILEN Test";
@@ -129,7 +154,6 @@
     win->isOutOfFocus = false;
 }
 @end
-
 
 //El main de la app de iOS!!!
 int main(int argc, char* argv[]) {

@@ -5,6 +5,7 @@
 @class UIView;
 @class UIWindow;
 @class UIViewController;
+@class IlenViewController;
 
 namespace ilen::window
 {
@@ -25,7 +26,7 @@ namespace ilen::window
             //Metodos públicos de la implementación
             UIWindow* nativeWindow = nullptr;
             UIView* nativeView = nullptr;
-            UIViewController* rootViewController = nullptr;
+            IlenViewController* rootViewController = nullptr;
             bool isOutOfFocus = false;
             
             std::atomic<bool> _windowChanged;

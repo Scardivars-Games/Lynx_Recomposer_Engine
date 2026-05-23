@@ -341,8 +341,8 @@ namespace ilen::ecs::systems {
                                 
                                 instance.uvRect = finalUV;
 
-                                ILEN_LOG_P(DEBUG_PREFIX, "Datos del uv: %s, en textura %s", ilen::maths::vector::to_string(instance.uvRect).c_str(), texLink->texture->getDescriptor().label.c_str());
-                                ILEN_LOG_P(DEBUG_PREFIX, "Tamaño del struct %i", sizeof(structs::InstanceData));
+                                //ILEN_LOG_P(DEBUG_PREFIX, "Datos del uv: %s, en textura %s", ilen::maths::vector::to_string(instance.uvRect).c_str(), texLink->texture->getDescriptor().label.c_str());
+                                //ILEN_LOG_P(DEBUG_PREFIX, "Tamaño del struct %i", sizeof(structs::InstanceData));
 
                                 uint32_t offset = instanceBuffer->UploadInstanceData(&instance, sizeof(structs::InstanceData));
                                 auto indexCount = meshPtr->indexCount;

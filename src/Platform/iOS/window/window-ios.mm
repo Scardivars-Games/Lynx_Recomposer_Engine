@@ -102,6 +102,24 @@
 }
 @end
 
+@interface IlenViewController: UIViewController
+@end
+
+@implementation IlenViewController
+
+-(bool)prefersStatusBarHidden {
+    return YES;
+}
+
+-(bool)prefersHomeIndicatorAutoHidden {
+    return YES;
+}
+
+-(UIRectEdge)preferredScreenEdgesDeferringSystemGestures {
+    return UIRectEdgeAll;
+}
+@end
+
 namespace ilen::window{
     std::unique_ptr<IWindow> IWindow::CreateWindow(const ilen::application::ApplicationMetadata& metadata){
         auto native = std::make_unique<WindowNativeIOS>(metadata);
@@ -142,12 +160,17 @@ namespace ilen::window{
         
         ((CAMetalLayer *)ilenView.layer).drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
         
-        rootViewController = [[UIViewController alloc] init];
-        rootViewController.view = nativeView;
+        //rootViewController = [[UIViewController alloc] init];
+        //rootViewController.view = nativeView;
+        
+        IlenViewController* customVC = [[IlenViewController alloc] init];
+        customVC.view = nativeView;
+        
+        rootViewController = customVC;
         
         nativeWindow.rootViewController = rootViewController;
         [nativeWindow makeKeyAndVisible];
-        
+
         CGSize initialPixelSize = ((CAMetalLayer *)ilenView.layer).drawableSize;
         actualWidth = (uint32_t)initialPixelSize.width;
         actualHeight = (uint32_t)initialPixelSize.height;

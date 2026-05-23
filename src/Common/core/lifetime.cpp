@@ -241,6 +241,8 @@ namespace ilen{
         if(!engineContext->p_gameWindow->shouldPause()){
         ILEN_WARNING("FPS: %.2f", 1.0/frameTime);
 #if !IGNORE_RENDERING
+            {
+                ilen::time::ScopedTimer timer("Game CPU Time");
                 //Calculamos el FIXED Update
                 {
                         ilen::time::ScopedTimer timer("Fixed Update execution");
@@ -276,7 +278,7 @@ namespace ilen{
                 
                 {
                         ilen::time::ScopedTimer timer("Rendering execution");
-                        //Renderizado        
+                        //Renderizado
                         if(engineContext->p_gameRenderer){
                                 {
                                         ilen::time::ScopedTimer timer("Begin frame time");
@@ -292,6 +294,7 @@ namespace ilen{
                                 }
                         }
                 }
+            }
 
 #endif //IGNORE_RENDERING
         }

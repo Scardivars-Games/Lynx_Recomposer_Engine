@@ -416,4 +416,4 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=0
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_ONLY_ECS=0") #Desactiva el sistema de scripting del motor, forzando a ser solamente ECS.
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_SINGLECORE_TEST=1") #Fuerza al sistema de Jobs tener 1 solo hilo disponible
 target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_BASIC_LOGGIN=0") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)
-target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_TIME_LOGGING=1") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)
+target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_TIME_LOGGING=0") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)
