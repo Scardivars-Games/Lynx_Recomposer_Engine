@@ -81,3 +81,15 @@ jobs:
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
+
+    - name: Upload CMake logs on failure
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cmake-logs
+        path: |
+          ${{ steps.strings.outputs.build-output-dir }}/ilen-modules-prefix/src/ilen-modules-stamp/
+          ${{ steps.strings.outputs.build-output-dir }}/CMakeCache.txt
+          ${{ steps.strings.outputs.build-output-dir }}/CMakeFiles/CMakeError.log
+          ${{ steps.strings.outputs.build-output-dir }}/CMakeFiles/CMakeOutput.log
+        retention-days: 7
