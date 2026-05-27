@@ -7,8 +7,13 @@
     },
     {
       "id": 5,
-      "name": "basic",
-      "path": "materials/predefined/basic.meta_ilenmat"
+      "name": "unlit_opaque",
+      "path": "materials/predefined/unlit_opaque.meta_ilenmat"
+    },
+    {
+      "id": 6,
+      "name": "unlit_transparent",
+      "path": "materials/predefined/unlit_transparent.meta_ilenmat"
     }
   ],
   "models": [
@@ -28,154 +33,154 @@
       "path": "models/predefined/cube.obj"
     },
     {
-      "id": 15,
-      "name": "character-employee-models",
+      "id": 16,
+      "name": "character-employee-assets/models",
       "path": "models/character-employee.obj"
     },
     {
-      "id": 16,
-      "name": "cash-register-models",
+      "id": 17,
+      "name": "cash-register-assets/models",
       "path": "models/cash-register.obj"
     },
     {
-      "id": 17,
-      "name": "shelf-bags-models",
+      "id": 18,
+      "name": "shelf-bags-assets/models",
       "path": "models/shelf-bags.obj"
     },
     {
-      "id": 18,
-      "name": "display-bread-models",
+      "id": 19,
+      "name": "display-bread-assets/models",
       "path": "models/display-bread.obj"
     },
     {
-      "id": 19,
-      "name": "fence-models",
+      "id": 20,
+      "name": "fence-assets/models",
       "path": "models/fence.obj"
     },
     {
-      "id": 20,
-      "name": "shelf-end-models",
+      "id": 21,
+      "name": "shelf-end-assets/models",
       "path": "models/shelf-end.obj"
     },
     {
-      "id": 21,
-      "name": "bottle-return-models",
+      "id": 22,
+      "name": "bottle-return-assets/models",
       "path": "models/bottle-return.obj"
     },
     {
-      "id": 22,
-      "name": "freezer-models",
+      "id": 23,
+      "name": "freezer-assets/models",
       "path": "models/freezer.obj"
     },
     {
-      "id": 23,
-      "name": "freezers-standing-models",
+      "id": 24,
+      "name": "freezers-standing-assets/models",
       "path": "models/freezers-standing.obj"
     },
     {
-      "id": 24,
-      "name": "wall-door-rotate-models",
+      "id": 25,
+      "name": "wall-door-rotate-assets/models",
       "path": "models/wall-door-rotate.obj"
     },
     {
-      "id": 25,
-      "name": "display-fruit-models",
+      "id": 26,
+      "name": "display-fruit-assets/models",
       "path": "models/display-fruit.obj"
     },
     {
-      "id": 26,
-      "name": "wall-corner-models",
+      "id": 27,
+      "name": "wall-corner-assets/models",
       "path": "models/wall-corner.obj"
     },
     {
-      "id": 27,
-      "name": "column-models",
+      "id": 28,
+      "name": "column-assets/models",
       "path": "models/column.obj"
     },
     {
-      "id": 28,
-      "name": "fence-door-rotate-models",
+      "id": 29,
+      "name": "fence-door-rotate-assets/models",
       "path": "models/fence-door-rotate.obj"
     },
     {
-      "id": 29,
-      "name": "floor-models",
+      "id": 30,
+      "name": "floor-assets/models",
       "path": "models/floor.obj"
     },
     {
-      "id": 30,
-      "name": "wall-models",
+      "id": 31,
+      "name": "wall-assets/models",
       "path": "models/wall.obj"
     },
     {
-      "id": 31,
-      "name": "shopping-basket-models",
+      "id": 32,
+      "name": "shopping-basket-assets/models",
       "path": "models/shopping-basket.obj"
     },
     {
-      "id": 32,
-      "name": "shelf-boxes-models",
+      "id": 33,
+      "name": "shelf-boxes-assets/models",
       "path": "models/shelf-boxes.obj"
     },
     {
-      "id": 33,
-      "name": "wall-window-models",
+      "id": 34,
+      "name": "wall-window-assets/models",
       "path": "models/wall-window.obj"
     },
     {
-      "id": 34,
-      "name": "shopping-cart-models",
+      "id": 35,
+      "name": "shopping-cart-assets/models",
       "path": "models/shopping-cart.obj"
     }
   ],
   "shaders": [
     {
-      "id": 6,
+      "id": 7,
       "name": "error",
       "path": "shaders/predefined/error.meta_ilenshader"
     },
     {
-      "id": 7,
-      "name": "basic",
-      "path": "shaders/predefined/basic.meta_ilenshader"
+      "id": 8,
+      "name": "unlit",
+      "path": "shaders/predefined/unlit.meta_ilenshader"
     },
     {
-      "id": 8,
+      "id": 9,
       "name": "post-processing",
       "path": "shaders/predefined/post-processing.meta_ilenshader"
     },
     {
-      "id": 9,
+      "id": 10,
       "name": "post-processing-calculations",
       "path": "shaders/predefined/post-processing-calculations.meta_ilenshader"
     }
   ],
   "textures": [
     {
-      "id": 10,
+      "id": 11,
       "name": "default-texture",
       "path": "textures/predefined/default_texture.png"
     },
     {
-      "id": 11,
+      "id": 12,
       "name": "error-texture",
       "path": "textures/predefined/error_texture.png"
     },
     {
-      "id": 12,
-      "name": "bubble_spritesheet-textures",
+      "id": 13,
+      "name": "bubble_spritesheet-assets/textures",
       "path": "textures/bubble_spritesheet.png"
     },
     {
-      "id": 13,
-      "name": "colormap-textures",
+      "id": 14,
+      "name": "colormap-assets/textures",
       "path": "textures/colormap.png"
     },
     {
-      "id": 14,
-      "name": "Prota_SpriteSheet-textures",
+      "id": 15,
+      "name": "Prota_SpriteSheet-assets/textures",
       "path": "textures/Prota_SpriteSheet.png"
     }
   ],
-  "totalOfElements": 34
+  "totalOfElements": 35
 }

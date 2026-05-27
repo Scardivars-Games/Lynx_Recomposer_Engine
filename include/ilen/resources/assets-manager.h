@@ -6,6 +6,7 @@
 #include <ilen/render/render-component.h>
 #include <ilen/headers/enumerations.h>
 #include <ilen/core/lifetime.h>
+#include <ilen/core/runtime_options.h>
 #include <ilen/graphics/meshes.h>
 #include <ilen/resources/assets-elements.h>
 
@@ -30,14 +31,8 @@ namespace ilen::graphics {
 
 //Administra una base de datos, en formato JSON, con cada objeto y elemento que administre el motor. Su comportamiento será el de un Singleton.
 namespace ilen::resources {
-    //ID de datos predefinidos
-    static constexpr uint32_t ErrorShaderID = 6;
-    static constexpr uint32_t ErrorMaterialID = 4;
-    static constexpr uint32_t QuadMeshID = 2;
-    static constexpr uint32_t PostProcessPresentShaderID = 8;
-    static constexpr uint32_t PostProcessCalculateShaderID = 9;
-    static constexpr uint32_t ErrorTextureID = 11;
 
+    using namespace ilen::core::options;
 
     class AssetsManager {
         public:
@@ -69,7 +64,7 @@ namespace ilen::resources {
                     auto it = m_idToShaderAsset.find(id);
                     if (it == m_idToShaderAsset.end()){
                         ILEN_ERROR_P("ASSET_MANAGER", "Asset con id: %d no existente en el subgrupo de shaders.", id);
-                        auto errorIT = m_idToShaderAsset.find(ErrorShaderID);
+                        auto errorIT = m_idToShaderAsset.find(PredefinedAssetsID::ErrorShaderID);
                         if (errorIT == m_idToShaderAsset.end())
                         {
                             ILEN_EXECUTE_ERROR_P("ASSET_MANAGER", "Error grave al cargar el shader de error por defecto, como fallback por shader inválido. Reinstale el programa, y si el error persiste, póngase en contacto con soporte para buscar una solución");
@@ -81,7 +76,7 @@ namespace ilen::resources {
                     auto it = m_idToMaterialAsset.find(id);
                     if (it == m_idToMaterialAsset.end()){
                         ILEN_ERROR_P("ASSET_MANAGER", "Asset con id: %d no existente en el subgrupo de materials.", id);
-                        auto errorIT = m_idToMaterialAsset.find(ErrorMaterialID);
+                        auto errorIT = m_idToMaterialAsset.find(PredefinedAssetsID::ErrorMaterialID);
                         if (errorIT == m_idToMaterialAsset.end())
                         {
                             ILEN_EXECUTE_ERROR_P("ASSET_MANAGER", "Error grave al cargar el shader de error por defecto, como fallback por material inválido. Reinstale el programa, y si el error persiste, póngase en contacto con soporte para buscar una solución");

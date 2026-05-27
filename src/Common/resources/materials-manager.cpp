@@ -91,8 +91,8 @@ namespace ilen::resources::materials {
 
         //No se encontro el material, tratamos de cargarlo si esta presente en el manifiesto. Sino, el manifiesto regresa un material para errores.
         auto asset = p_assetsManager->getAssetElement<MaterialAsset>(id);
-        if (asset.assetID == ErrorMaterialID) {
-            auto errorMat = m_materials.find(ErrorMaterialID);
+        if (asset.assetID == PredefinedAssetsID::ErrorMaterialID) {
+            auto errorMat = m_materials.find(PredefinedAssetsID::ErrorMaterialID);
             if (errorMat == m_materials.end()) {
                 ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "FATAL ERROR! Error during a material loading, and the predefined error material was not available. Please, reinstall the app.");
                 //End of APP execution

@@ -6,12 +6,14 @@
 #include <ilen-public/API/entity-api.h>
 #include <ilen-public/API/camera-api.h>
 #include <ilen-public/API/rendering-api.h>
+#include <ilen/core/runtime_options.h>
 
 using namespace ilen::game;
 using namespace ilen::core;
 using namespace ilen::ecs::components;
 using namespace ilen::ecs::components::physics;
 using namespace ilen::engine::api;
+using namespace ilen::core::options;
 
 void Cube::Init() {
     ILEN_LOG_P("Gravedad", "Inicializado prueba de gravedad");
@@ -21,14 +23,12 @@ void Cube::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = vec3(0.0f, 20.0f, 0.0f);
+    transform.position = vec3(0.0f, 20.0f, 10.0f);
     transform.scale = vec3(3);
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
-    render.meshID = 2;
-    render.mainTexID = 14;
-    render.materialID = 5;
+    render.mainTexID = 15;
     coordinator->setComponent(entity, std::move(render)); 
 
     Rigidbody2D rigidbody{};
@@ -88,9 +88,8 @@ void PointerPos::Init() {
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
-    render.meshID = 2;
-    render.materialID = 5;
-    render.mainTexID = 12;
+    render.mainTexID = 13;
+    render.materialID = PredefinedAssetsID::DefaultUnlitTransparentMatID;
     render.defaultSpriteInTextureID = 10;
     coordinator->setComponent(entity, std::move(render)); 
 
@@ -137,13 +136,11 @@ void Ground::Init() {
     //coordinator->registerComponent<RenderComponent>();
 
     TransformComponent transform{};
-    transform.position = vec3(0.0f, -6.7f, 1.0f);
+    transform.position = vec3(0.0f, -6.7f, 100.0f);
     transform.scale = vec3(90.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
-    render.meshID = 2;
-    render.materialID = 5;
     coordinator->setComponent(entity, std::move(render)); 
 
     Rigidbody2D rigidbody{};

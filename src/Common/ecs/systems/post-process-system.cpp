@@ -6,6 +6,7 @@
 
 using namespace ilen::ecs::systems;
 using namespace ilen::maths::matrix;
+using namespace ilen::core::options;
 
 
 void PostProcessSystem::Init(const EngineContext *engineContext) {
@@ -351,8 +352,8 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
     IlenMaterial postProcessMat{};
     postProcessMat.fragmentFunctionName = "post_processing_calculations_fragment";
     postProcessMat.vertexFunctionName = "post_processing_calculations_vertex";
-    postProcessMat.vertexShaderID = resources::PostProcessCalculateShaderID;
-    postProcessMat.fragmentShaderID = resources::PostProcessCalculateShaderID;
+    postProcessMat.vertexShaderID = PredefinedAssetsID::PostProcessCalculateShaderID;
+    postProcessMat.fragmentShaderID = PredefinedAssetsID::PostProcessCalculateShaderID;
     postProcessMat.materialName = "Post Processing - Calculating Values";
     postProcessMat.renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
 
@@ -369,8 +370,8 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
     IlenMaterial postProcessRenderMat{};
     postProcessMat.fragmentFunctionName = "post_processing_fragment";
     postProcessMat.vertexFunctionName = "post_processing_vertex";
-    postProcessMat.vertexShaderID = resources::PostProcessPresentShaderID;
-    postProcessMat.fragmentShaderID = resources::PostProcessPresentShaderID;
+    postProcessMat.vertexShaderID = PredefinedAssetsID::PostProcessPresentShaderID;
+    postProcessMat.fragmentShaderID = PredefinedAssetsID::PostProcessPresentShaderID;
     postProcessMat.materialName = "Post Processing - Final Rendering";
     postProcessMat.renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
 

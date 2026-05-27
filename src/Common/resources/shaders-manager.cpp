@@ -62,14 +62,14 @@ namespace ilen::resources::shaders {
         }
 
         //Miramos si ese ID esta asignado a un shader. Sino, enviamos shader de error.
-        if (id == ilen::resources::ErrorShaderID)
+        if (id == PredefinedAssetsID::ErrorShaderID)
         {
             ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Shader por error no puede ser solicitado por esta via por seguridad del programa.");
             //Fin de ejecución
         }
 
         auto result = p_assetsManager->getAssetElement<ShaderAsset>(id);
-        if (result.assetID == ilen::resources::ErrorShaderID)
+        if (result.assetID == PredefinedAssetsID::ErrorShaderID)
         {
             return getShaderData(result.assetID); // ESTE SHADER DEBE DE ESTAR PRECARGADO A ESTA ALTURA. SINO SE CICLARA LA APP ETERNAMENTE. Necesito un seguro
         }

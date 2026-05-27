@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <ilen/ecs/types.h>
+#include <vector>
 
 namespace ilen::binary::headers {
     struct IlenManifestHeader {
@@ -57,5 +59,19 @@ namespace ilen::binary::headers {
         uint32_t mipLevels;
         uint32_t payloadCount; //Tamaño del bloque de datos.
         uint32_t atlasSpriteCount; //Cuantos sprites posee este atlas (0 significa que es una textura simple).
+    };
+
+    struct IlenSceneHeader {
+        char magicNumber[20]; //ILEN_SCENE -> ENECS_NELI
+        uint32_t version;
+        uint32_t totalEntities;
+        uint32_t totalComponentTypes;
+    };
+
+    struct SceneComponentBuffer {
+        uint32_t componentHash;
+        uint32_t entityCount = 0;
+        std::vector<ilen::ecs::Entity> entityIDs;
+        std::vector<char> rawData;
     };
 }

@@ -73,28 +73,32 @@ const std::string ILEN_MATERIAL_PROPERTY_VALUE = "value";
 //Necesito una base de datos de extensiones soportadas y que tipo de asset es
 std::unordered_map<std::string, std::string> extensionToAssetType = {
     //Models
-    {".obj", "models"},
-    {".glb", "models"},
-    {".mtl", "models"}, //Materials de un .obj
+    {".obj", "assets/models"},
+    {".glb", "assets/models"},
+    {".mtl", "assets/models"}, //Materials de un .obj
     //Textures
-    {".png", "textures"},
-    {".jpg", "textures"},
-    {".jpeg", "textures"},
-    {".meta_ilentex", "textures"},
+    {".png", "assets/textures"},
+    {".jpg", "assets/textures"},
+    {".jpeg", "assets/textures"},
+    {".meta_ilentex", "assets/textures"},
     //Shaders
-    {".metal", "shader-code"},
-    {".hlsl", "shader-code"},
-    {".glsl", "shader-code"},
-    {".spv", "shader-code"},
-    {".slang", "shader-code"},
-    {".meta_ilenshader", "shaders"},
+    {".metal", "assets/shader-code"},
+    {".hlsl", "assets/shader-code"},
+    {".glsl", "assets/shader-code"},
+    {".spv", "assets/shader-code"},
+    {".slang", "assets/shader-code"},
+    {".meta_ilenshader", "assets/shaders"},
     //Audio
-    {".mp3", "audio"},
-    {".wav", "audio"},
-    {".flac", "audio"},
+    {".mp3", "assets/audio"},
+    {".wav", "assets/audio"},
+    {".flac", "assets/audio"},
     //Materials
-    {".meta_ilenmat", "materials"},
-    {".meta_ilenmanifest", "manifests"}
+    {".meta_ilenmat", "assets/materials"},
+    //Manifiestos y otros datos del motor
+    {".meta_ilenmanifest", "manifests"},
+    {".meta_ilenschema", "manifests"},
+    //Escenas
+    {".meta_ilenscene", "scenes"}
 };
 
 std::unordered_map<std::string, std::string> folderToManifestAssetGroup = {
@@ -238,6 +242,10 @@ int main(int argc, char* argv[]){
         return -1;
     }
 
+    if(folderPath.empty()){
+        return -1;
+    }
+
     //Pasos para poder binarizar
     createAndOrganizeFiles(folderPath);
     binarizeFiles(folderPath);
@@ -252,7 +260,8 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
     std::string m_manifestFileName = "assets.meta_ilenmanifest";
 
     std::filesystem::path engineSourceFolder = ilenEngineFolder;
-    std::filesystem::path sourceAssetFolders = engineSourceFolder / "assets";
+    std::filesystem::path sourceAssetFolders = engineSourceFolder / "project_data" / "assets";
+    std::filesystem::path manifestFolder = engineSourceFolder / "project_data" / "manifests";
 
     //Erase empty folder in assets (cause this is called recursively after each step, will clear the empty folder after asset reorganization)
     try {
@@ -274,7 +283,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
         std::cerr << "Filesystem error: " << e.what() << std::endl;
     }
 
-    auto manifestPath = sourceAssetFolders / "manifests" / m_manifestFileName;
+    auto manifestPath = manifestFolder / m_manifestFileName;
 
     std::ifstream file(manifestPath);
     json data;
@@ -284,7 +293,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
     } else {
         ILEN_LOG_P(DEBUG_PREFIX, "No se pudo abrir el archivo del manifiesto, o no existe en la ruta: %s", manifestPath.string().c_str());
         //Creamos una nueva lista
-        auto predefinedPath = sourceAssetFolders / "manifests" / "predefined.meta_ilenmanifest";
+        auto predefinedPath = manifestFolder / "assets_defaults.meta_ilenmanifest";
         std::ifstream predefined(predefinedPath);
         if(predefined.is_open())
         {
@@ -317,7 +326,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
     //Este vector son las extensiones que no deben de registrarse en el assets.json, ya que otras clases gestionaran su uso.
     std::vector<std::string> extensionCantRegistrate = {
-        ".metal", ".hlsl", ".glsl", ".spv", ".meta_ilenmanifest", ".mtl", ".msl", ".slang", ".meta_ilentex"
+        ".metal", ".hlsl", ".glsl", ".spv", ".meta_ilenmanifest", ".mtl", ".msl", ".slang", ".meta_ilentex", ".meta_ilenschema", ".meta_ilenscene"
     };
     std::string unsupportedFolder = "unsupported";
 
@@ -332,8 +341,8 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
     //creamos un nuevo vector para almacenar todos las rutas de archivos encontrados en assets
     std::vector<std::filesystem::path> filesToIndex;
-    for(const auto& entry: std::filesystem::recursive_directory_iterator(sourceAssetFolders)){
-        if(entry.is_regular_file() && entry.path().filename() != m_manifestFileName){
+    for(const auto& entry: std::filesystem::recursive_directory_iterator(sourceAssetFolders.parent_path())){
+        if(entry.is_regular_file() && entry.path().filename() != m_manifestFileName && entry.path().filename() != ".DS_Store"){
             filesToIndex.push_back(entry.path());
         }
     }
@@ -348,10 +357,17 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
             targetFolder = it->second;
         }
 
-        std::filesystem::path relativeToAssets = std::filesystem::relative(currentPath, sourceAssetFolders);
+        std::filesystem::path relativeToAssets = std::filesystem::relative(currentPath, sourceAssetFolders.parent_path());
         std::string firstFolder = relativeToAssets.begin()->string(); //Primera carpeta de la ruta relativa (revisa que este correctamente ubicado)
+        if(firstFolder == "assets") {
+            relativeToAssets = std::filesystem::relative(currentPath, sourceAssetFolders);
+            firstFolder = relativeToAssets.begin()->string();
+        }
+        //ILEN_LOG_P(DEBUG_PREFIX, "First folder, %s. Relative TO assets: %s. Comparacion %s", firstFolder.c_str(), relativeToAssets.c_str(), std::filesystem::relative(targetFolder, "assets").c_str());
 
-        if(firstFolder != targetFolder){
+        std::string filteredTargetFolder = targetFolder.starts_with("assets") ? std::filesystem::relative(targetFolder, "assets").string() : targetFolder;
+
+        if(firstFolder != filteredTargetFolder){
             //Revisar si no es una carpeta de tipo del motor
             bool firstFolderIsType = false;
 
@@ -366,7 +382,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
                 relativeToAssets = std::filesystem::relative(relativeToAssets, firstFolder);
             }
 
-            std::filesystem::path finalDestinationPath = sourceAssetFolders / targetFolder / relativeToAssets;
+            std::filesystem::path finalDestinationPath = sourceAssetFolders.parent_path() / targetFolder / relativeToAssets;
 
             if(!std::filesystem::exists(finalDestinationPath.parent_path())){
                 //Creamos el directorio si no existe
@@ -375,6 +391,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
             //Copiamos el recurso a su nueva carpeta
             std::filesystem::rename(currentPath, finalDestinationPath);
+            ILEN_LOG_P(DEBUG_PREFIX, "Se copio el archivo %s", currentPath.c_str());
             folderReorganized = true;
         }
     }
@@ -387,7 +404,10 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
     bool needSaveNewManifest = false;
     for(const auto& currentPath : filesToIndex){ //Si llego hasta aquí significa que la lista anterior ta joia.
+        //ILEN_LOG_P(DEBUG_PREFIX, "Revisando nueva lista de archivos");
+
         std::filesystem::path relativeToAssets = std::filesystem::relative(currentPath, sourceAssetFolders);
+
 
         auto result = std::find(existingPaths.begin(), existingPaths.end(), relativeToAssets.generic_string());
 
@@ -396,11 +416,15 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
         std::string extension = relativeToAssets.extension().string();
         auto it = extensionToAssetType.find(extension);
 
+        std::string filteredTargetFolder = it->second.starts_with("assets") ? std::filesystem::relative(it->second, "assets").string() : it->second;
+
         //std::find(extensionCantRegistrate.begin(), extensionCantRegistrate.end(), it) == extensionCantRegistrate.end()
 
         //Guardar si la extensión existe y si esta en la carpeta correcta. Técnicamente no es necesario, pero no esta demás la comprobación, además de que esto solo esta en DEBUG. No añado las extensiones prohibidas al manifiesto.
-        if(it != extensionToAssetType.end() && relativeToAssets.begin()->string() == it->second && std::find(extensionCantRegistrate.begin(), extensionCantRegistrate.end(), it->first) == extensionCantRegistrate.end()){
+        if(it != extensionToAssetType.end() && relativeToAssets.begin()->string() == filteredTargetFolder && std::find(extensionCantRegistrate.begin(), extensionCantRegistrate.end(), it->first) == extensionCantRegistrate.end()){
             needSaveNewManifest = true;
+            ILEN_LOG_P(DEBUG_PREFIX, "Se necesita reescribir el manifiesto");
+
 
             uint32_t newID = ++maxID;
             std::string name = generateFriendlyName(currentPath.filename().string());
@@ -409,7 +433,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
             newAsset[ILEN_ASSET_MANIFEST_ASSET_ID] = newID;
             newAsset[ILEN_ASSET_MANIFEST_ASSET_NAME] = name;
             newAsset[ILEN_ASSET_MANIFEST_ASSET_PATH] = relativeToAssets.generic_string();
-            data[folderToManifestAssetGroup.find(it->second)->second].push_back(newAsset);
+            data[folderToManifestAssetGroup.find(filteredTargetFolder)->second].push_back(newAsset);
         }
     }
 
@@ -421,6 +445,8 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
         if(!std::filesystem::exists(manifestPath.parent_path()))
             std::filesystem::create_directories(manifestPath.parent_path());
 
+        ILEN_LOG_P(DEBUG_PREFIX, "Path del manifiest %s", manifestPath.c_str());
+
         std::ofstream outFile(manifestPath);
         outFile << data.dump(2);
         outFile.close();
@@ -428,7 +454,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
     }
 
     //assert(needSaveNewManifest == false && "Se escribió un nuevo manifiesto. Vuelve a iniciar la app para que ahora si funcione de forma correcta.");
-    if (needSaveNewManifest == true)
+    if (needSaveNewManifest)
     {
         createAndOrganizeFiles(ilenEngineFolder);
         return;
@@ -436,6 +462,212 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
     ILEN_WARNING_P(DEBUG_PREFIX, "Indexación de nuevos elementos completada. Generando binarios.");
 }
+
+//New version of generation and binarization ()
+//(IA GENERATED CODE, not refactorized nor supervised creation) En este caso es un refuerzo del codigo mio, para soportar el nuevo sistema de carpetas más complejo. No debería dar problemas.
+/*void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
+{
+    static int recursionGuard = 0;
+    recursionGuard++;
+    if (recursionGuard > 5)
+    {
+        ILEN_ERROR_P(DEBUG_PREFIX, "Posible bucle infinito detectado en createAndOrganizeFiles");
+        recursionGuard--;
+        return;
+    }
+
+    std::string m_manifestFileName = "assets.meta_ilenmanifest";
+
+    std::filesystem::path projectDataFolder = ilenEngineFolder / "project_data";
+    std::filesystem::path assetsFolder      = projectDataFolder / "assets";
+    std::filesystem::path manifestFolder    = projectDataFolder / "manifests";
+
+    std::filesystem::create_directories(assetsFolder);
+    std::filesystem::create_directories(manifestFolder);
+
+    auto manifestPath = manifestFolder / m_manifestFileName;
+
+    // Cargar manifiesto
+    json data;
+    std::ifstream file(manifestPath);
+    if (file.is_open())
+    {
+        file >> data;
+    }
+    else
+    {
+        ILEN_LOG_P(DEBUG_PREFIX, "Manifiesto no encontrado, creando uno nuevo.");
+        auto predefinedPath = manifestFolder / "assets_defaults.meta_ilenmanifest";
+        std::ifstream predefined(predefinedPath);
+        if (predefined.is_open())
+            data = json::parse(predefined);
+        else
+        {
+            data[ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS] = 0;
+            data[ILEN_ASSET_MANIFEST_MODEL]     = json::array();
+            data[ILEN_ASSET_MANIFEST_TEXTURES]  = json::array();
+            data[ILEN_ASSET_MANIFEST_MATERIALS] = json::array();
+            data[ILEN_ASSET_MANIFEST_AUDIO]     = json::array();
+            data[ILEN_ASSET_MANIFEST_SHADERS]   = json::array();
+        }
+    }
+
+    uint32_t maxID = data.value(ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS, 0);
+
+    std::vector<std::string> existingAssetPaths;
+    for (const auto& type : ILEN_ASSET_MANIFEST_ASSETS_TYPES)
+    {
+        if (data.contains(type))
+            for (const auto& asset : data[type])
+                existingAssetPaths.push_back(asset.value(ILEN_ASSET_MANIFEST_ASSET_PATH, ""));
+    }
+
+    const std::vector<std::string> extensionCantRegistrate = {
+        ".metal", ".hlsl", ".glsl", ".spv", ".mtl", ".msl", ".slang",
+        ".meta_ilentex", ".meta_ilenshader", ".meta_ilenmat",
+        ".meta_ilenmanifest", ".meta_ilenschema", ".meta_ilenscene"
+    };
+
+    const std::vector<std::string> ignoredFiles = { ".DS_Store", "Thumbs.db", "desktop.ini" };
+
+    // Escanear archivos
+    std::vector<std::filesystem::path> filesToIndex;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(projectDataFolder))
+    {
+        if (!entry.is_regular_file()) continue;
+
+        std::string filename = entry.path().filename().string();
+        if (filename == m_manifestFileName) continue;
+        if (std::find(ignoredFiles.begin(), ignoredFiles.end(), filename) != ignoredFiles.end()) continue;
+
+        filesToIndex.push_back(entry.path());
+    }
+
+    bool folderReorganized = false;
+
+    for (const auto& currentPath : filesToIndex)
+    {
+        std::string extension = currentPath.extension().string();
+        auto it = extensionToAssetType.find(extension);
+
+        std::string targetPrefix = (it != extensionToAssetType.end()) ? it->second : "unsupported";
+
+        std::filesystem::path currentRelative = std::filesystem::relative(currentPath, projectDataFolder);
+
+        // === NUEVA LÓGICA: calcular ruta deseada correctamente ===
+        std::filesystem::path desiredRelative;
+
+        if (targetPrefix.find("assets/") == 0)
+        {
+            // Archivos que deben estar dentro de assets/
+            desiredRelative = std::filesystem::path("assets") / targetPrefix.substr(7);
+        }
+        else
+        {
+            // Otros (manifests, scenes, etc.)
+            desiredRelative = std::filesystem::path(targetPrefix);
+        }
+
+        // Preservar jerarquía de subcarpetas
+        if (currentRelative.begin() != currentRelative.end())
+        {
+            auto pathIt = currentRelative.begin();
+            ++pathIt; // saltar la primera carpeta original
+            for (; pathIt != currentRelative.end(); ++pathIt)
+                desiredRelative /= *pathIt;
+        }
+
+        // Si ya está en el lugar correcto, no mover
+        if (currentRelative == desiredRelative)
+            continue;
+
+        std::filesystem::path finalDestination = projectDataFolder / desiredRelative;
+
+        if (!std::filesystem::exists(finalDestination.parent_path()))
+            std::filesystem::create_directories(finalDestination.parent_path());
+
+        try
+        {
+            std::filesystem::rename(currentPath, finalDestination);
+            folderReorganized = true;
+            ILEN_LOG_P(DEBUG_PREFIX, "Movido: %s → %s", 
+                       currentPath.string().c_str(), 
+                       finalDestination.string().c_str());
+        }
+        catch (const std::exception& e)
+        {
+            ILEN_ERROR_P(DEBUG_PREFIX, "Error al mover %s: %s", 
+                         currentPath.string().c_str(), e.what());
+        }
+    }
+
+    if (folderReorganized)
+    {
+        ILEN_WARNING_P(DEBUG_PREFIX, "Estructura reorganizada. Re-ejecutando indexación...");
+        recursionGuard--;
+        createAndOrganizeFiles(ilenEngineFolder);
+        return;
+    }
+
+    // ==================== ACTUALIZAR MANIFIESTO ====================
+    bool needSaveNewManifest = false;
+
+    for (const auto& currentPath : filesToIndex)
+    {
+        std::filesystem::path relativeFromProjectData = std::filesystem::relative(currentPath, projectDataFolder);
+
+        if (relativeFromProjectData.empty() || *relativeFromProjectData.begin() != "assets")
+            continue;
+
+        // Ruta que se guarda en el manifiesto (relativa a assets/)
+        std::filesystem::path manifestRelative = std::filesystem::relative(currentPath, assetsFolder);
+        std::string relStr = manifestRelative.generic_string();
+
+        if (std::find(existingAssetPaths.begin(), existingAssetPaths.end(), relStr) != existingAssetPaths.end())
+            continue;
+
+        std::string extension = currentPath.extension().string();
+        auto it = extensionToAssetType.find(extension);
+
+        if (it != extensionToAssetType.end() &&
+            std::find(extensionCantRegistrate.begin(), extensionCantRegistrate.end(), extension) == extensionCantRegistrate.end())
+        {
+            needSaveNewManifest = true;
+            uint32_t newID = ++maxID;
+            std::string name = generateFriendlyName(currentPath.filename().string());
+
+            json newAsset;
+            newAsset[ILEN_ASSET_MANIFEST_ASSET_ID]   = newID;
+            newAsset[ILEN_ASSET_MANIFEST_ASSET_NAME] = name;
+            newAsset[ILEN_ASSET_MANIFEST_ASSET_PATH] = relStr;
+
+            std::string groupKey = it->second;
+            if (groupKey.find("assets/") == 0)
+                groupKey = groupKey.substr(7);
+
+            auto groupIt = folderToManifestAssetGroup.find(groupKey);
+            if (groupIt != folderToManifestAssetGroup.end())
+                data[groupIt->second].push_back(newAsset);
+        }
+    }
+
+    if (needSaveNewManifest)
+    {
+        data[ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS] = maxID;
+
+        std::ofstream outFile(manifestPath);
+        outFile << data.dump(2);
+        outFile.close();
+
+        ILEN_WARNING_P(DEBUG_PREFIX, "Manifiesto actualizado con nuevos assets.");
+        recursionGuard--;
+        createAndOrganizeFiles(ilenEngineFolder);
+        return;
+    }
+
+    recursionGuard--;
+    ILEN_WARNING_P(DEBUG_PREFIX, "Indexación y organización de project_data completada correctamente.");
+}*/
 
 std::string generateFriendlyName(const std::string& filename){
 
@@ -452,8 +684,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     std::string m_manifestFileName = "assets.meta_ilenmanifest";
 
     std::filesystem::path engineSourceFolder = ilenEngineFolder;
-    std::filesystem::path sourceAssetFolders = engineSourceFolder / "assets";
-
+    std::filesystem::path sourceAssetFolders = engineSourceFolder / "project_data" / "assets";
     //Erase empty folder in assets (cause this is called recursively after each step, will clear the empty folder after asset reorganization)
     try {
         // 1. Iterate over direct children only (not recursive)
@@ -474,7 +705,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
         std::cerr << "Filesystem error: " << e.what() << std::endl;
     }
 
-    auto manifestPath = sourceAssetFolders / "manifests" / m_manifestFileName;
+    auto manifestPath = sourceAssetFolders.parent_path() / "manifests" / m_manifestFileName;
 
     std::ifstream file(manifestPath);
     json manifestData;
@@ -658,7 +889,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             std::string originalFilePath = shaderData[ILEN_ASSET_MANIFEST_ASSET_PATH];
 
             auto sourcePath = sourceAssetFolders / originalFilePath;
-            auto savePath = binaryDataFolder / std::filesystem::relative(sourcePath, engineSourceFolder / "assets");
+            auto savePath = binaryDataFolder / std::filesystem::relative(sourcePath, engineSourceFolder / "project_data/assets");
             //zsavePath.replace_extension(".b_ilenshader");
 
             auto path = std::filesystem::relative(savePath, binaryDataFolder);
@@ -714,7 +945,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
     }
 
     //Material loading
-    if(manifestData.contains(ILEN_ASSET_MANIFEST_SHADERS)){
+    if(manifestData.contains(ILEN_ASSET_MANIFEST_MATERIALS)){
         std::string targetFolder = "materials";
         std::filesystem::path materialBinaryFolder = binaryDataFolder / targetFolder;
         if (!std::filesystem::exists(materialBinaryFolder))
@@ -728,7 +959,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
             std::string originalFilePath = materialData[ILEN_ASSET_MANIFEST_ASSET_PATH];
 
             auto sourcePath = sourceAssetFolders / originalFilePath;
-            auto savePath = binaryDataFolder / std::filesystem::relative(sourcePath, engineSourceFolder / "assets");
+            auto savePath = binaryDataFolder / std::filesystem::relative(sourcePath, engineSourceFolder / "project_data/assets");
             //zsavePath.replace_extension(".b_ilenshader");
 
             auto path = std::filesystem::relative(savePath, binaryDataFolder);
@@ -847,7 +1078,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
                     auto metaPath = texturePath;
                     metaPath.replace_extension(".meta_ilentex");
 
-                    auto savePath = binaryTextureFolder / std::filesystem::relative(texturePath, engineSourceFolder / "assets/textures");
+                    auto savePath = binaryTextureFolder / std::filesystem::relative(texturePath, engineSourceFolder / "project_data/assets/textures");
                     savePath.replace_extension(".ilentex");
 
                     ILEN_LOG_P(DEBUG_PREFIX, "Path de la textura es: %s", texturePath.c_str());

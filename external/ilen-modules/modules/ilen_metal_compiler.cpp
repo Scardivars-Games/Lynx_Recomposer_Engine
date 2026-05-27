@@ -57,7 +57,7 @@ int main(int argc, char* argv[]){
     }
 
     //Normalmente buscaria un archvio .ilenproject (para saber que es la carpeta del proyecto y así poder hacer la busqueda). De momento se asume que es proyecto.
-    std::filesystem::path sourceFolder = folderPath / "assets" / "shader-code";
+    std::filesystem::path sourceFolder = folderPath / "project_data" / "assets" / "shader-code";
     std::filesystem::path metalIncludes = folderPath / "include";
     std::vector<std::filesystem::path> shaderFiles;
 

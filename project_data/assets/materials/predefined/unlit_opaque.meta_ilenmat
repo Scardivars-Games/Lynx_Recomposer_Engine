@@ -1,9 +1,9 @@
 {
-    "material-name" : "Básico",
-    "fragment-shader-id" : 7,
-    "fragment-shader-function" : "basic_fragment",
-    "vertex-shader-id" : 7,
-    "vertex-shader-function" : "basic_vertex",
+    "material-name" : "Unlit -- Opaque",
+    "fragment-shader-id" : 8,
+    "fragment-shader-function" : "unlit_fragment",
+    "vertex-shader-id" : 8,
+    "vertex-shader-function" : "unlit_vertex",
     "render-queue" : "Opaque",
     "properties" : [
         {

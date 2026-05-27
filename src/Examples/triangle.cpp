@@ -1,10 +1,12 @@
 #if !ILEN_ONLY_ECS
 
 #include <ilen-examples/triangle.h>
+#include <ilen/core/runtime_options.h>
 
 using namespace ilen::game;
 using namespace ilen::core;
 using namespace ilen::ecs::components;
+using namespace ilen::core::options;
 
 void Triangle::Init() {
     //ILEN_LOG_P("TRIANGLE", "Inicializado triángulo de prueba");
@@ -19,8 +21,8 @@ void Triangle::Init() {
 
     RenderComponent render{};
     render.meshID = 2;
-    render.materialID = 5;
-    render.mainTexID = 12;
+    render.materialID = PredefinedAssetsID::DefaultUnlitTransparentMatID;
+    render.mainTexID = 13;
     render.defaultSpriteInTextureID = 10;
     coordinator->setComponent(entity, std::move(render));
 }
@@ -67,9 +69,8 @@ void Object3D::Init() {
     coordinator->setComponent(entity, std::move(transform));
 
     RenderComponent render{};
-    render.meshID = 16;
-    render.materialID = 5;
-    render.mainTexID = 13;
+    render.meshID = 17;
+    render.mainTexID = 14;
     coordinator->setComponent(entity, std::move(render));
 }
 

@@ -4,6 +4,7 @@
 #include <bitset>
 #include <limits>
 #include <ilen/headers/enumerations.h>
+#include <ilen/ecs/components_registry.h>
 
 using TagSystem = ilen::enumerations::ILEN_TAG_SYSTEM;
 using LayerSystem = ilen::enumerations::ILEN_LAYER_SYSTEM;

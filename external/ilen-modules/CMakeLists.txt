@@ -15,6 +15,17 @@ add_executable(ILEN_FILE_BINARIZATION
         modules/common/logs.cpp
 )
 
+add_executable(ILEN_SCENE_BINARIZER
+        modules/ilen_scene_binarizer.cpp
+        modules/common/logs.cpp
+)
+
+add_executable(ILEN_COMPONENTS_REFLECTION_TOOLS
+        modules/ilen_components_reflection_tools.cpp
+        modules/common/logs.cpp
+)
+
+
 #Firmado en macOS
 #if(APPLE)
 #        message(STATUS "Configurando la firma de las herramientas para macOS")
@@ -104,3 +115,5 @@ endif()
 install(TARGETS ILEN_METAL_COMPILER DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_FILE_BINARIZATION DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_SLANG_COMPILER DESTINATION executable/$<CONFIG>)
+install(TARGETS ILEN_SCENE_BINARIZER DESTINATION executable/$<CONFIG>)
+install(TARGETS ILEN_COMPONENTS_REFLECTION_TOOLS DESTINATION executable/$<CONFIG>)

@@ -1,0 +1,16 @@
+{
+    "material-name" : "Unlit -- Transparent",
+    "fragment-shader-id" : 8,
+    "fragment-shader-function" : "unlit_fragment",
+    "vertex-shader-id" : 8,
+    "vertex-shader-function" : "unlit_vertex",
+    "render-queue" : "Transparent",
+    "properties" : [
+        {
+            "color-property" : {
+                "name" : "TextureTint",
+                "value" : [0.5, 1.0, 0.5, 1.0]
+            }
+        }
+    ]
+}

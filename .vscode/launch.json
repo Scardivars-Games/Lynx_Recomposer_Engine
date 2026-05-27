@@ -2,6 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         
+        
         {
             "name": "(lldb) Iniciar Release",
             "type": "cppdbg",
@@ -20,6 +21,18 @@
             "request": "launch",
             "MIMode" : "lldb",
             "program": "${workspaceFolder}/build/debug/ilen-engine.app/Contents/MacOS/ilen-engine",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "osx": {
+                "MIMode": "lldb"
+            }
+        },
+        {
+            "name": "Binarizador, DEBUG",
+            "type": "cppdbg",
+            "request": "launch",
+            "MIMode" : "lldb",
+            "program": "${workspaceFolder}/build/debug/ILEN_MODULES/executable/ILEN_FILE_BINARIZATION",
             "args": [],
             "cwd": "${workspaceFolder}",
             "osx": {

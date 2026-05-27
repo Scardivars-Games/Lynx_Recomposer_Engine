@@ -17,7 +17,7 @@ struct VertexOut {
     float2 uv;
 };
 
-vertex VertexOut basic_vertex(
+vertex VertexOut unlit_vertex(
     VertexIn in                  [[stage_in]],
     CONSTANT structs::CameraData* camData [[buffer(slots::GlobalBufferSlot_Camera)]],
     CONSTANT structs::InstanceData* instanceData [[buffer(slots::RenderBufferSlot_InstanceModel)]],
@@ -37,7 +37,7 @@ vertex VertexOut basic_vertex(
     return out;
 }
 
-fragment float4 basic_fragment(
+fragment float4 unlit_fragment(
     VertexOut in [[stage_in]],
     texture2d<float> mainTexture [[texture(0)]],
     sampler textureSampler [[sampler(0)]]

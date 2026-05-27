@@ -3,3 +3,6 @@ Esta es una corrección que hay que hacer a la forma en que funciona el motor. D
 Se deben revisar los sistemas, quitarle acceso a las APIs, y que el sistema modifique los datos a voluntad en el componente. En un ECS, los componentes SON la via de comunicación entre sistemas.
 Las APIs deben seguir existiendo, ya que son una forma segura de modificar los componentes al usar un sistema de scripting que usa la filosofía de OOP, como Unity o Godot. Si el programador desactiva el sistema de scripting del motor, no debería usar las APIs, ya que esta
 en modo ECS, deberían ser sus propios sistemas quienes hagan el trabajo.
+
+- ERROR en herramienta interna:
+El ILEN_FILE_BINARIZATION presente el siguiente error: Al analizar la carpeta project_data, organiza los datos correctamente, pero si durante este proceso crea una carpeta de unsupported, la herramienta presenta una falla de segmenación. Esta falla ocurre cuando hace la segunda pasada, obligatoria tras mover un archivo, en este caso, mueve archivos a unsupported.
