@@ -1,8 +1,8 @@
 #pragma once
 
 #include <ilen/ecs/types.h>
-#include <ilen/headers/ecs-managers.h>
-#include <ilen/core/engine-context.h>
+#include <ilen/headers/ecs_managers.h>
+#include <ilen/core/engine_context.h>
 #include <memory>
 #include <vector>
 
@@ -17,6 +17,7 @@ namespace ilen::ecs::debug{
         std::string name;
         uint32_t tag;
         uint32_t layer;
+        uint64_t uuid;
         bool isActive;
         std::vector<ComponentDebugInfo> components;
 

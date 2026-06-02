@@ -2,12 +2,12 @@
 
 #include <string>
 #include <ilen/headers/enumerations.h>
-#include <ilen/render/gpu-interfaces/render-pipelines.h>
-#include <ilen/render/gpu-interfaces/buffers.h>
-#include <ilen/render/gpu-interfaces/shaders.h>
-#include <ilen/render/gpu-interfaces/parallel-command-encoder.h>
-#include <ilen/render/gpu-interfaces/instance-buffer.h>
-#include <ilen/render/gpu-interfaces/sampler.h>
+#include <ilen/render/gpu_interfaces/render_pipelines.h>
+#include <ilen/render/gpu_interfaces/buffers.h>
+#include <ilen/render/gpu_interfaces/shaders.h>
+#include <ilen/render/gpu_interfaces/parallel_command_encoder.h>
+#include <ilen/render/gpu_interfaces/instance_buffer.h>
+#include <ilen/render/gpu_interfaces/sampler.h>
 #include <ilen/graphics/shader.h>
 #include <ilen/core/runtime_options.h>
 

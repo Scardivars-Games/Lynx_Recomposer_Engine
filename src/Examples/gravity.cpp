@@ -1,11 +1,12 @@
 #if !ILEN_ONLY_ECS
 
-#include <ilen-examples/gravity.h>
-#include <ilen-public/API/input-api.h>
-#include <ilen-public/API/physics-2d.h>
-#include <ilen-public/API/entity-api.h>
-#include <ilen-public/API/camera-api.h>
-#include <ilen-public/API/rendering-api.h>
+#include <ilen_examples/gravity.h>
+#include <ilen_public/API/input_api.h>
+#include <ilen_public/API/physics2d_api.h>
+#include <ilen_public/API/entity_api.h>
+#include <ilen_public/API/camera_api.h>
+#include <ilen_public/API/transform_api.h>
+#include <ilen_public/API/rendering_api.h>
 #include <ilen/core/runtime_options.h>
 
 using namespace ilen::game;

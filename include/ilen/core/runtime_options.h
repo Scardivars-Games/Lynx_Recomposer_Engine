@@ -24,6 +24,10 @@ namespace ilen::core::options {
         static inline float gravity = -9.81f; //Velocidad de la gravedad
     };
 
+    struct ECSOptions {
+        static constexpr inline uint32_t GameMaxEntities = 10000;
+    };
+
     struct PredefinedAssetsID {
         //ID de datos predefinidos
         //Error

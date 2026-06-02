@@ -5,11 +5,11 @@
 #include <json/json.hpp>
 #define STB_IMAGE_IMPLEMENTATION //Esto es para el STB
 #include <images/stb_image.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 #include <ilen/headers/enumerations.h>
 #include <ilen/graphics/meshes.h>
 #include <ilen/resources/binary_headers.h>
-#include <ilen/resources/assets-elements.h>
+#include <ilen/resources/assets_elements.h>
 #include <ilen/graphics/material.h>
 #include <ilen/graphics/shader.h>
 #include <ilen/graphics/color.h>
@@ -17,7 +17,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-#include <ilen/job-system/job-system.h>
+#include <ilen/job_system/job_system.h>
 #include <set>
 #include <future>
 #include <mutex>

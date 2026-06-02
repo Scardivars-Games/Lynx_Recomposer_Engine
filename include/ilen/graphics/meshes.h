@@ -2,7 +2,7 @@
 
 #include <vector>
 #include <memory>
-#include <ilen/render/gpu-interfaces/buffers.h>
+#include <ilen/render/gpu_interfaces/buffers.h>
 #include <ilen/graphics/color.h>
 #include <ilen/maths/vector.h>
 

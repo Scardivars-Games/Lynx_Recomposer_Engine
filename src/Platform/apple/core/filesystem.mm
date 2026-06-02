@@ -1,7 +1,7 @@
 #if defined (__APPLE__)
 #include <ilen/core/filemanager.h>
 #include <ilen/core/application.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 #import <Foundation/Foundation.h>
 using namespace ilen::core;
 

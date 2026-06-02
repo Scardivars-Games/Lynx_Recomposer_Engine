@@ -1,20 +1,20 @@
 #include <ilen/core/filemanager.h>
 #include <ilen/core/lifetime.h>
-#include <ilen/resources/assets-manager.h>
-#include <ilen/headers/ecs-systems.h>
-#include <ilen/job-system/job-system.h>
-#include <ilen/render/post-process-effects/post-process-system.h>
+#include <ilen/resources/assets_manager.h>
+#include <ilen/headers/ecs_systems.h>
+#include <ilen/job_system/job_system.h>
+#include <ilen/render/post_process_effects/post_process_system.h>
 #include <ilen/core/runtime_options.h>
-#include <ilen/core/engine-context.h>
+#include <ilen/core/engine_context.h>
 #include <ilen/ecs/system_registry.h>
-#include <ilen/resources/texture-manager.h>
+#include <ilen/resources/texture_manager.h>
 
 //API públicas del motor
-#include <ilen-public/API/input-api.h>
+#include <ilen_public/API/input_api.h>
 
 //FOR NO-EDITOR GAME
-#include <ilen-examples/gravity.h>
-#include <ilen-examples/triangle.h>
+#include <ilen_examples/gravity.h>
+#include <ilen_examples/triangle.h>
 // END
 
 using namespace ilen::core;
@@ -129,10 +129,12 @@ namespace ilen{
         //Guardamos una referencia al puntero de scripting
         scriptingSystemPtr = engineContext->p_coordinator->getSystem<ilen::ecs::systems::ScriptingSystem>();
 
+        //Tras inicializar la app, se llamara a la API de escena y se cargara automaticamente la escena con el índice 0.
+
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        int elementosPrueba = 1000;
+        /*int elementosPrueba = 0;
 
         for (int i = 0; i < elementosPrueba; i++) {
                 auto entity = engineContext->p_coordinator->createEntity();
@@ -176,7 +178,7 @@ namespace ilen{
                 components::ScriptingBridgeComponent model3D_script{};
                 model3D_script.bind<ilen::game::Object3D>();
                 engineContext->p_coordinator->setComponent(model3DEntity, std::move(model3D_script));
-        }
+        }*/
 
 
 #endif

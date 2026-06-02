@@ -156,6 +156,7 @@ using namespace ilen::ecs::debug;
 std::string EntityDebugInfo::toString() const {
     std::ostringstream ss;
     ss << "[Entity "<< id << "] name='" << name << "'"
+        << " uuid=" << uuid
         << " tag=" << tag
         << " layer=" << layer
         << " active=" << (isActive ? "true" : "false")
@@ -195,6 +196,7 @@ ECSDebugSnapshot ECSCoordinator::getDebugSnapshot(){
             info.tag = static_cast<uint32_t>(meta->getTags());
             info.layer = static_cast<uint32_t>(meta->getLayers());
             info.isActive = meta->isActive();
+            info.uuid = static_cast<uint64_t>(meta->uuid);
         }else{
             info.name = "(NO METADATA)";
         }

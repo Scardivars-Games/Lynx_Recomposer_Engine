@@ -2,7 +2,7 @@
 
 #include <ilen/render/renderer.h>
 //Available renderers (METAL)
-#include <Metal/renderer-metal.h>
+#include <Metal/renderer_metal.h>
 
 namespace ilen::render {
      //ILEN_GPU_GRAPHICS_API_TYPE IRenderer::actualAPI;

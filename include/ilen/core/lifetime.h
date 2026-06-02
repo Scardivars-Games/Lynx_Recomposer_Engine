@@ -2,11 +2,11 @@
 #pragma once
 #include <ilen/headers/visual.h>
 #include <ilen/headers/core.h>
-#include <ilen/job-system/job-system.h>
-#include <ilen/resources/shaders-manager.h>
-#include <ilen/resources/materials-manager.h>
-#include <ilen/resources/render-pipeline-manager.h>
-#include <ilen/camera/camera-system.h>
+#include <ilen/job_system/job_system.h>
+#include <ilen/resources/shaders_manager.h>
+#include <ilen/resources/materials_manager.h>
+#include <ilen/resources/render_pipeline_manager.h>
+#include <ilen/camera/camera_system.h>
 #include <memory>
 
 

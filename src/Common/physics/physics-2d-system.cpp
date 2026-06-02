@@ -1,8 +1,8 @@
-#include <ilen/physics/physics-2d-system.h>
+#include <ilen/physics/physics2d_system.h>
 #include <ilen/headers/ecs.h>
-#include <ilen/headers/ecs-components.h>
-#include <ilen-public/API/transform.h>
-#include <ilen-public/API/physics-2d.h>
+#include <ilen/headers/ecs_components.h>
+#include <ilen_public/API/transform_api.h>
+#include <ilen_public/API/physics2d_api.h>
 
 using namespace ilen::ecs::systems;
 using namespace ilen::ecs::components;

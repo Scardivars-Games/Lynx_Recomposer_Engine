@@ -1,0 +1,96 @@
+{
+    "scene_name": "GravedadTest",
+    "entities": [
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "uuid": 15309137656345514579,
+                    "name": "Cubo de prueba",
+                    "tags": 0,
+                    "layers": 2,
+                    "activeStatus": true
+                },
+                "TransformComponent": {
+                    "position": [0.0, 20.0, 10.0],
+                    "scale": [3.0, 3.0, 3.0]
+                },
+                "RenderComponent": {
+                    "mainTexID": 15
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 2.0,
+                    "mass": 0.5
+                },
+                "BoxCollider2D": {
+                    "halfExtents": [0.2, 0.4]
+                }
+            }
+        },
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "uuid": 6506968542066569176,
+                    "name": "Tierra",
+                    "tags": 1,
+                    "layers": 1,
+                    "activeStatus": true
+                },
+                "TransformComponent": {
+                    "position": [0.0, -6.7, 100.0],
+                    "scale": [90.0, 1.0, 1.0]
+                },
+                "RenderComponent": {
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "BoxCollider2D": {
+                }
+            }
+        },
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "uuid": 11871297611059197679,
+                    "name": "Camara",
+                    "tags": 0,
+                    "layers": 0,
+                    "activeStatus": true
+                },
+                "TransformComponent": {
+                    "position": [0.0, 0.0, -10.0],
+                    "rotation": [0.0, 0.0, 0.0],
+                    "scale": [1.0, 1.0, 1.0]
+                },
+                "CameraComponent": {
+                    "isPrimary": true,
+                    "projectionType": 1,
+                    "fovDegrees": 70.0,
+                    "orthoSize": 15.0,
+                    "nearClip": 2.0
+                }
+            }
+        },
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "uuid": 231749713158294129,
+                    "name": "Pointer Pos",
+                    "tags": 0,
+                    "layers": 16,
+                    "activeStatus": false
+                },
+                "TransformComponent": {
+                    "position": [0.0, 0.0, 3.0],
+                    "scale": [1.0, 1.0, 1.0]
+                },
+                "RenderComponent": {
+                    "mainTexID": 13,
+                    "materialID": 6,
+                    "defaultSpriteInTextureID": 10
+                }
+            }
+        }
+    ]
+}

@@ -1,10 +1,10 @@
 #pragma once
 #include <ilen/window/window.h>
 #include <ilen/render/renderer.h>
-#include <ilen/render/render-component.h>
+#include <ilen/render/render_component.h>
 #include <ilen/graphics/color.h>
 #include <ilen/graphics/material.h>
 #include <ilen/graphics/shader.h>
-#include <ilen/render/gpu-interfaces/render-pipelines.h>
-#include <ilen/render/gpu-interfaces/buffers.h>
-#include <ilen/render/gpu-interfaces/shaders.h>
+#include <ilen/render/gpu_interfaces/render_pipelines.h>
+#include <ilen/render/gpu_interfaces/buffers.h>
+#include <ilen/render/gpu_interfaces/shaders.h>

@@ -5,25 +5,69 @@
 #include <string>
 #include <json/json.hpp>
 
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
 
 const char* DEBUG_PREFIX = "HEADER_TOOL";
 
+struct TypeInfo {
+    std::string jsonType;
+    size_t size;
+    size_t alignment;
+};
+
+TypeInfo GetTypeInfo(std::string cppType, const std::string& arraySizeStr) {
+     auto contains = [](const std::string& str, const std::string& sub) {
+        return str.find(sub) != std::string::npos;
+    };
+    
+    //Tipos dinamicos, como vector o string (se guarda en punteros, y no en la memoria del struct.)
+    if(contains(cppType, "vector<")) return {"vector<uint32_t>", 24, 8};
+    if(contains(cppType, "string")) return {"string", 32, 8};
+    
+    //Funciones de la biblio de mates
+    if(contains(cppType, "vec2")) return {"float2", 8, 16};
+    if(contains(cppType, "vec3")) return {"float3", 12, 16};
+    if(contains(cppType, "vec4")) return {"float4", 16, 16};
+    if(contains(cppType, "mat4")) return {"float4x4", 64, 16};
+
+    //Primitives
+    if(cppType == "bool") return {"bool", 1, 1};
+    if(cppType == "float") return {"float", 4, 4};
+    if(cppType == "int32_t" || cppType == "int") return {"int", 4, 4};
+    if(cppType == "Entity" || cppType == "uint32_t" ||
+        contains(cppType, "ILEN_CAMERA_PROJECTION_TYPE") || contains(cppType, "ENUM") || 
+        contains(cppType, "TYPE") || contains(cppType, "TagSystem") || 
+        contains(cppType, "LayerSystem")) return {"uint32_t", 4, 4};
+    if(cppType == "UUID") return {"uint64_t", 8, 8};
+
+    //Arreglos fijos
+    if(cppType == "char" && !arraySizeStr.empty()) {
+        size_t size = std::stoull(arraySizeStr);
+        return {"char[" + arraySizeStr + "]", size, 1};
+    }
+    if(cppType == "uint8_t" && !arraySizeStr.empty()){
+        size_t size = std::stoull(arraySizeStr);
+        return {"byte[" + arraySizeStr + "]", size, 1};
+    }
+    if(cppType == "float" && arraySizeStr == "3") return {"float3", 12, 4};
+
+    return {"unknown", 0, 1};
+};
+
 json ScanDirectoryForComponents(const fs::path& searchDir) {
-    json schemaJson;
+    json schemaJson = json::object();
 
     if(!fs::exists(searchDir)) {
         ILEN_ERROR_P(DEBUG_PREFIX, "Error: El directorio no existe -> %s", searchDir.c_str());
         return schemaJson;
     }
 
-    std::regex componentRegex(R"(ILEN_COMPONENT\s+struct\s+(?:alignas\([^)]+\)\s+)?(\w+))");
-    std::regex propertyReges(R"(ILEN_PROPERTY\s+([\w:<>\[\]]+)\s+(\w+)(?:\[(\d+)\])?s*;)");
-
-    //Iterar para encontrar los componentes
+    std::regex componentRegex(R"(ILEN_COMPONENT\s+(?:struct|class)\s+(?:alignas\((\d+)\)\s+)?(\w+))");
+    std::regex propertyRegex(R"(ILEN_PROPERTY\s+([\w:<>\[\]*&]+)\s+(\w+)(?:\[(\d+)\])?[^;]*;)");
+        //Iterar para encontrar los componentes
     for(const auto& entry : fs::recursive_directory_iterator(searchDir)) {
         if(entry.is_regular_file() && (entry.path().extension() == ".h" || entry.path().extension() == ".hpp")) {
             std::ifstream file(entry.path());
@@ -35,17 +79,30 @@ json ScanDirectoryForComponents(const fs::path& searchDir) {
             auto compEnd = std::sregex_iterator();
 
             for(std::sregex_iterator i = compBegin; i != compEnd; i++) {
-                std::string compName = (*i)[1].str();
+                std::string alignasStr = (*i)[1].str();
+                std::string compName = (*i)[2].str();
+                
+                size_t structMaxAlignment = 1;
+                if(!alignasStr.empty()){
+                    structMaxAlignment = std::stoull(alignasStr);
+                }
+                
                 json fieldsArray = json::array();
+                size_t currentOffset = 0;
 
                 size_t startPos = i->position();
-                size_t endPos = content.find("};", startPos);
+                // Buscamos el inicio del próximo componente para delimitar el bloque.
+                // Si no hay otro componente en el archivo, tomamos el resto del archivo entero.
 
-                if(endPos == std::string::npos) continue;
+                //OJO: Las propiedades se definen por el ILEN_PROPERTY. Si esto se coloca en una variable FUERA del ILEN_COMPONET, se asignaría al actual ILEN_COMPONENT, lo cual es problematico.
+                size_t endPos = content.find("ILEN_COMPONENT", startPos + 10); 
+                if(endPos == std::string::npos) {
+                    endPos = content.length();
+                }
 
                 std::string structBody = content.substr(startPos, endPos - startPos);
 
-                auto propBegin = std::sregex_iterator(structBody.begin(), structBody.end(), propertyReges);
+                auto propBegin = std::sregex_iterator(structBody.begin(), structBody.end(), propertyRegex);
                 auto propEnd = std::sregex_iterator();
 
                 for(std::sregex_iterator j = propBegin; j != propEnd; j++) {
@@ -57,39 +114,42 @@ json ScanDirectoryForComponents(const fs::path& searchDir) {
                     type.erase(0, type.find_first_not_of(" \t"));
                     type.erase(type.find_last_not_of(" \t") + 1);
 
-                    auto contains = [](const std::string& str, const std::string& sub) {
-                        return str.find(sub) != std::string::npos;
-                    };
+                    // Descartamos punteros crudos y memoria de GPU
+                    if(type.find("shared_ptr") != std::string::npos || type.find("*") != std::string::npos){
+                        continue;
+                    }
+
+                    TypeInfo info = GetTypeInfo(type, arraySize);
+
+                    if(info.jsonType == "unknown") continue;
+
+                    size_t padding = (info.alignment - (currentOffset % info.alignment));
+                    currentOffset += padding;
 
                     json field;
                     field["name"] = name;
-
-                    //Parseo de datos propios a una version friendly al binarizador
-                    if(contains(type, "shared_ptr") || contains(type, "*")){
-                        //Punteros no se deben binarizar
-                        continue;
-                    }
-                    else if(type == "bool") field["type"] = "bool";
-                    else if(contains(type, "vec2")) field["type"] = "float2";
-                    else if(contains(type, "vec3")) field["type"] = "float3";
-                    else if(contains(type, "vec4")) field["type"] = "float4";
-                    else if(contains(type, "mat4")) field["type"] = "float4x4"; //matriz 4x4
-                    else if(type == "Entity") field["type"] = "uint32_t";
-                    else if(contains(type, "ILEN_CAMERA_PROJECTION_TYPE") || contains(type, "ENUM") || contains(type, "TYPE"))
-                        field["type"] = "uint32_t";
-                    else if(type == "float" && arraySize == "3") field["type"] = "float3";
-                    else if(type == "float") field["type"] = "float";
-                    else if(type == "int32_t") field["type"] = "int";
-                    else if(type == "uint32_t") field["type"] = "uint32_t";
-                    else if(type == "char" && !arraySize.empty()) field["type"] = "char[" + arraySize + "]";
-                    else if (type == "uint8_t" && !arraySize.empty()) field["type"] = "byte[" + arraySize + "]";
-                    else field["type"] = "unknown";
+                    field["type"] = info.jsonType;
+                    field["offset"] = currentOffset;
+                    field["size"] = info.size;
 
                     fieldsArray.push_back(field);
+
+                    currentOffset += info.size;
+
+                    if(alignasStr.empty()){
+                        structMaxAlignment = std::max(structMaxAlignment, info.alignment);
+                    }
                 }
 
                 if(!fieldsArray.empty()) {
-                    schemaJson[compName] = fieldsArray;
+                    size_t finalPadding = (structMaxAlignment - (currentOffset % structMaxAlignment)) % structMaxAlignment;
+                    currentOffset += finalPadding;
+
+                    json compNode;
+                    compNode["size"] = currentOffset;
+                    compNode["fields"] = fieldsArray;
+
+                    schemaJson[compName] = compNode;
                 }
             }
         }
@@ -121,6 +181,7 @@ int main(int argc, char* argv[]) {
         ILEN_LOG_P(DEBUG_PREFIX, "Indexando los componentes base del motor");
 
         fs::path engineIncludeDir = basePath / "include" / "ilen";
+        ILEN_LOG_P(DEBUG_PREFIX, "Escaneando la carpeta %s", engineIncludeDir.c_str());
         json engineSchema = ScanDirectoryForComponents(engineIncludeDir);
 
         fs::path outputDir = basePath / "project_data" / "manifests";
@@ -137,7 +198,7 @@ int main(int argc, char* argv[]) {
         json finalSchema = json::object();
 
         // A. Intentar cargar el esquema predefinido del motor primero
-        fs::path defaultSchemaPath = basePath.parent_path() / "project_data" / "manifests" / "engine_defaults.meta_ilenschema";
+        fs::path defaultSchemaPath = basePath / "project_data" / "manifests" / "engine_defaults.meta_ilenschema";
         if (fs::exists(defaultSchemaPath)) {
             std::ifstream defaultFile(defaultSchemaPath);
             try {

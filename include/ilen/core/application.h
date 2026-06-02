@@ -9,7 +9,7 @@
 #include <ilen/window/window.h>
 #include <thread>
 #include <memory>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 #include <ilen/core/runtime_options.h>
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)

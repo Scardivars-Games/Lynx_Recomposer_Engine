@@ -7,7 +7,7 @@
 #include <vector>
 #include <memory>
 #include <ilen/ecs/system.h>
-#include <ilen/core/engine-context.h>
+#include <ilen/core/engine_context.h>
 #include <ilen/ecs/ecs.h>
 
 using SystemPhase = ilen::ecs::SystemPhase;

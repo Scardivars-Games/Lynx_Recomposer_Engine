@@ -1,5 +1,5 @@
 #include <ilen/core/logs.h>
-#include <ilen/window/alert-box.h>
+#include <ilen/window/alert_box.h>
 
 namespace ilen::internal{
     std::mutex Debug::logMutex;

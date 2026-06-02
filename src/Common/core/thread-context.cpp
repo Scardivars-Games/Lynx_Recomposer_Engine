@@ -1,4 +1,4 @@
-#include <ilen/core/thread-context.h>
+#include <ilen/core/thread_context.h>
 
 namespace ilen::core::threading {
     std::thread::id g_MainThreadId;

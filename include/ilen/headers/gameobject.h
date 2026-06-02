@@ -4,7 +4,7 @@
 #include <ilen/headers/core.h>
 
 //Components for ECS
-#include <ilen/headers/ecs-components.h>
+#include <ilen/headers/ecs_components.h>
 
 //Required Systems.
-#include <ilen/game-logic/game-object.h>
+#include <ilen/game_logic/game_object.h>

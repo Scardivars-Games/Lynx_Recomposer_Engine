@@ -11,8 +11,8 @@
 #include <cstdint>
 //#include <variant>
 #include <ilen/resources/binary_headers.h>
-#include <ilen/render/gpu-interfaces/texture.h>
-#include <ilen/render/gpu-interfaces/sampler.h>
+#include <ilen/render/gpu_interfaces/texture.h>
+#include <ilen/render/gpu_interfaces/sampler.h>
 
 namespace ilen::graphics {
     // Propiedades que un material puede enviar a un shader.

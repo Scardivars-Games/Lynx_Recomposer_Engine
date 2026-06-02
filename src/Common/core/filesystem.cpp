@@ -1,6 +1,6 @@
 #include <ilen/core/filemanager.h>
-#include <ilen/headers/ilen-logs.h>
-#include <ilen/job-system/job-system.h>
+#include <ilen/headers/ilen_logs.h>
+#include <ilen/job_system/job_system.h>
 
 
 using namespace ilen::core;

@@ -1,7 +1,8 @@
 #if !ILEN_ONLY_ECS
 
-#include <ilen-examples/triangle.h>
+#include <ilen_examples/triangle.h>
 #include <ilen/core/runtime_options.h>
+#include <ilen_public/API/transform_api.h>
 
 using namespace ilen::game;
 using namespace ilen::core;

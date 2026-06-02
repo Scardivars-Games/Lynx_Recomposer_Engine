@@ -2,7 +2,7 @@
 
 #include <chrono>
 #include <cassert>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 
 namespace ilen::time{
     class Time {

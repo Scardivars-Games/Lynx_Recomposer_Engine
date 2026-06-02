@@ -165,12 +165,12 @@ set_property(
 
 add_executable(ILEN_SCENE_BINARIZER IMPORTED GLOBAL)
 set_property(
-    TARGET ILEN_SCENE_BINARIZER PROPERTY IMPORTED_LOCATION ${NATIVE_TOOL_BYPRODUCT}/${CMAKE_CFG_INTDIR}/ILEN_FILE_BINARIZATION
+    TARGET ILEN_SCENE_BINARIZER PROPERTY IMPORTED_LOCATION ${NATIVE_TOOL_BYPRODUCT}/${CMAKE_CFG_INTDIR}/ILEN_SCENE_BINARIZER
 )
 
 add_executable(ILEN_COMPONENTS_REFLECTION_TOOLS IMPORTED GLOBAL)
 set_property(
-    TARGET ILEN_COMPONENTS_REFLECTION_TOOLS PROPERTY IMPORTED_LOCATION ${NATIVE_TOOL_BYPRODUCT}/${CMAKE_CFG_INTDIR}/ILEN_FILE_BINARIZATION
+    TARGET ILEN_COMPONENTS_REFLECTION_TOOLS PROPERTY IMPORTED_LOCATION ${NATIVE_TOOL_BYPRODUCT}/${CMAKE_CFG_INTDIR}/ILEN_COMPONENTS_REFLECTION_TOOLS
 )
 
 add_dependencies(ILEN_METAL_COMPILER ilen-modules)
@@ -387,6 +387,28 @@ add_dependencies(${PROJECT_NAME} ILEN_SCENE_BINARIZER)
 add_dependencies(${PROJECT_NAME} ILEN_COMPONENTS_REFLECTION_TOOLS)
 
 #Command used by all Platforms
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS>
+    ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --engine-mode
+    COMMENT "Making reflection for component inside the engine, so can be serealized by the scene manager"
+    VERBATIM
+)
+
+#Tras crear el motor, hace falta también hacer el mismo POST_BUILD anterior, para los propios creados por el usuario. De momento dejamos esto
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS>
+    ARGS --ilen-folder ${CMAKE_SOURCE_DIR}
+    COMMENT "Making reflection for user created components, so can be serealized by the scene manager"
+    VERBATIM
+)
+
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND $<TARGET_FILE:ILEN_SCENE_BINARIZER>
+    ARGS --ilen-folder ${CMAKE_SOURCE_DIR}
+    COMMENT "Scene binarization started."
+    VERBATIM
+)
+
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND $<TARGET_FILE:ILEN_FILE_BINARIZATION>
     ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --compile-target ${ILEN_TARGET_NAME}
