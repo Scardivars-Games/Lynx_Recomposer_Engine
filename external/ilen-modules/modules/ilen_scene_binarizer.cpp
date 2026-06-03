@@ -19,6 +19,7 @@
 #include <ilen/ecs/types.h>
 //#include <ilen/headers/ecs-components.h>
 #include <ilen/resources/binary_headers.h>
+#include <ilen/resources/scene_manager.h>
 
 
 namespace ilen::core::threading {
@@ -39,15 +40,6 @@ const std::string SCENE_MANIFEST_LIST = "scenes";
 const std::string SCENE_MANIFEST_ID = "id";
 const std::string SCENE_MANIFEST_NAME = "name";
 const std::string SCENE_MANIFEST_PATH = "path";
-
-constexpr uint32_t HashComponent(std::string_view str) {
-    uint32_t hash = 2166136261u;
-    for(char c : str) {
-        hash ^= static_cast<uint32_t>(c);
-        hash *= 16777619u;
-    }
-    return hash;
-}
 
 ilen::job_system::JobSystem jobSystem;
 
@@ -115,7 +107,7 @@ class SchemaManager {
             for(auto& [compName, compData]: schemaJson.items()) {
                 ComponentSchema schema;
                 schema.name = compName;
-                schema.hash = HashComponent(compName);
+                schema.hash = ilen::resources::scene::HashComponent(compName);
                 schema.totalSizeBytes = compData.value("size", 0);
 
                 for(const auto& fieldJson : compData["fields"]) {
@@ -125,9 +117,7 @@ class SchemaManager {
                     field.size = fieldJson["size"];
                     field.type = ParseTypeString(fieldJson["type"]);
 
-                    if(field.type != SchemaType::Unknown) {
-                        schema.fields.push_back(field);
-                    }
+                    schema.fields.push_back(field);
                 }
                 registry[schema.hash] = schema;
             }
@@ -146,69 +136,93 @@ class SchemaManager {
             //Buffer de datos dinámicos
             std::vector<char> dynamicPayload;
 
-            for(const auto& field : schema.fields) {
-                if(!compJsonData.contains(field.name)) continue;
+            uint64_t presenceMask = 0;
+            int fieldIdx = 0;
 
-                const auto& jVal = compJsonData[field.name];
-                char* destPtr = staticBytes.data() + field.offset;
-                
-                //Tipos estáticos
-                if(field.type == SchemaType::Bool) {
-                    bool val = jVal.get<bool>();
-                    std::memcpy(destPtr, &val, sizeof(bool));
-                }
-                else if(field.type == SchemaType::Float) {
-                    float val = jVal.get<float>();
-                    std::memcpy(destPtr, &val, sizeof(float));
-                }
-                else if (field.type == SchemaType::Float2 && jVal.is_array() && jVal.size() >= 2) {
-                    float val[2] = { jVal[0], jVal[1] };
-                    std::memcpy(destPtr, val, sizeof(val));
-                }
-                else if (field.type == SchemaType::Float3 && jVal.is_array() && jVal.size() >= 3) {
-                    float val[3] = { jVal[0], jVal[1], jVal[2] };
-                    std::memcpy(destPtr, val, sizeof(val));
-                }
-                else if (field.type == SchemaType::Float4x4 && jVal.is_array() && jVal.size() >= 16) {
-                    float val[16];
-                    for (int i = 0; i < 16; ++i) val[i] = jVal[i];
-                    std::memcpy(destPtr, val, sizeof(val));
-                }
-                else if (field.type == SchemaType::Uint32) {
-                    uint32_t val = jVal.get<uint32_t>();
-                    std::memcpy(destPtr, &val, sizeof(uint32_t));
-                }
-                else if (field.type == SchemaType::Uint64) {
-                    uint64_t val = jVal.get<uint64_t>();
-                    std::memcpy(destPtr, &val, sizeof(uint64_t));
-                }
-                // --- TIPOS DINÁMICOS (Se dejan en 0 en el staticByte y se añaden al Payload) ---
-                else if (field.type == SchemaType::String) {
-                    std::string str = jVal.get<std::string>();
-                    uint32_t len = str.length();
-                    // Escribir Tamaño + Caracteres en la cola dinámica
-                    dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&len), reinterpret_cast<char*>(&len) + sizeof(uint32_t));
-                    dynamicPayload.insert(dynamicPayload.end(), str.begin(), str.end());
-                }
-                else if (field.type == SchemaType::VectorUint32 && jVal.is_array()) {
-                    uint32_t count = jVal.size();
-                    // Escribir Cantidad + Elementos en la cola dinámica
-                    dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&count), reinterpret_cast<char*>(&count) + sizeof(uint32_t));
-                    for (const auto& item : jVal) {
-                        uint32_t val = item.get<uint32_t>();
-                        dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&val), reinterpret_cast<char*>(&val) + sizeof(uint32_t));
+            for(const auto& field : schema.fields) {
+                if(compJsonData.contains(field.name)){
+
+                    presenceMask |= (1ULL << fieldIdx);
+
+                    const auto& jVal = compJsonData[field.name];
+                    char* destPtr = staticBytes.data() + field.offset;
+                    
+                    //Tipos estáticos
+                    if(field.type == SchemaType::Bool) {
+                        bool val = jVal.get<bool>();
+                        std::memcpy(destPtr, &val, sizeof(bool));
+                    }
+                    else if(field.type == SchemaType::Float) {
+                        float val = jVal.get<float>();
+                        std::memcpy(destPtr, &val, sizeof(float));
+                    }
+                    else if (field.type == SchemaType::Float2 && jVal.is_array() && jVal.size() >= 2) {
+                        float val[2] = { jVal[0], jVal[1] };
+                        std::memcpy(destPtr, val, sizeof(val));
+                    }
+                    else if (field.type == SchemaType::Float3 && jVal.is_array() && jVal.size() >= 3) {
+                        float val[3] = { jVal[0], jVal[1], jVal[2] };
+                        std::memcpy(destPtr, val, sizeof(val));
+                    }
+                    else if (field.type == SchemaType::Float4x4 && jVal.is_array() && jVal.size() >= 16) {
+                        float val[16];
+                        for (int i = 0; i < 16; ++i) val[i] = jVal[i];
+                        std::memcpy(destPtr, val, sizeof(val));
+                    }
+                    else if (field.type == SchemaType::Uint32) {
+                        uint32_t val = jVal.get<uint32_t>();
+                        std::memcpy(destPtr, &val, sizeof(uint32_t));
+                    }
+                    else if (field.type == SchemaType::Uint64) {
+                        uint64_t val = jVal.get<uint64_t>();
+                        std::memcpy(destPtr, &val, sizeof(uint64_t));
+                    }
+                    else if (field.type == SchemaType::Unknown) {
+                        if (jVal.is_number_integer()) {
+                            if (field.size == 1) { uint8_t v = jVal.get<uint8_t>(); std::memcpy(destPtr, &v, 1); }
+                            else if (field.size == 2) { uint16_t v = jVal.get<uint16_t>(); std::memcpy(destPtr, &v, 2); }
+                            else if (field.size == 4) { uint32_t v = jVal.get<uint32_t>(); std::memcpy(destPtr, &v, 4); }
+                            else if (field.size == 8) { uint64_t v = jVal.get<uint64_t>(); std::memcpy(destPtr, &v, 8); }
+                        }
+                    }
+                    // --- TIPOS DINÁMICOS (Se dejan en 0 en el staticByte y se añaden al Payload) ---
+                    else if (field.type == SchemaType::String) {
+                        std::string str = jVal.get<std::string>();
+                        uint32_t len = str.length();
+                        // Escribir Tamaño + Caracteres en la cola dinámica
+                        dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&len), reinterpret_cast<char*>(&len) + sizeof(uint32_t));
+                        dynamicPayload.insert(dynamicPayload.end(), str.begin(), str.end());
+                    }
+                    else if (field.type == SchemaType::VectorUint32 && jVal.is_array()) {
+                        uint32_t count = jVal.size();
+                        // Escribir Cantidad + Elementos en la cola dinámica
+                        dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&count), reinterpret_cast<char*>(&count) + sizeof(uint32_t));
+                        for (const auto& item : jVal) {
+                            uint32_t val = item.get<uint32_t>();
+                            dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&val), reinterpret_cast<char*>(&val) + sizeof(uint32_t));
+                        }
+                    }
+                    else if (field.type == SchemaType::VectorUint64 && jVal.is_array()) {
+                        uint32_t count = jVal.size();
+                        dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&count), reinterpret_cast<char*>(&count) + sizeof(uint32_t));
+                        for (const auto& item : jVal) {
+                            uint64_t val = item.get<uint64_t>();
+                            dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&val), reinterpret_cast<char*>(&val) + sizeof(uint64_t));
+                        }
+                    }
+                } else {
+                    if (field.type == SchemaType::String || 
+                        field.type == SchemaType::VectorUint32 || 
+                        field.type == SchemaType::VectorUint64) {
+                            uint32_t emptyLen = 0;
+                            dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&emptyLen), reinterpret_cast<char*>(&emptyLen) + sizeof(uint32_t));
                     }
                 }
-                else if (field.type == SchemaType::VectorUint64 && jVal.is_array()) {
-                    uint32_t count = jVal.size();
-                    dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&count), reinterpret_cast<char*>(&count) + sizeof(uint32_t));
-                    for (const auto& item : jVal) {
-                        uint64_t val = item.get<uint64_t>();
-                        dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&val), reinterpret_cast<char*>(&val) + sizeof(uint64_t));
-                    }
-                }
+
+                fieldIdx++;
             }
             
+            outBuffer.insert(outBuffer.end(), reinterpret_cast<char*>(&presenceMask), reinterpret_cast<char*>(&presenceMask) + sizeof(uint64_t));
             outBuffer.insert(outBuffer.end(), staticBytes.begin(), staticBytes.end());
             outBuffer.insert(outBuffer.end(), dynamicPayload.begin(), dynamicPayload.end());
             return true;
@@ -347,9 +361,9 @@ void binarizeScene(std::filesystem::path projectDataFolder) {
                 fs::path savePath = binaryScenesFolder / relativePath;
                 savePath.replace_extension(".ilenscene");
 
-                if (fs::exists(savePath) && fs::last_write_time(currentScenePath) <= fs::last_write_time(savePath)) {
+                /*if (fs::exists(savePath) && fs::last_write_time(currentScenePath) <= fs::last_write_time(savePath)) {
                     continue; 
-                }
+                }*/
 
                 std::ifstream inputFile(currentScenePath);
                 if (!inputFile.is_open()) continue;
@@ -404,7 +418,8 @@ void binarizeScene(std::filesystem::path projectDataFolder) {
 
                         // 3. Empaquetado normal de los componentes
                         for (auto& [compName, compData] : componentsJson.items()) {
-                            uint32_t hashId = HashComponent(compName);
+                            uint32_t hashId = ilen::resources::scene::HashComponent(compName);
+                            ILEN_LOG("Hash guardado %u", hashId);
                             auto& buffer = componentBuffers[hashId];
                             
                             if (g_SchemaManager.PackComponent(hashId, compData, buffer.rawData)) {
@@ -437,7 +452,7 @@ void binarizeScene(std::filesystem::path projectDataFolder) {
                 header.totalComponentTypes = componentBuffers.size();
 
                 outFile.write(reinterpret_cast<const char*>(&header), sizeof(ilen::binary::headers::IlenSceneHeader));
-                outFile.write(reinterpret_cast<const char*>(aliveEntities.data()), header.totalEntities * sizeof(ilen::ecs::Entity));
+                outFile.write(reinterpret_cast<const char*>(aliveEntities.data()), header.totalEntities * sizeof(ilen::ecs::UUID));
 
                 for (const auto& [hash, buffer] : componentBuffers) {
                     outFile.write(reinterpret_cast<const char*>(&buffer.componentHash), sizeof(uint32_t));
@@ -445,7 +460,7 @@ void binarizeScene(std::filesystem::path projectDataFolder) {
                     
                     uint32_t dataSizeBytes = buffer.rawData.size();
                     outFile.write(reinterpret_cast<const char*>(&dataSizeBytes), sizeof(uint32_t));
-                    outFile.write(reinterpret_cast<const char*>(buffer.entityIDs.data()), buffer.entityCount * sizeof(ilen::ecs::Entity));
+                    outFile.write(reinterpret_cast<const char*>(buffer.entityIDs.data()), buffer.entityCount * sizeof(ilen::ecs::UUID));
                     outFile.write(buffer.rawData.data(), dataSizeBytes);
                 }
                 outFile.close();

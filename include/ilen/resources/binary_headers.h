@@ -71,7 +71,7 @@ namespace ilen::binary::headers {
     struct SceneComponentBuffer {
         uint32_t componentHash;
         uint32_t entityCount = 0;
-        std::vector<ilen::ecs::Entity> entityIDs;
+        std::vector<ilen::ecs::UUID> entityIDs;
         std::vector<char> rawData;
     };
 }

@@ -386,21 +386,19 @@ add_dependencies(${PROJECT_NAME} ILEN_FILE_BINARIZATION)
 add_dependencies(${PROJECT_NAME} ILEN_SCENE_BINARIZER)
 add_dependencies(${PROJECT_NAME} ILEN_COMPONENTS_REFLECTION_TOOLS)
 
-#Command used by all Platforms
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS>
-    ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --engine-mode
-    COMMENT "Making reflection for component inside the engine, so can be serealized by the scene manager"
+set(GENERATED_INL "${CMAKE_SOURCE_DIR}/project_data/manifests/generated_serializers.inl")
+
+add_custom_command(
+    OUTPUT ${GENERATED_INL}
+    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS> --ilen-folder ${CMAKE_SOURCE_DIR} --engine-mode
+    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS> --ilen-folder ${CMAKE_SOURCE_DIR}
+    DEPENDS ilen-modules ILEN_COMPONENTS_REFLECTION_TOOLS
+    COMMENT "Generating component serializers with reflection tools"
     VERBATIM
 )
 
-#Tras crear el motor, hace falta también hacer el mismo POST_BUILD anterior, para los propios creados por el usuario. De momento dejamos esto
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS>
-    ARGS --ilen-folder ${CMAKE_SOURCE_DIR}
-    COMMENT "Making reflection for user created components, so can be serealized by the scene manager"
-    VERBATIM
-)
+target_sources(${PROJECT_NAME} PRIVATE ${GENERATED_INL})
+target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/project_data")
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND $<TARGET_FILE:ILEN_SCENE_BINARIZER>

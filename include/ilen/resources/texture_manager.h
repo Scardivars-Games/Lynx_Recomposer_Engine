@@ -40,12 +40,15 @@ namespace ilen::resources::texture {
             TextureManager& operator=(const TextureManager&) = delete;
 
             void UpdateProcess();
+            float LoadingStatus();
             std::weak_ptr<TextureGPULink> getTextureHandler(TextureID id);
             uint16_t getTextureRuntimeID(TextureID id) const;
         private:
             std::unordered_map<TextureID, std::shared_ptr<TextureGPULink>> m_texBufferData;
             std::unordered_map<TextureID, std::future<TextureGPULink>> m_texLoadingData;
             std::unordered_map<TextureID, RuntimeTextureID> m_texRuntimeID;
+
+            uint32_t lastTimeAmountOfElementLoading = 0;
 
             JobSystem* jobSystem = nullptr;
             AssetsManager* assetsManager = nullptr;

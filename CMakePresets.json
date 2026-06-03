@@ -1,22 +1,26 @@
 {
     "version": 3,
-    "cmakeMinimumRequired": {"major": 3, "minor": 20, "patch": 0},
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 20,
+        "patch": 0
+    },
     "configurePresets": [
         {
-            "name" :  "Release -- Unoptimized",
-            "displayName" : "Release -- Unoptimized",
-            "description" : "Configura el proyecto en modo Release pero sin optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
-            "generator": "Ninja",
+            "name": "Release -- Unoptimized",
+            "displayName": "Release -- Unoptimized",
+            "description": "Configura el proyecto en modo Release pero sin optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/release-unoptimized",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name" :  "Release -- Optimized",
-            "displayName" : "Release -- Optimized",
-            "description" : "Configura el proyecto en modo Release con optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
-            "generator": "Ninja",
+            "name": "Release -- Optimized",
+            "displayName": "Release -- Optimized",
+            "description": "Configura el proyecto en modo Release con optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/release-opt",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
@@ -24,10 +28,10 @@
             }
         },
         {
-            "name" :  "Release -- Optimized + MetalHUD",
-            "displayName" : "Release -- Optimized + MetalHUD",
-            "description" : "Configura el proyecto en modo Release con optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
-            "generator": "Ninja",
+            "name": "Release -- Optimized + MetalHUD",
+            "displayName": "Release -- Optimized + MetalHUD",
+            "description": "Configura el proyecto en modo Release con optimizaciones, para usar ILEN_ENGINE como libreria de cosas que no sean juegos",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/release-opt-metalhud",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
@@ -38,7 +42,7 @@
         {
             "name": "debug",
             "displayName": "Debug",
-            "generator": "Ninja",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
@@ -47,12 +51,28 @@
         {
             "name": "debug-metalhud",
             "displayName": "Debug + MetalHUD",
-            "generator": "Ninja",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/debug-metalhud",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "ILEN_METAL_HUD": "ON"
             }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Release -- Optimized Build",
+            "configurePreset": "Release -- Optimized",
+            "jobs": 7
+        },
+        {
+            "name": "Debug",
+            "description": "",
+            "configurePreset": "debug",
+            "displayName": "",
+            "inherits": [
+                "Release -- Optimized Build"
+            ]
         }
     ]
 }

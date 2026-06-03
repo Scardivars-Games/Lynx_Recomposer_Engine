@@ -17,6 +17,7 @@ namespace ilen::ecs::systems {
             ComponentArray<physics::CollisionComponent2D>* collisionComponentArray = nullptr;
             ComponentArray<physics::BoxCollider2D>* boxColliderArray = nullptr;
             ComponentArray<TransformComponent>* transformComponentArray = nullptr;
+            ComponentArray<TransformOrder>* transformOrderArray = nullptr;
             ComponentArray<physics::PhysicsOrder>* physicsOrderArray = nullptr;
         };
 
@@ -38,6 +39,9 @@ namespace ilen::ecs::systems {
             //Array paralelos para los datos de las entidades estáticas
             std::vector<Entity> m_staticEntities;
             std::vector<maths::aabb::AABB2D> m_staticAABBs;
+
+            //Esto se podria cambiar, pero necesito terminar ya, así que es un posible vector para optimizacion
+            std::unordered_map<ilen::ecs::Entity, TransformOrder> m_accumulatedTransformOrder;
 
             //Debido al que sistema de físicas es de los más complejos, vamos a dividir las diferentes
             //partes del proceso en funciones especializadas, de esa forma es más facil entender el flujo

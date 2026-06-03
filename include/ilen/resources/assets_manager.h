@@ -120,6 +120,8 @@ namespace ilen::resources {
 
             void loadManifiest(EngineContext* engineContext);
 
+            float getAssetLoadStatus();
+
             void manifestIsLoaded() const
             {
                 assert(isManifestLoaded == false && "Tratando de usar métodos del AssetsManager sin haber cargado el manifiesto.");
@@ -133,6 +135,8 @@ namespace ilen::resources {
             std::unordered_map<uint32_t, ShaderAsset> m_idToShaderAsset;
             std::unordered_map<uint32_t, MaterialAsset> m_idToMaterialAsset;
             std::string m_manifestFileName;
+
+            EngineContext* context = nullptr;
 
             const char* DEBUG_PREFIX = "ASSET_MANAGER";
     };

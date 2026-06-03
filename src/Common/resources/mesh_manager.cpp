@@ -105,4 +105,15 @@ namespace ilen::resources::mesh {
 
         return 0;
     }
+
+    float MeshManager::LoadingStatus() {
+        if(m_meshLoadingData.size() > 0) {
+            //Hay datos cargando
+            lastTimeAmountOfElementLoading = m_meshLoadingData.size() > lastTimeAmountOfElementLoading ? m_meshLoadingData.size() : lastTimeAmountOfElementLoading;
+            return 1.0f - (static_cast<float>(m_meshLoadingData.size()) / static_cast<float>(lastTimeAmountOfElementLoading));
+        }else {
+            lastTimeAmountOfElementLoading = 0;
+            return 1.0f;
+        }
+    }
 }

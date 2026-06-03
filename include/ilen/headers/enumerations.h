@@ -20,6 +20,7 @@ namespace ilen::enumerations {
         ILEN_FILE_TYPE_MODEL,
         ILEN_FILE_TYPE_MATERIAL,
         ILEN_FILE_TYPE_ASSETS_MANIFEST,
+        ILEN_FILE_TYPE_SCENE,
         ILEN_FILE_TYPE_NONE //Relativo a assets en este caso.
     };
 

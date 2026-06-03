@@ -13,3 +13,6 @@ build-linux-x86_64
 .ilen-bin-data
 cmake-build-debug
 cmake-build-release
+project_data/manifests/components.meta_ilenschema
+project_data/manifests/engine_defaults.meta_ilenschema
+project_data/manifests/generated_serializers.inl

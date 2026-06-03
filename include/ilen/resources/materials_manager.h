@@ -55,6 +55,6 @@ namespace ilen::resources::materials {
             mutable std::recursive_mutex m_mutex; //To make multithreading operations securely.
 
             //Debug Stuff.
-            const char* DEBUG_PREFIX = "MATERIAL MANAGER";
+            const char* DEBUG_PREFIX = "MATERIAL_MANAGER";
     };
 }

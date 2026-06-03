@@ -39,11 +39,14 @@ namespace ilen::resources::mesh {
             //al weak_ptr para obtner un shared_ptr valido y trabajar con él, en caso de estar destruido obtendrá un nullptr, y así puede solicitar un recacheo del puntero.
             std::weak_ptr<MeshGPULink> getMeshHandlers(MeshID id);
             void UpdateProcess();
+            float LoadingStatus();
             uint16_t getMeshRuntimeID(MeshID id) const;
         private:
             std::unordered_map<MeshID, std::shared_ptr<MeshGPULink>> m_meshBufferData;
             std::unordered_map<MeshID, std::future<MeshGPULink>> m_meshLoadingData;
             std::unordered_map<MeshID, RuntimeMeshID> m_meshRuntime;
+
+            uint32_t lastTimeAmountOfElementLoading = 0;
 
             JobSystem* jobSystem;
             AssetsManager* assetsManager;

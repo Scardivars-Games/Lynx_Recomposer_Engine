@@ -30,6 +30,9 @@ std::filesystem::path getFilePath(ILEN_FILE_TYPE category){
         case ILEN_FILE_TYPE_MATERIAL:
             resourceSpecificFolder = "materials";
             break;
+        case ILEN_FILE_TYPE_SCENE:
+            resourceSpecificFolder = "scenes";
+            break;
         default:
             ILEN_EXECUTE_ERROR_P("FILE_MANAGER", "Dada una categoría desconocida");
             break;

@@ -6,6 +6,7 @@
 #include <json/json.hpp>
 
 #include <ilen/headers/ilen_logs.h>
+#include <ilen/resources/scene_manager.h>
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -65,9 +66,13 @@ json ScanDirectoryForComponents(const fs::path& searchDir) {
         return schemaJson;
     }
 
+   // REGEX MEJORADO
     std::regex componentRegex(R"(ILEN_COMPONENT\s+(?:struct|class)\s+(?:alignas\((\d+)\)\s+)?(\w+))");
     std::regex propertyRegex(R"(ILEN_PROPERTY\s+([\w:<>\[\]*&]+)\s+(\w+)(?:\[(\d+)\])?[^;]*;)");
-        //Iterar para encontrar los componentes
+    
+    // NUEVO: Regex para atrapar namespaces (ej. namespace ilen::ecs::physics { )
+    std::regex namespaceRegex(R"(namespace\s+([a-zA-Z0-9_:]+)\s*\{)");
+
     for(const auto& entry : fs::recursive_directory_iterator(searchDir)) {
         if(entry.is_regular_file() && (entry.path().extension() == ".h" || entry.path().extension() == ".hpp")) {
             std::ifstream file(entry.path());
@@ -75,12 +80,33 @@ json ScanDirectoryForComponents(const fs::path& searchDir) {
 
             std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
+            // --- NUEVO: Mapeo de namespaces en este archivo ---
+            std::map<size_t, std::string> activeNamespaces;
+            auto nsBegin = std::sregex_iterator(content.begin(), content.end(), namespaceRegex);
+            auto nsEnd = std::sregex_iterator();
+            for (std::sregex_iterator k = nsBegin; k != nsEnd; k++) {
+                activeNamespaces[k->position()] = (*k)[1].str();
+            }
+            // -------------------------------------------------
+
             auto compBegin = std::sregex_iterator(content.begin(), content.end(), componentRegex);
             auto compEnd = std::sregex_iterator();
 
             for(std::sregex_iterator i = compBegin; i != compEnd; i++) {
+                
                 std::string alignasStr = (*i)[1].str();
                 std::string compName = (*i)[2].str();
+                size_t startPos = i->position();
+
+                // --- NUEVO: Encontrar a qué namespace pertenece este componente ---
+                std::string currentNamespace = "";
+                // Iteramos en reversa para encontrar el último namespace declarado ANTES del componente
+                for (auto it = activeNamespaces.rbegin(); it != activeNamespaces.rend(); ++it) {
+                    if (it->first < startPos) {
+                        currentNamespace = it->second;
+                        break;
+                    }
+                }
                 
                 size_t structMaxAlignment = 1;
                 if(!alignasStr.empty()){
@@ -90,7 +116,7 @@ json ScanDirectoryForComponents(const fs::path& searchDir) {
                 json fieldsArray = json::array();
                 size_t currentOffset = 0;
 
-                size_t startPos = i->position();
+                //size_t startPos = i->position();
                 // Buscamos el inicio del próximo componente para delimitar el bloque.
                 // Si no hay otro componente en el archivo, tomamos el resto del archivo entero.
 
@@ -146,6 +172,7 @@ json ScanDirectoryForComponents(const fs::path& searchDir) {
                     currentOffset += finalPadding;
 
                     json compNode;
+                    compNode["namespace"] = currentNamespace;
                     compNode["size"] = currentOffset;
                     compNode["fields"] = fieldsArray;
 
@@ -226,6 +253,132 @@ int main(int argc, char* argv[]) {
         outFile << finalSchema.dump(4);
 
         ILEN_LOG_P(DEBUG_PREFIX, "Esquema final generado en: %s", outputPath.c_str());
+    
+        // =========================================================================
+        // FASE 3: GENERACIÓN AUTOMÁTICA DE CÓDIGO C++ (NUEVO)
+        // =========================================================================
+        ILEN_LOG_P(DEBUG_PREFIX, "Generando C++ Bindings automaticos...");
+
+        std::string cppCode = "#pragma once\n";
+        cppCode += "// ======================================================================\n";
+        cppCode += "// ARCHIVO AUTOGENERADO POR ILUSION HEADER TOOL. NO EDITAR MANUALMENTE.\n";
+        cppCode += "// ======================================================================\n\n";
+        
+        cppCode += "#include <ilen/headers/ecs_components.h>\n\n"; 
+        cppCode += "#include <ilen/core/engine_context.h>\n\n";
+
+        cppCode += "namespace ilen::resources::scene {\n";
+        cppCode += "    inline void AutoRegisterDeserializers(SceneManager* manager, ilen::EngineContext* ctx) {\n";
+
+        for (const auto& [compName, compNode] : finalSchema.items()) {
+            uint32_t hash = ilen::resources::scene::HashComponent(compName);
+            size_t staticSize = compNode["size"];
+
+            cppCode += "        manager->m_deserializers[" + std::to_string(hash) + "u] = \n";
+            cppCode += "            [](ilen::ecs::Entity entity, char*& stream, const std::unordered_map<UUID, ilen::ecs::Entity>& uuidMap, ilen::EngineContext* ctx) {\n";
+            
+            std::string ns = compNode.value("namespace", "");
+            if (!ns.empty()) {
+                cppCode += "                " + ns + "::" + compName + " comp;\n";
+            } else {
+                cppCode += "                " + compName + " comp;\n";
+            }
+
+            cppCode += "                uint64_t presenceMask = *reinterpret_cast<uint64_t*>(stream);\n";
+            cppCode += "                stream += sizeof(uint64_t);\n";
+            cppCode += "                char* staticStart = stream;\n\n";
+
+            cppCode += "                int fieldIdx = 0;\n";
+
+            // ===================================================
+            // 1. BLOQUE ESTÁTICO (POD y UUIDs Base)
+            // ===================================================
+            for (const auto& field : compNode["fields"]) {
+                std::string name = field["name"];
+                std::string type = field["type"];
+                size_t offset = field["offset"];
+                size_t size = field["size"];
+
+                bool isDynamic = (type == "string" || type.find("vector") != std::string::npos);
+                bool isEntity = (name == "parent" || name == "toFollowEntity" || name == "toLookAtEntity" || name == "cameraEntity");
+
+                if (!isDynamic) {
+                    // Solo copiamos si el bit correspondiente en la máscara está activo
+                    cppCode += "                if (presenceMask & (1ULL << fieldIdx)) {\n";
+                    cppCode += "                    std::memcpy(&comp." + name + ", staticStart + " + std::to_string(offset) + ", " + std::to_string(size) + ");\n";
+                    
+                    // Parcheo de UUID integrado en la copia segura
+                    if (isEntity) {
+                        cppCode += "                    if (uuidMap.contains(comp." + name + ")) comp." + name + " = uuidMap.at(comp." + name + ");\n";
+                        cppCode += "                    else comp." + name + " = ilen::ecs::NULL_ENTITY;\n";
+                    }
+                    cppCode += "                }\n";
+                }
+                cppCode += "                fieldIdx++;\n";
+            }
+
+            cppCode += "                stream += " + std::to_string(staticSize) + "; // Avanzar bloque estatico\n\n";
+
+            // ===================================================
+            // 2. BLOQUE DINÁMICO (Vectores y Strings)
+            // ===================================================
+            cppCode += "                fieldIdx = 0;\n";
+            for (const auto& field : compNode["fields"]) {
+                std::string name = field["name"];
+                std::string type = field["type"];
+
+                if (type == "string") {
+                    cppCode += "                uint32_t " + name + "_len = *reinterpret_cast<uint32_t*>(stream);\n";
+                    cppCode += "                stream += sizeof(uint32_t);\n";
+                    cppCode += "                if (presenceMask & (1ULL << fieldIdx)) {\n";
+                    cppCode += "                    comp." + name + " = std::string(stream, " + name + "_len);\n";
+                    cppCode += "                }\n";
+                    cppCode += "                stream += " + name + "_len;\n";
+                } 
+                // FIX: Soporte dinámico para diferentes vectores para no desfasar el puntero
+                else if (type.find("vector") != std::string::npos) {
+                    cppCode += "                uint32_t " + name + "_count = *reinterpret_cast<uint32_t*>(stream);\n";
+                    cppCode += "                stream += sizeof(uint32_t);\n";
+                    cppCode += "                if (presenceMask & (1ULL << fieldIdx)) {\n";
+                    cppCode += "                    comp." + name + ".reserve(" + name + "_count);\n";
+                    cppCode += "                    for (uint32_t i = 0; i < " + name + "_count; ++i) {\n";
+                    
+                    if (type == "vector<uint64_t>" || type == "vector<UUID>") {
+                        cppCode += "                        UUID id = *reinterpret_cast<UUID*>(stream);\n";
+                        cppCode += "                        if (uuidMap.contains(id)) comp." + name + ".push_back(uuidMap.at(id));\n";
+                        cppCode += "                        stream += sizeof(UUID);\n";
+                    } else if (type == "vector<uint32_t>" || type == "vector<uint32>") {
+                        cppCode += "                        uint32_t val = *reinterpret_cast<uint32_t*>(stream);\n";
+                        cppCode += "                        comp." + name + ".push_back(val);\n";
+                        cppCode += "                        stream += sizeof(uint32_t);\n";
+                    }
+                    cppCode += "                    }\n";
+                    cppCode += "                } else {\n";
+                    
+                    // Si el componente usa valores por defecto, DEBEMOS avanzar el stream para no corromper la memoria
+                    if (type == "vector<uint64_t>" || type == "vector<UUID>") {
+                        cppCode += "                    stream += (" + name + "_count * sizeof(UUID));\n";
+                    } else if (type == "vector<uint32_t>" || type == "vector<uint32>") {
+                        cppCode += "                    stream += (" + name + "_count * sizeof(uint32_t));\n";
+                    }
+                    cppCode += "                }\n";
+                }
+                cppCode += "                fieldIdx++;\n";
+            }
+
+            // Se usa addComponent para actualizar la firma (bitmask) del ECS
+            cppCode += "                ctx->p_coordinator->setComponent(entity, std::move(comp));\n";
+            cppCode += "            };\n\n";
+        }
+
+        cppCode += "    }\n}\n";
+
+        fs::path cppOutPath = outputDir / "generated_serializers.inl";
+        std::ofstream outCppFile(cppOutPath);
+        outCppFile << cppCode;
+        outCppFile.close();
+
+        ILEN_LOG_P(DEBUG_PREFIX, "Codigo C++ autogenerado en: %s", cppOutPath.string().c_str());
     }
 
     return 0;

@@ -20,6 +20,7 @@
                 "type": "bool"
             }
         ],
+        "namespace": "ilen::ecs::components::physics",
         "size": 48
     },
     "BoxCollider3D": {
@@ -43,6 +44,7 @@
                 "type": "bool"
             }
         ],
+        "namespace": "ilen::ecs::components::physics",
         "size": 48
     },
     "CameraComponent": {
@@ -126,6 +128,7 @@
                 "type": "float4x4"
             }
         ],
+        "namespace": "ilen::ecs::components",
         "size": 320
     },
     "EntityMetadataComponent": {
@@ -161,6 +164,7 @@
                 "type": "bool"
             }
         ],
+        "namespace": "components",
         "size": 80
     },
     "RenderComponent": {
@@ -190,6 +194,7 @@
                 "type": "uint32_t"
             }
         ],
+        "namespace": "ilen::ecs::components",
         "size": 32
     },
     "Rigidbody2D": {
@@ -243,6 +248,7 @@
                 "type": "bool"
             }
         ],
+        "namespace": "ilen::ecs::components::physics",
         "size": 80
     },
     "Rigidbody3D": {
@@ -284,6 +290,7 @@
                 "type": "bool"
             }
         ],
+        "namespace": "ilen::ecs::components::physics",
         "size": 64
     },
     "TransformComponent": {
@@ -337,6 +344,7 @@
                 "type": "float4x4"
             }
         ],
+        "namespace": "ilen::ecs::components",
         "size": 208
     }
 }

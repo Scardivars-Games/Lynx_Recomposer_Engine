@@ -3,6 +3,7 @@
 #include <ilen/graphics/material.h>
 #include <ilen/graphics/shader.h>
 #include <ilen/core/filemanager.h>
+#include <ilen/resources/texture_manager.h>
 #include <set>
 #include <vector>
 
@@ -10,6 +11,8 @@ using namespace ilen::resources;
 using namespace ilen::core;
 
 void AssetsManager::loadManifiest(EngineContext* engineContext) {
+    context = engineContext;
+
     m_manifestFileName = "assets.ilenmanifest";
 
     auto manifestPath = FileManager::fileRoute(m_manifestFileName, ILEN_FILE_TYPE_ASSETS_MANIFEST);
@@ -114,4 +117,12 @@ uint32_t AssetsManager::getAssetID(const std::string& friendlyName) const {
         ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "El asset con nombre %s no existe en los registros. Revisar el nombre.", friendlyName.c_str());
     }
     return element->second; //Regresa el id :)
+}
+
+float AssetsManager::getAssetLoadStatus() {
+    float totalResult = context->p_meshManager->LoadingStatus();
+    totalResult += context->p_renderPipelineManager->LoadingStatus();
+    totalResult += context->p_textureManager->LoadingStatus();
+
+    return totalResult / 3.0f;
 }

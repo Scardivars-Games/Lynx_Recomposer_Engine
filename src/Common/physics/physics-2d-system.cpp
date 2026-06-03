@@ -1,7 +1,7 @@
 #include <ilen/physics/physics2d_system.h>
 #include <ilen/headers/ecs.h>
 #include <ilen/headers/ecs_components.h>
-#include <ilen_public/API/transform_api.h>
+//#include <ilen_public/API/transform_api.h>
 #include <ilen_public/API/physics2d_api.h>
 
 using namespace ilen::ecs::systems;
@@ -38,6 +38,9 @@ void PhysicsSystem2D::Update() {
     componentArray.boxColliderArray = p_coordinator->getComponentArray<physics::BoxCollider2D>();
     componentArray.transformComponentArray = p_coordinator->getComponentArray<TransformComponent>();
     componentArray.physicsOrderArray = p_coordinator->getComponentArray<physics::PhysicsOrder>();
+    componentArray.transformOrderArray = p_coordinator->getComponentArray<TransformOrder>();
+
+    m_accumulatedTransformOrder.clear();
 
 
     syncEntities(&componentArray);
@@ -53,6 +56,11 @@ void PhysicsSystem2D::Update() {
     applyGravity(dt, &componentArray);
     integrate(dt, &componentArray);
     detectAndResolve(dt, &componentArray);
+
+    for(auto& [id, order] : m_accumulatedTransformOrder) {
+        order.hasOrders = true;
+        componentArray.transformOrderArray->updateData(id, std::move(order));
+    }
 
 #if ILEN_DEBUG
     checkStaticGuard(&componentArray);
@@ -203,11 +211,20 @@ void PhysicsSystem2D::applyGravity(float dt, ArrayOfComponentsUsed* componentsAr
 }
 
 void PhysicsSystem2D::integrate(float dt, ArrayOfComponentsUsed* componentsArray){
+    auto* orderArray = p_coordinator->getComponentArray<components::TransformOrder>();
+
     for(Entity e : m_dynamicEntities) {
         auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
         if(!rb) continue;
 
-        ilen::engine::api::TransformAPI::Translate(e, static_cast<vec3>(rb->velocity * dt));
+        //ilen::engine::api::TransformAPI::Translate(e, static_cast<vec3>(rb->velocity * dt));
+        TransformOrder order{};
+        if(m_accumulatedTransformOrder.contains(e)) {
+            order = m_accumulatedTransformOrder[e];
+        }
+        order.translation += static_cast<vec3>(rb->velocity * dt);
+
+        m_accumulatedTransformOrder[e] = order;
         rb->isInGround = false;
     }
 }
@@ -317,7 +334,14 @@ void PhysicsSystem2D::resolveCollision(Entity a, Entity b, const ilen::maths::aa
     if(aIsDynamic && !bIsDynamic){
         //Elemento dinamico choca con objeto estático. Eso significa que el dinamico penetra el 100%
         vec3 separation(result.normal * result.depth);
-        ilen::engine::api::TransformAPI::Translate(a, separation);
+        //ilen::engine::api::TransformAPI::Translate(a, separation);
+        TransformOrder order{};
+        if(m_accumulatedTransformOrder.contains(a)) {
+            order = m_accumulatedTransformOrder[a];
+        }
+        order.translation += separation;
+        
+        m_accumulatedTransformOrder[a] = order;
 
         if(std::abs(result.normal.y) > 0.0f){
             rbA->velocity.y = 0.0f;
@@ -332,8 +356,23 @@ void PhysicsSystem2D::resolveCollision(Entity a, Entity b, const ilen::maths::aa
         vec3 separationA(result.normal * (result.depth * 0.5f));
         vec3 separationB(separationA * -1.0f);
 
-        ilen::engine::api::TransformAPI::Translate(a, separationA);
-        ilen::engine::api::TransformAPI::Translate(b, separationB);
+        //ilen::engine::api::TransformAPI::Translate(a, separationA);
+        //ilen::engine::api::TransformAPI::Translate(b, separationB);
+        TransformOrder order{};
+        if(m_accumulatedTransformOrder.contains(a)) {
+            order = m_accumulatedTransformOrder[a];
+        }
+        order.translation += separationA;
+        
+        m_accumulatedTransformOrder[a] = order;
+
+        order = {};
+        if(m_accumulatedTransformOrder.contains(b)) {
+            order = m_accumulatedTransformOrder[b];
+        }
+        order.translation += separationB;
+        
+        m_accumulatedTransformOrder[b] = order;
 
         if(std::abs(result.normal.y) > 0.0f){
             rbA->velocity.y = 0.0f;

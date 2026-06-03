@@ -21,6 +21,9 @@ namespace ilen::resources {
     namespace texture {
         class TextureManager;
     }
+    namespace scene {
+        class SceneManager;
+    }
 }
 
 namespace ilen::window{
@@ -51,6 +54,7 @@ namespace ilen {
         std::unique_ptr<ilen::resources::materials::MaterialManager> p_materialManager;
         std::unique_ptr<ilen::resources::render_pipeline::PipelineManager> p_renderPipelineManager;
         std::unique_ptr<ilen::resources::texture::TextureManager> p_textureManager;
+        std::unique_ptr<ilen::resources::scene::SceneManager> p_sceneManager;
 
 
         //Ahora es responsabilidad del coordinador entregar los sistemas :)

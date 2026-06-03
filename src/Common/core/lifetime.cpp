@@ -8,6 +8,7 @@
 #include <ilen/core/engine_context.h>
 #include <ilen/ecs/system_registry.h>
 #include <ilen/resources/texture_manager.h>
+#include <ilen/resources/scene_manager.h>
 
 //API públicas del motor
 #include <ilen_public/API/input_api.h>
@@ -81,7 +82,7 @@ namespace ilen{
         engineContext->p_materialManager = std::make_unique<ilen::resources::materials::MaterialManager>(engineContext.get());
         engineContext->p_renderPipelineManager = std::make_unique<ilen::resources::render_pipeline::PipelineManager>(engineContext.get());
         engineContext->p_textureManager = std::make_unique<ilen::resources::texture::TextureManager>(engineContext.get());
-
+        engineContext->p_sceneManager = std::make_unique<ilen::resources::scene::SceneManager>(engineContext.get());
 /*
         //Registro sistemas.
         //Transform system (space properties of an object)
@@ -188,6 +189,9 @@ namespace ilen{
 
         //El init de los script generar actualmente componentes, por eso es necesario que sea primero.
         scriptingSystemPtr->Init(engineContext.get());
+
+        //Cargar escena de indice 0
+        engineContext->p_sceneManager->LoadScene(1);
 
         ILEN_LOG_P(DEBUG_PREFIX, "INICIALIZANDO SYSTEMAS NATIVOS DEL MOTOR");
         for(auto& system: engineContext->p_coordinator->getAllSystems()){
