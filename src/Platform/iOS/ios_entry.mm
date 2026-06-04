@@ -2,10 +2,10 @@
 #if ILEN_IOS
 #import <UIKit/UIKit.h>
 #include <ilen/core/lifetime.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 #include <ilen/core/exceptions.h>
-#include <ilen/input/input-buffer.h>
-#include <window/window-ios.h>
+#include <ilen/input/input_buffer.h>
+#include <window/window_ios.h>
 
 @class SceneDelegate;
 

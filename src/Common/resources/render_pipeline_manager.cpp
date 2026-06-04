@@ -58,7 +58,7 @@ namespace ilen::resources::render_pipeline {
     float PipelineManager::LoadingStatus() {
         if(m_loadingPipelines.size() > 0) {
             //Hay datos cargando
-            lastTimeAmountOfElementLoading = m_loadingPipelines.size() > lastTimeAmountOfElementLoading ? m_loadingPipelines.size() : lastTimeAmountOfElementLoading;
+            lastTimeAmountOfElementLoading = m_loadingPipelines.size() > lastTimeAmountOfElementLoading ? static_cast<uint32_t>(m_loadingPipelines.size()) : lastTimeAmountOfElementLoading;
             return 1.0f - (static_cast<float>(m_loadingPipelines.size()) / static_cast<float>(lastTimeAmountOfElementLoading));
         }else {
             lastTimeAmountOfElementLoading = 0;

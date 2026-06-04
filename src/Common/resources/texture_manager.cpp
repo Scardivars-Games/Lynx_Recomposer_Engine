@@ -110,7 +110,7 @@ namespace ilen::resources::texture {
     float TextureManager::LoadingStatus() {
         if(m_texLoadingData.size() > 0) {
             //Hay datos cargando
-            lastTimeAmountOfElementLoading = m_texLoadingData.size() > lastTimeAmountOfElementLoading ? m_texLoadingData.size() : lastTimeAmountOfElementLoading;
+            lastTimeAmountOfElementLoading = m_texLoadingData.size() > lastTimeAmountOfElementLoading ? static_cast<uint32_t>(m_texLoadingData.size()) : lastTimeAmountOfElementLoading;
             return 1.0f - (static_cast<float>(m_texLoadingData.size()) / static_cast<float>(lastTimeAmountOfElementLoading));
         }else {
             lastTimeAmountOfElementLoading = 0;

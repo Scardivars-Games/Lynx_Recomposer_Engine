@@ -23,6 +23,9 @@
                 },
                 "BoxCollider2D": {
                     "halfExtents": [0.2, 0.4]
+                },
+                "ScriptingBridgeComponent" : {
+                    "scriptName" : "ilen::game::Cube"
                 }
             }
         },
@@ -46,6 +49,9 @@
                     "isStatic": true
                 },
                 "BoxCollider2D": {
+                },
+                "ScriptingBridgeComponent" : {
+                    "scriptName" : "ilen::game::Ground"
                 }
             }
         },
@@ -69,6 +75,9 @@
                     "fovDegrees": 70.0,
                     "orthoSize": 15.0,
                     "nearClip": 2.0
+                },
+                "ScriptingBridgeComponent" : {
+                    "scriptName" : "ilen::game::GravityCamera"
                 }
             }
         },
@@ -89,6 +98,9 @@
                     "mainTexID": 13,
                     "materialID": 6,
                     "defaultSpriteInTextureID": 10
+                },
+                "ScriptingBridgeComponent" : {
+                    "scriptName" : "ilen::game::PointerPos"
                 }
             }
         }

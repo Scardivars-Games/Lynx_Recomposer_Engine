@@ -1,6 +1,7 @@
 #if !ILEN_ONLY_ECS
 
 #include <ilen/game_logic/script_system.h>
+#include <ilen/game_logic/script_registry.h>
 #include <ilen/core/engine_context.h>
 #include <ilen_public/API/transform_api.h>
 #include <ilen_public/API/physics2d_api.h>
@@ -36,6 +37,30 @@ namespace ilen::ecs::systems {
 
 
     void ScriptingSystem::Update() {
+        //Primero hacemos binding si es necesario en el main thread
+        auto* scriptComponentArray = p_coordinator->getComponentArray<ilen::ecs::components::ScriptingBridgeComponent>();
+
+        for(const auto& entity: entities) {
+            auto* scriptComp = scriptComponentArray->getData(entity);
+
+            if(!scriptComp) continue;
+
+            if(!scriptComp->instantiate && !scriptComp->scriptName.empty()) {
+                ilen::game::ScriptRegistry::TryBind(scriptComp->scriptName, *scriptComp);
+            }
+
+            if(!scriptComp->instance && scriptComp->instantiate) {
+                scriptComp->instance = scriptComp->instantiate();
+
+                scriptComp->instance->entity = entity;
+                scriptComp->instance->coordinator = p_coordinator;
+                scriptComp->instance->Init();
+            }
+        }
+
+        //Ejecutamos los transforms que hayan acumulados otros sistemas ya que no usan la API de transformaciones.
+        ilen::engine::api::TransformAPI::ExecuteOrdersInTheTransformSystem();
+
         {
             ilen::time::ScopedTimer timer("Scripting Update method");
 
@@ -47,7 +72,6 @@ namespace ilen::ecs::systems {
             size_t chunkSize = (total + numThreads - 1) / numThreads;
             size_t numChunks = (total + chunkSize - 1) / chunkSize;
 
-            auto* scriptComponentArray = p_coordinator->getComponentArray<ilen::ecs::components::ScriptingBridgeComponent>();
             ilen::engine::api::CameraAPI::GetMainCameraPointer();
 
             {
@@ -78,6 +102,8 @@ namespace ilen::ecs::systems {
                 ilen::engine::api::PhysicsAPI::ExecuteAllAccumulatedForces();               
                 p_commandDispatcher->ExecuteAll();
             }
+
+            //Ejecutamos los transforms generados durante los scripts.
             ilen::engine::api::TransformAPI::ExecuteOrdersInTheTransformSystem();
         }
     }

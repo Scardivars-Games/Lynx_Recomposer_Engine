@@ -8,7 +8,11 @@
 #include <ilen/game_logic/game_object.h>
 
 namespace ilen::ecs::components {
+
+    ILEN_COMPONENT
     struct ScriptingBridgeComponent {
+        ILEN_PROPERTY std::string scriptName = "";
+
         std::shared_ptr<ilen::game::GameObject> instance = nullptr;
 
         std::function<std::shared_ptr<ilen::game::GameObject>()> instantiate;
@@ -17,7 +21,11 @@ namespace ilen::ecs::components {
         template<typename T>
         void bind(){
             instantiate = []() { return std::make_shared<T>(); };
-            destroyScript = [&]() { instance.reset(); };
+            //destroyScript = [&]() { instance.reset(); };
+        }
+
+        void destroy() {
+            instance.reset();
         }
     };
 }

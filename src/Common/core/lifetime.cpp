@@ -135,7 +135,7 @@ namespace ilen{
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        /*int elementosPrueba = 0;
+        int elementosPrueba = 1000;
 
         for (int i = 0; i < elementosPrueba; i++) {
                 auto entity = engineContext->p_coordinator->createEntity();
@@ -145,7 +145,7 @@ namespace ilen{
         }
 
         //GravityTest :)
-        {
+        /*{
                 components::EntityMetadataComponent cubeMetadata {TagSystem::None, LayerSystem::Player, "Cubo de prueba"};
                 auto cube_gravity = engineContext->p_coordinator->createEntity(std::move(cubeMetadata));
                 components::ScriptingBridgeComponent cubeScript_Gravity{};

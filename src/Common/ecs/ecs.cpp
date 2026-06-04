@@ -150,6 +150,22 @@ std::vector<std::shared_ptr<ISystem>> SystemManager::getSystemByPhase(SystemPhas
     return result;
 }
 
+void ECSCoordinator::UpdateEntityName(ilen::ecs::Entity entity, const std::string& oldName, const std::string& newName){
+    if(oldName == newName) return;
+
+    auto it = m_nameToEntityMap.find(oldName);
+    //Borrar el nombre viejo tras confirmar que apunte a la misma entidad
+    if(it != m_nameToEntityMap.end() && it->second == entity) {
+        m_nameToEntityMap.erase(it);
+    }
+
+    //Registrar el nuevo
+    if(!newName.empty()) {
+        m_nameToEntityMap[newName] = entity;
+    }
+}
+
+
 //debug
 #ifdef ILEN_DEBUG
 using namespace ilen::ecs::debug;

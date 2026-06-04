@@ -61,13 +61,32 @@ namespace ilen::ecs {
                     using DecayedType = typename std::decay<T>::type;
                     bool wasNew = !hasComponent<DecayedType>(entity);
 
+                    // 1. Respaldar el nombre viejo en tiempo de compilación (antes de que se mueva la memoria)
+                    std::string oldName = "";
+                    if constexpr (std::is_same_v<DecayedType, ilen::ecs::components::EntityMetadataComponent>) {
+                        if (!wasNew) { // Si ya tenía metadatos, guardamos el nombre que tenía antes de sobreescribir
+                            oldName = componentManager->getComponent<DecayedType>(entity)->name;
+                        }
+                    }
+
+                    // 2. Sobrescribir en la memoria del ECS
                     componentManager->setComponent<DecayedType>(entity, std::forward<T>(component));
 
+                    // 3. Actualización de firmas
                     if(wasNew){
                         auto signature = entityManager->getSignature(entity);
                         signature.set(componentManager->getComponentType<DecayedType>(), true);
                         entityManager->setSignature(entity, signature);
                         systemManager->entitySignatureChanged(entity, signature);
+                    }
+
+                    // 4. Sincronizar la estructura de búsqueda
+                    if constexpr (std::is_same_v<DecayedType, ilen::ecs::components::EntityMetadataComponent>) {
+                        // Leemos el nuevo nombre desde el componentManager porque 'component' pudo haber sido vaciado por std::forward
+                        const auto& newMetadata = componentManager->getComponent<DecayedType>(entity);
+                        
+                        // Llamamos a tu método de actualización (asegúrate de implementarlo en tu entityManager)
+                        UpdateEntityName(entity, oldName, newMetadata->name);
                     }
                 } else {
                     auto& localBuffer = p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex);
@@ -76,6 +95,8 @@ namespace ilen::ecs {
                     });
                 }
             }
+
+            void UpdateEntityName(ilen::ecs::Entity entity, const std::string& oldName, const std::string& newName);
 
             template<typename T>
             T* getComponent(Entity entity){

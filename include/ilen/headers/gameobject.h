@@ -8,3 +8,4 @@
 
 //Required Systems.
 #include <ilen/game_logic/game_object.h>
+#include <ilen/game_logic/script_registry.h>

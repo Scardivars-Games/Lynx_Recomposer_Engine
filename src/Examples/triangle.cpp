@@ -45,7 +45,7 @@ void Triangle::Update(){
     }
 
     TransformAPI::Rotate(entity, vec3(0, 0, static_cast<float>(zRotate)) * ilen::time::Time::getDeltaTime());
-    TransformAPI::Translate(entity, vec3(xAdvance, 0, 0));
+    //TransformAPI::Translate(entity, vec3(xAdvance, 0, 0));
     advance += xAdvance;
 }
 

@@ -1,10 +1,10 @@
 #if defined (__APPLE__) && ILEN_IOS
-#include <window/window-ios.h>
+#include <window/window_ios.h>
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #include <ilen/headers/core.h>
-#include <ilen/input/input-buffer.h>
-#include <input/apple-controllers.h>
+#include <ilen/input/input_buffer.h>
+#include <input/apple_controllers.h>
 
 @interface IlenView : UIView
 @property (nonatomic, assign) ilen::window::WindowNativeIOS* owner;

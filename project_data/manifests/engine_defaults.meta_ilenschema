@@ -293,6 +293,18 @@
         "namespace": "ilen::ecs::components::physics",
         "size": 64
     },
+    "ScriptingBridgeComponent": {
+        "fields": [
+            {
+                "name": "scriptName",
+                "offset": 8,
+                "size": 32,
+                "type": "string"
+            }
+        ],
+        "namespace": "ilen::ecs::components",
+        "size": 40
+    },
     "TransformComponent": {
         "fields": [
             {

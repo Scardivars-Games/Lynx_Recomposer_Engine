@@ -202,7 +202,12 @@ MTLSamplerAddressMode ilen::render::utils::metal::transformEngineToNativeSampler
         case ILEN_GPU_SAMPLER_ADDRESS_MODE::ILEN_GPU_SAMPLER_ADDRESS_CLAMP_TO_EDGE:
             return MTLSamplerAddressModeClampToEdge;
         case ILEN_GPU_SAMPLER_ADDRESS_MODE::ILEN_GPU_SAMPLER_ADDRESS_CLAMP_TO_BORDER_COLOR:
-            return MTLSamplerAddressModeClampToBorderColor;
+            if (@available(iOS 14.0, *)) {
+                return MTLSamplerAddressModeClampToBorderColor;
+            } else {
+                // Fallback on earlier versions
+                return MTLSamplerAddressModeClampToEdge;
+            }
     }
 }
 

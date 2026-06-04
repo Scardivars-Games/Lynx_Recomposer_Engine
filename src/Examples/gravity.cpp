@@ -16,14 +16,23 @@ using namespace ilen::ecs::components::physics;
 using namespace ilen::engine::api;
 using namespace ilen::core::options;
 
+
+int velocity = 15;
+float deathZoneThreshold = 0.02f;
+float deathZoneMobileSize = 0;
+int lastWindowWidth = 0;
+
 void Cube::Init() {
     ILEN_LOG_P("Gravedad", "Inicializado prueba de gravedad");
+
+    deathZoneMobileSize = ilen::window::IWindow::getWidth() * deathZoneThreshold;
+    lastWindowWidth = ilen::window::IWindow::getWidth();
     
     //Inicializar los sistemas (En el motor normal, al leer los datos de la escena, ahí los iniciaría en vez de esta forma)
     //coordinator->registerComponent<TransformComponent>();
     //coordinator->registerComponent<RenderComponent>();
 
-    TransformComponent transform{};
+    /*TransformComponent transform{};
     transform.position = vec3(0.0f, 20.0f, 10.0f);
     transform.scale = vec3(3);
     coordinator->setComponent(entity, std::move(transform));
@@ -39,12 +48,10 @@ void Cube::Init() {
 
     BoxCollider2D collider{};
     collider.halfExtents = vec2(0.2f, 0.4f);
-    coordinator->setComponent(entity, std::move(collider));
+    coordinator->setComponent(entity, std::move(collider));*/
 
     //CameraAPI::MakeMainCameraFollowThisEntity(entity);
 }
-
-int velocity = 15;
 
 void Cube::Update() {
     using namespace ilen::engine::api;
@@ -79,11 +86,42 @@ void Cube::Update() {
             }
         }
     }
+
+    //movimiento movil
+    if(touches > 0) {
+        //Hay touches!!!
+        if(InputAPI::IsTouchDown(0)){
+            //Indice 0, o sea, el primer touch echo en la app, o uno nuevo despues de liberar el Indice
+            vec2 touchPos = InputAPI::GetTouchPosition(0);
+
+            if(InputAPI::IsTouchNew(0)) {
+                //Es el primer frame de este toque, almacenamos los datos.
+                firstXPointerPos = touchPos.x;
+            }
+
+            if(lastWindowWidth != ilen::window::IWindow::getWidth()){
+                deathZoneMobileSize = ilen::window::IWindow::getWidth() * deathZoneThreshold;
+                lastWindowWidth = ilen::window::IWindow::getWidth();
+            }
+            
+            //Vemos si debe ir para la derecha o la izquierda
+            if((firstXPointerPos + deathZoneMobileSize) - touchPos.x < 0) {
+                //Va para la derecha
+                TransformAPI::Translate(entity, vec2(velocity, 0.0f) * time::Time::getDeltaTime());
+                RenderingAPI::FlipSpriteInX(entity, false);
+            }
+            else if ((firstXPointerPos - deathZoneMobileSize) - touchPos.x > 0){
+                //Va para la izquierda
+                TransformAPI::Translate(entity, vec2(-velocity, 0.0f) * time::Time::getDeltaTime());
+                RenderingAPI::FlipSpriteInX(entity, true);
+            }
+        }
+    }
 }
 
 
 void PointerPos::Init() {
-    TransformComponent transform{};
+    /*TransformComponent transform{};
     transform.position = vec3(0.0f, 0.0f, 3.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
@@ -97,7 +135,7 @@ void PointerPos::Init() {
 
     //API
     using namespace ilen::engine::api;
-    EntityAPI::SetActive(entity, false);
+    EntityAPI::SetActive(entity, false);*/
 }
 
 void PointerPos::Update(){
@@ -136,7 +174,7 @@ void Ground::Init() {
     //coordinator->registerComponent<TransformComponent>();
     //coordinator->registerComponent<RenderComponent>();
 
-    TransformComponent transform{};
+   /* TransformComponent transform{};
     transform.position = vec3(0.0f, -6.7f, 100.0f);
     transform.scale = vec3(90.0f, 1.0f, 1.0f);
     coordinator->setComponent(entity, std::move(transform));
@@ -150,11 +188,11 @@ void Ground::Init() {
     coordinator->setComponent(entity, std::move(rigidbody));
 
     BoxCollider2D collider{};
-    coordinator->setComponent(entity, std::move(collider));
+    coordinator->setComponent(entity, std::move(collider));*/
 }
 
 void GravityCamera::Init() {
-    TransformComponent transform{};
+    /*TransformComponent transform{};
     transform.position = vec3(0.0f, 0.0f, -10.0f);
     transform.scale = vec3(1.0f, 1.0f, 1.0f);
     transform.rotation = vec3(0.0f, 0.0f, 0.0f);
@@ -166,7 +204,7 @@ void GravityCamera::Init() {
     camera.orthoSize = 15;
     camera.nearClip = 2;
     camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
-    coordinator->setComponent(entity, std::move(camera));
+    coordinator->setComponent(entity, std::move(camera));*/
 }
 
 void GravityCamera::LateUpdate() {
