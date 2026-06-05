@@ -33,6 +33,9 @@ std::filesystem::path getFilePath(ILEN_FILE_TYPE category){
         case ILEN_FILE_TYPE_SCENE:
             resourceSpecificFolder = "scenes";
             break;
+        case ILEN_FILE_TYPE_PREFAB:
+            resourceSpecificFolder = "prefabs";
+            break;
         default:
             ILEN_EXECUTE_ERROR_P("FILE_MANAGER", "Dada una categoría desconocida");
             break;

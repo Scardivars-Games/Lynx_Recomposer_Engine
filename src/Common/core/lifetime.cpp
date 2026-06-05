@@ -12,6 +12,7 @@
 
 //API públicas del motor
 #include <ilen_public/API/input_api.h>
+#include <ilen_public/API/scenes_api.h>
 
 //FOR NO-EDITOR GAME
 #include <ilen_examples/gravity.h>
@@ -135,14 +136,14 @@ namespace ilen{
         //FOR NO-EDITOR-GAME
         //Init all object for no editor.
         //RotateCube Test
-        int elementosPrueba = 1000;
+        /*int elementosPrueba = 1000;
 
         for (int i = 0; i < elementosPrueba; i++) {
                 auto entity = engineContext->p_coordinator->createEntity();
                 components::ScriptingBridgeComponent script{};
                 script.bind<ilen::game::Triangle>();
                 engineContext->p_coordinator->setComponent(entity, std::move(script));
-        }
+        }*/
 
         //GravityTest :)
         /*{
@@ -186,6 +187,7 @@ namespace ilen{
 
         //Inicializar APIS del motor.
         ilen::engine::api::InputAPI::Init(engineContext.get());
+        ilen::engine::api::ScenesAPI::Init(engineContext.get());
 
         //El init de los script generar actualmente componentes, por eso es necesario que sea primero.
         scriptingSystemPtr->Init(engineContext.get());

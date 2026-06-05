@@ -4,7 +4,17 @@
             "id": 1,
             "name": "GravedadTest",
             "path": "gravity_test.meta_ilenscene"
+        },
+        {
+            "id": 0,
+            "name": "Bubble_Prefab",
+            "path": "bubble.meta_ilenprefab"
+        },
+        {
+            "id": 2,
+            "name": "ModelTest",
+            "path": "model_test.meta_ilenscene"
         }
     ],
-    "totalOfScenes": 1
+    "totalOfScenes": 2
 }

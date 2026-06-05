@@ -78,6 +78,14 @@ namespace ilen::resources::scene {
 
             void DontDestroyOnLoad(Entity entity);
 
+            //Control de escena activas
+            void SetActiveScene(const std::string& name);
+            void SetActiveScene(SceneID id);
+            SceneID GetActiveScene() const { return m_activeSceneID; }
+
+            //Prefabs
+            std::vector<Entity> LoadPrefab(const std::string& name);
+
             //Registros de parseadores
             std::unordered_map<uint32_t, DeseralizationCallback> m_deserializers;
         private:
@@ -90,6 +98,7 @@ namespace ilen::resources::scene {
             //Datos obtenidos del manifiesto
             std::unordered_map<std::string, SceneID> m_nameToID;
             std::unordered_map<SceneID, std::string> m_idToPath;
+            std::unordered_map<std::string, std::string> m_prefabNameToPath;
 
             //Manejo de las entidades por escena
             std::unordered_map<SceneID, std::vector<Entity>> m_loadedScenes;
@@ -99,6 +108,9 @@ namespace ilen::resources::scene {
             AsyncOperationPtr m_currentAsyncOp;
             SceneID m_loadingSceneID;
             std::vector<Entity> m_pendingEntities;
+
+            //Escena activa
+            SceneID m_activeSceneID = 0;
 
             std::mutex m_mutex;
             const char* DEBUG_PREFIX = "SCENE_MANAGER";

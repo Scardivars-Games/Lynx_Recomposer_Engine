@@ -1,0 +1,29 @@
+{
+    "scene_name": "Bubble_Prefab",
+    "entities": [
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "uuid": 15309137656345514579,
+                    "name": "Burbuja",
+                    "tags": 0,
+                    "layers": 2,
+                    "activeStatus": true
+                },
+                "TransformComponent": {
+                    "position": [0.0, 0.0, 0.0],
+                    "scale": [1.0, 1.0, 1.0]
+                },
+                "RenderComponent": {
+                    "mainTexID": 13,
+                    "meshID": 2,
+                    "materialID": 6,
+                    "defaultSpriteInTextureID": 10
+                },
+                "ScriptingBridgeComponent" : {
+                    "scriptName" : "ilen::game::Triangle"
+                }
+            }
+        }
+    ]
+}

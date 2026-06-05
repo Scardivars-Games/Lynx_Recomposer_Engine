@@ -28,4 +28,9 @@ namespace ilen::game{
     };
 }
 
+
+ILEN_REGISTER_SCRIPT(ilen::game::Triangle);
+ILEN_REGISTER_SCRIPT(ilen::game::Object3D);
+
+
 #endif //!ILEN_ONLY_ECS

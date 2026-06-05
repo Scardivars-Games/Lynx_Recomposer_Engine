@@ -16,5 +16,9 @@ namespace ilen::engine::api {
             static void UnloadScene(const std::string& sceneName);
 
             static void DontDestroyOnLoad(ilen::ecs::Entity entity);
+
+            static void Init(const ilen::EngineContext* context);
+        private:
+            static inline ilen::resources::scene::SceneManager* p_sceneManager;
     };
 }

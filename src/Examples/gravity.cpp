@@ -7,6 +7,7 @@
 #include <ilen_public/API/camera_api.h>
 #include <ilen_public/API/transform_api.h>
 #include <ilen_public/API/rendering_api.h>
+#include <ilen_public/API/scenes_api.h>
 #include <ilen/core/runtime_options.h>
 
 using namespace ilen::game;
@@ -27,6 +28,14 @@ void Cube::Init() {
 
     deathZoneMobileSize = ilen::window::IWindow::getWidth() * deathZoneThreshold;
     lastWindowWidth = ilen::window::IWindow::getWidth();
+
+    int elementosPrueba = 1000;
+
+    for (int i = 0; i < elementosPrueba; i++) {
+        EntityAPI::LoadPrefab("Bubble_Prefab");
+    }
+
+    ScenesAPI::LoadSceneAdditiveAsync("ModelTest");
     
     //Inicializar los sistemas (En el motor normal, al leer los datos de la escena, ahí los iniciaría en vez de esta forma)
     //coordinator->registerComponent<TransformComponent>();

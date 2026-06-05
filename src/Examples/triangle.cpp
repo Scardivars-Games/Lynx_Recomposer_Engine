@@ -15,17 +15,14 @@ void Triangle::Init() {
     // Posición aleatoria entre -5 y 5 en X e Y
     float randomX = -35.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 70.0f);
     float randomY = -18.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 36.0f);
-    TransformComponent transform{};
+    /*TransformComponent transform{};
     transform.position = vec3(randomX, randomY, -1.0f);
     transform.scale = vec3(0.5f, 0.5f, 0.5f);
-    coordinator->setComponent(entity, std::move(transform));
+    coordinator->setComponent(entity, std::move(transform));*/
 
-    RenderComponent render{};
-    render.meshID = 2;
-    render.materialID = PredefinedAssetsID::DefaultUnlitTransparentMatID;
-    render.mainTexID = 13;
-    render.defaultSpriteInTextureID = 10;
-    coordinator->setComponent(entity, std::move(render));
+    using namespace ilen::engine::api;
+    TransformAPI::SetPosition(entity, vec3(randomX, randomY, -1.0f));
+    TransformAPI::Scale(entity, 0.5f);
 }
 
 void Triangle::Update(){
@@ -45,7 +42,7 @@ void Triangle::Update(){
     }
 
     TransformAPI::Rotate(entity, vec3(0, 0, static_cast<float>(zRotate)) * ilen::time::Time::getDeltaTime());
-    //TransformAPI::Translate(entity, vec3(xAdvance, 0, 0));
+    TransformAPI::Translate(entity, vec3(xAdvance, 0, 0));
     advance += xAdvance;
 }
 

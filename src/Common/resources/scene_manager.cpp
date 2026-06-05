@@ -25,6 +25,8 @@ void SceneManager::LoadManifest() {
     ilen::binary::headers::IlenManifestHeader header{};
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
 
+    std::vector<std::string> orderedName(header.totalOfNamesToID);
+
     for(size_t i = 0; i < header.totalOfNamesToID; i++){
         SceneID id;
         uint32_t nameSize;
@@ -32,7 +34,12 @@ void SceneManager::LoadManifest() {
         file.read(reinterpret_cast<char*>(&nameSize), sizeof(uint32_t));
         std::string name(nameSize, '\0');
         file.read(name.data(), nameSize);
-        m_nameToID[name] = id;
+
+        orderedName[i] = name;
+
+        if(id != 0) {
+            m_nameToID[name] = id;  
+        }
     }
 
     for(size_t i = 0; i < header.totalOfNamesToID; i++){
@@ -42,7 +49,12 @@ void SceneManager::LoadManifest() {
         file.read(reinterpret_cast<char*>(&pathSize), sizeof(uint32_t));
         std::string path(pathSize, '\0');
         file.read(path.data(), pathSize);
-        m_idToPath[id] = path;
+
+        if(id == 0) {
+            m_prefabNameToPath[orderedName[i]] = path;
+        }else {
+            m_idToPath[id] = path;
+        }
     }
 }
 
@@ -124,6 +136,11 @@ AsyncOperationPtr SceneManager::LoadSceneAsync(SceneID id, LoadSceneMode mode) {
         return nullptr;
     }
 
+    if(id == 0) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "ID 0 es exclusivo de un prefab. Use la función LoadPrefab para cargar un prefab desde la función interna, o desde EntityAPI::LoadPrefab si estas en la API pública");
+        return nullptr;
+    }
+
     m_loadingSceneID = id;
     m_currentAsyncOp = std::make_shared<AsyncOperation>();
     m_currentAsyncOp->phase = AsyncLoadingPhase::ReadingDisk;
@@ -183,6 +200,8 @@ void SceneManager::Update(float dt) {
                 auto& sceneList = m_loadedScenes[m_loadingSceneID];
                 sceneList.insert(sceneList.end(), m_pendingEntities.begin(), m_pendingEntities.end());
                 m_pendingEntities.clear();
+
+                m_activeSceneID = m_loadingSceneID;
             }
 
             m_currentAsyncOp->progress = 1.0f;
@@ -228,5 +247,45 @@ AsyncOperationPtr SceneManager::LoadSceneAsync(const std::string& name, LoadScen
 void SceneManager::UnloadScene(const std::string& name) {
     if(m_nameToID.contains(name)){
         UnloadScene(m_nameToID[name]);
+    }
+}
+
+std::vector<Entity> SceneManager::LoadPrefab(const std::string& name) {
+    if(!m_prefabNameToPath.contains(name)) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "Prefab no encontrado en el manifiesto: %s", name.c_str());
+        return {};
+    }
+    
+    if (m_activeSceneID == 0) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "Intento de instanciar el prefab '%s' sin una escena activa. Abortando para evitar memory leaks.", name.c_str());
+        return {};
+    }
+
+    std::string prefabPath = ilen::core::FileManager::fileRoute(m_prefabNameToPath[name], ILEN_FILE_TYPE_PREFAB);
+
+    std::vector<Entity> instancedEntities = ParseSceneFile(prefabPath);
+
+    if (!instancedEntities.empty() && m_activeSceneID != 0) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        auto& activeSceneList = m_loadedScenes[m_activeSceneID];
+        activeSceneList.insert(activeSceneList.end(), instancedEntities.begin(), instancedEntities.end());
+    }
+    return instancedEntities;
+}
+
+void SceneManager::SetActiveScene(SceneID id) {
+    std::lock_guard<std::mutex> lock(m_mutex);
+    if (m_loadedScenes.contains(id)) {
+        m_activeSceneID = id;
+    } else {
+        ILEN_WARNING_P(DEBUG_PREFIX, "No se puede establecer como principal la escena %u porque no esta cargada.", id);
+    }
+}
+
+void SceneManager::SetActiveScene(const std::string& name) {
+    if (m_nameToID.contains(name)) {
+        SetActiveScene(m_nameToID[name]);
+    } else {
+        ILEN_WARNING_P(DEBUG_PREFIX, "Escena no encontrada para hacerla principal: %s", name.c_str());
     }
 }

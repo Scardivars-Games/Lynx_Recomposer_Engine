@@ -92,6 +92,8 @@ std::unordered_map<std::string, std::string> extensionToAssetType = {
     {".mp3", "assets/audio"},
     {".wav", "assets/audio"},
     {".flac", "assets/audio"},
+    //Prefabs
+    {".meta_ilenprefab", "assets/prefabs"},
     //Materials
     {".meta_ilenmat", "assets/materials"},
     //Manifiestos y otros datos del motor
@@ -327,7 +329,7 @@ void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
 
     //Este vector son las extensiones que no deben de registrarse en el assets.json, ya que otras clases gestionaran su uso.
     std::vector<std::string> extensionCantRegistrate = {
-        ".inl", ".metal", ".hlsl", ".glsl", ".spv", ".meta_ilenmanifest", ".mtl", ".msl", ".slang", ".meta_ilentex", ".meta_ilenschema", ".meta_ilenscene"
+        ".inl", ".metal", ".hlsl", ".glsl", ".spv", ".meta_ilenmanifest", ".mtl", ".msl", ".slang", ".meta_ilentex", ".meta_ilenschema", ".meta_ilenscene", ".meta_ilenprefab"
     };
     std::string unsupportedFolder = "unsupported";
 

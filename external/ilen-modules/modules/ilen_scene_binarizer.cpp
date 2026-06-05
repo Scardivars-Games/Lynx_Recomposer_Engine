@@ -268,69 +268,206 @@ int main(int argc, char* argv[]) {
     jobSystem.StopJobSystem();
     return 0;
 }
+
+void dataBinarization(std::filesystem::path archivePath, std::filesystem::path savePath) {
+    std::ifstream inputFile(archivePath);
+    if (!inputFile.is_open()) return;
+
+    json sceneJson;
+    try { inputFile >> sceneJson; } catch (...) { return; }
+
+    std::unordered_map<uint32_t, SceneComponentBuffer> componentBuffers;
+    std::vector<ilen::ecs::UUID> aliveEntities;
+    bool jsonNeedsSave = false;
+
+    if (sceneJson.contains("entities")) {
+        for (auto& entityJson : sceneJson["entities"]) { 
+            ilen::ecs::UUID entityId = 0;
+
+            // 1. Aseguramos que la entidad tenga el nodo de Metadatos
+            if (!entityJson.contains("components")) entityJson["components"] = json::object();
+            auto& componentsJson = entityJson["components"];
+            
+            if (!componentsJson.contains("EntityMetadataComponent")) {
+                componentsJson["EntityMetadataComponent"] = json::object();
+            }
+            auto& metaJson = componentsJson["EntityMetadataComponent"];
+
+            // 2. Extracción o Generación del UUID
+            if (metaJson.contains("uuid") && metaJson["uuid"].is_number_unsigned() && metaJson["uuid"].get<uint64_t>() > 0) {
+                // El UUID ya está correctamente asignado en los metadatos
+                entityId = metaJson["uuid"].get<uint64_t>();
+            } 
+            else if (entityJson.contains("uuid") && entityJson["uuid"].is_number_unsigned()) {
+                // MIGRACIÓN: El UUID estaba en la raíz del JSON. Lo movemos al componente.
+                entityId = entityJson["uuid"].get<uint64_t>();
+                metaJson["uuid"] = entityId;
+                entityJson.erase("uuid"); // Limpiamos el JSON
+                jsonNeedsSave = true;
+            }
+            else if (entityJson.contains("id") && entityJson["id"].is_number_unsigned()) {
+                // MIGRACIÓN: Era el formato viejo ("id": 1). Generamos un UUID real.
+                entityId = ilen::ecs::GenerateUUID();
+                metaJson["uuid"] = entityId;
+                entityJson.erase("id"); // Borramos el ID viejo
+                jsonNeedsSave = true;
+            }
+            else {
+                // Entidad completamente nueva
+                entityId = ilen::ecs::GenerateUUID();
+                metaJson["uuid"] = entityId;
+                jsonNeedsSave = true;
+            }
+
+            aliveEntities.push_back(entityId);
+
+            // 3. Empaquetado normal de los componentes
+            for (auto& [compName, compData] : componentsJson.items()) {
+                uint32_t hashId = ilen::resources::scene::HashComponent(compName);
+                ILEN_LOG("Hash guardado %u", hashId);
+                auto& buffer = componentBuffers[hashId];
+                
+                if (g_SchemaManager.PackComponent(hashId, compData, buffer.rawData)) {
+                    buffer.componentHash = hashId;
+                    buffer.entityCount++;
+                    buffer.entityIDs.push_back(entityId);
+                } else {
+                    ILEN_WARNING_P(DEBUG_PREFIX, "Ignorado: %s en Entidad %llu (No en schema)", compName.c_str(), entityId);
+                }
+            }
+        }
+    }
+
+    // Si se generaron UUIDs o se migró el JSON, guardamos los cambios en el archivo original
+    if (jsonNeedsSave) {
+        std::ofstream outSourceFile(archivePath);
+        outSourceFile << sceneJson.dump(4);
+        outSourceFile.close();
+    }
+
+    if (!fs::exists(savePath.parent_path())) {
+        std::error_code ec; fs::create_directories(savePath.parent_path(), ec);
+    }
+
+    std::ofstream outFile(savePath, std::ios::binary);
+    ilen::binary::headers::IlenSceneHeader header{};
+    strncpy(header.magicNumber, "ENECS_NELI", sizeof(header.magicNumber) - 1);
+    header.version = 1;
+    header.totalEntities = aliveEntities.size();
+    header.totalComponentTypes = componentBuffers.size();
+
+    outFile.write(reinterpret_cast<const char*>(&header), sizeof(ilen::binary::headers::IlenSceneHeader));
+    outFile.write(reinterpret_cast<const char*>(aliveEntities.data()), header.totalEntities * sizeof(ilen::ecs::UUID));
+
+    for (const auto& [hash, buffer] : componentBuffers) {
+        outFile.write(reinterpret_cast<const char*>(&buffer.componentHash), sizeof(uint32_t));
+        outFile.write(reinterpret_cast<const char*>(&buffer.entityCount), sizeof(uint32_t));
+        
+        uint32_t dataSizeBytes = buffer.rawData.size();
+        outFile.write(reinterpret_cast<const char*>(&dataSizeBytes), sizeof(uint32_t));
+        outFile.write(reinterpret_cast<const char*>(buffer.entityIDs.data()), buffer.entityCount * sizeof(ilen::ecs::UUID));
+        outFile.write(buffer.rawData.data(), dataSizeBytes);
+    }
+    outFile.close();
+}
  
 void binarizeScene(std::filesystem::path projectDataFolder) {
+    // Definición de las rutas para Escenas
     fs::path sourceScenesFolder = projectDataFolder / "scenes";
     fs::path binaryScenesFolder = projectDataFolder.parent_path() / ".ilen-bin-data" / "scenes";
     
+    // Definición de las rutas para Prefabs
+    fs::path sourcePrefabsFolder = projectDataFolder / "assets/prefabs";
+    fs::path binaryPrefabsFolder = projectDataFolder.parent_path() / ".ilen-bin-data" / "prefabs";
+    
+    // Rutas del manifiesto compartido
     fs::path manifestJsonPath = sourceScenesFolder.parent_path() / "manifests" / "scenes.meta_ilenmanifest";
     fs::path manifestBinaryPath = binaryScenesFolder.parent_path() / "manifests" / "scenes.ilenmanifest";
-    //fs::path globalManifestPath = projectDataFolder.parent_path() / ".ilen-bin-data" / "manifests" / "scenes.ilenmanifest";
 
-    if (!fs::exists(sourceScenesFolder)) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "No se encontro la carpeta de escenas en: %s", sourceScenesFolder.string().c_str());
+    if (!fs::exists(sourceScenesFolder) && !fs::exists(sourcePrefabsFolder)) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "No se encontraron las carpetas de escenas ni de prefabs.");
         return;
     }
 
-    ILEN_WARNING_P(DEBUG_PREFIX, "Start of scene binarization: %.4f", ilen::time::Time::getTotalTime());
+    ILEN_WARNING_P(DEBUG_PREFIX, "Start of data binarization: %.4f", ilen::time::Time::getTotalTime());
 
-    // --- FASE 1: INDEXACIÓN DE ESCENAS ---
+    // --- FASE 1: INDEXACIÓN DE ESCENAS Y PREFABS ---
     json manifestData;
     std::vector<std::string> existingPaths;
-    uint32_t maxID = 0;
+    
+    // Empezamos en 1, porque el ID 0 ahora es exclusivo de los Prefabs
+    uint32_t maxID = 1; 
 
     if (fs::exists(manifestJsonPath)) {
         std::ifstream file(manifestJsonPath);
         try { file >> manifestData; } catch (...) {}
-        maxID = manifestData.value(SCENE_MANIFEST_TOTAL, 0);
+        
+        maxID = manifestData.value(SCENE_MANIFEST_TOTAL, 1);
+        if (maxID == 0) maxID = 1; // Protección en caso de leer un manifiesto viejo
+        
         if (manifestData.contains(SCENE_MANIFEST_LIST)) {
             for (const auto& sceneData : manifestData[SCENE_MANIFEST_LIST]) {
                 existingPaths.push_back(sceneData.value(SCENE_MANIFEST_PATH, ""));
             }
         }
     } else {
-        manifestData[SCENE_MANIFEST_TOTAL] = 0;
+        manifestData[SCENE_MANIFEST_TOTAL] = 1;
         manifestData[SCENE_MANIFEST_LIST] = json::array();
     }
 
     bool needSaveNewManifest = false;
-    std::vector<fs::path> scenesToIndex;
+    
+    // Estructura para almacenar todos los trabajos y enviarlos juntos al JobSystem
+    struct FileTask {
+        fs::path inputPath;
+        fs::path savePath;
+    };
+    std::vector<FileTask> filesToCompile;
 
-    for (const auto& entry : fs::recursive_directory_iterator(sourceScenesFolder)) {
-        if (entry.is_regular_file() && entry.path().extension() == ".meta_ilenscene") {
-            fs::path relativePath = fs::relative(entry.path(), sourceScenesFolder);
-            scenesToIndex.push_back(entry.path());
+    // Lambda para procesar cualquier carpeta, detectar archivos nuevos y añadirlos al manifiesto
+    auto indexFolder = [&](const fs::path& srcFolder, const fs::path& binFolder, const std::string& ext, const std::string& binExt, bool isPrefab) {
+        if (!fs::exists(srcFolder)) return;
+        
+        for (const auto& entry : fs::recursive_directory_iterator(srcFolder)) {
+            if (entry.is_regular_file() && entry.path().extension() == ext) {
+                fs::path relativePath = fs::relative(entry.path(), srcFolder);
+                fs::path savePath = binFolder / relativePath;
+                savePath.replace_extension(binExt);
+                
+                // Añadimos el archivo a la cola de compilación
+                filesToCompile.push_back({entry.path(), savePath});
 
-            if (std::find(existingPaths.begin(), existingPaths.end(), relativePath.generic_string()) == existingPaths.end()) {
-                needSaveNewManifest = true;
+                // Si no está en el manifiesto, lo añadimos
+                if (std::find(existingPaths.begin(), existingPaths.end(), relativePath.generic_string()) == existingPaths.end()) {
+                    needSaveNewManifest = true;
 
-                std::string sceneName = entry.path().stem().string();
-                std::ifstream tempSceneFile(entry.path());
-                if (tempSceneFile.is_open()) {
-                    json tempSceneJson;
-                    try { tempSceneFile >> tempSceneJson; sceneName = tempSceneJson.value("scene_name", sceneName); } 
-                    catch (...) {}
+                    std::string itemName = entry.path().stem().string();
+                    std::ifstream tempFile(entry.path());
+                    if (tempFile.is_open()) {
+                        json tempJson;
+                        // Funciona igual ya que el nodo raíz puede llamarse scene_name o omitirse para usar el archivo
+                        try { tempFile >> tempJson; itemName = tempJson.value("scene_name", itemName); } 
+                        catch (...) {}
+                    }
+
+                    json newItem;
+                    // REGLA MAESTRA: Si es prefab asigna 0. Si es escena, usa y aumenta el maxID.
+                    newItem[SCENE_MANIFEST_ID] = isPrefab ? 0 : maxID;
+                    newItem[SCENE_MANIFEST_NAME] = itemName;
+                    newItem[SCENE_MANIFEST_PATH] = relativePath.generic_string();
+                    manifestData[SCENE_MANIFEST_LIST].push_back(newItem);
+                    
+                    if (!isPrefab) {
+                        maxID++; 
+                    }
                 }
-
-                json newScene;
-                newScene[SCENE_MANIFEST_ID] = maxID;
-                newScene[SCENE_MANIFEST_NAME] = sceneName;
-                newScene[SCENE_MANIFEST_PATH] = relativePath.generic_string();
-                manifestData[SCENE_MANIFEST_LIST].push_back(newScene);
-                maxID++; //Esto con el fin de que las escenas empiezen en el índice 0.
             }
         }
-    }
+    };
+
+    // Procesamos ambas carpetas
+    indexFolder(sourceScenesFolder, binaryScenesFolder, ".meta_ilenscene", ".ilenscene", false);
+    indexFolder(sourcePrefabsFolder, binaryPrefabsFolder, ".meta_ilenprefab", ".ilenprefab", true);
 
     if (needSaveNewManifest) {
         manifestData[SCENE_MANIFEST_TOTAL] = maxID;
@@ -339,8 +476,8 @@ void binarizeScene(std::filesystem::path projectDataFolder) {
         outFile << manifestData.dump(4);
     }
 
-    // --- FASE 2: COMPILACIÓN MULTIHILO (.meta_ilenscene -> .ilenscene) ---
-    size_t total = scenesToIndex.size();
+    // --- FASE 2: COMPILACIÓN MULTIHILO (Escenas + Prefabs) ---
+    size_t total = filesToCompile.size();
     if (total == 0) return;
 
     size_t threads = std::max<size_t>(1, jobSystem.AvailableThreads());
@@ -354,116 +491,10 @@ void binarizeScene(std::filesystem::path projectDataFolder) {
         size_t start = i * chunkSize;
         size_t end = std::min(start + chunkSize, total);
 
-        jobSystem.SubmitJob([=, &scenesToIndex, &sourceScenesFolder, &binaryScenesFolder]() {
+        jobSystem.SubmitJob([=, &filesToCompile]() {
             for (size_t j = start; j < end; j++) {
-                fs::path currentScenePath = scenesToIndex[j];
-                fs::path relativePath = fs::relative(currentScenePath, sourceScenesFolder);
-                fs::path savePath = binaryScenesFolder / relativePath;
-                savePath.replace_extension(".ilenscene");
-
-                /*if (fs::exists(savePath) && fs::last_write_time(currentScenePath) <= fs::last_write_time(savePath)) {
-                    continue; 
-                }*/
-
-                std::ifstream inputFile(currentScenePath);
-                if (!inputFile.is_open()) continue;
-
-                json sceneJson;
-                try { inputFile >> sceneJson; } catch (...) { continue; }
-
-                std::unordered_map<uint32_t, SceneComponentBuffer> componentBuffers;
-                std::vector<ilen::ecs::UUID> aliveEntities;
-                bool jsonNeedsSave = false;
-
-                if (sceneJson.contains("entities")) {
-                    for (auto& entityJson : sceneJson["entities"]) { 
-                        ilen::ecs::UUID entityId = 0;
-
-                        // 1. Aseguramos que la entidad tenga el nodo de Metadatos
-                        if (!entityJson.contains("components")) entityJson["components"] = json::object();
-                        auto& componentsJson = entityJson["components"];
-                        
-                        if (!componentsJson.contains("EntityMetadataComponent")) {
-                            componentsJson["EntityMetadataComponent"] = json::object();
-                        }
-                        auto& metaJson = componentsJson["EntityMetadataComponent"];
-
-                        // 2. Extracción o Generación del UUID
-                        if (metaJson.contains("uuid") && metaJson["uuid"].is_number_unsigned() && metaJson["uuid"].get<uint64_t>() > 0) {
-                            // El UUID ya está correctamente asignado en los metadatos
-                            entityId = metaJson["uuid"].get<uint64_t>();
-                        } 
-                        else if (entityJson.contains("uuid") && entityJson["uuid"].is_number_unsigned()) {
-                            // MIGRACIÓN: El UUID estaba en la raíz del JSON. Lo movemos al componente.
-                            entityId = entityJson["uuid"].get<uint64_t>();
-                            metaJson["uuid"] = entityId;
-                            entityJson.erase("uuid"); // Limpiamos el JSON
-                            jsonNeedsSave = true;
-                        }
-                        else if (entityJson.contains("id") && entityJson["id"].is_number_unsigned()) {
-                            // MIGRACIÓN: Era el formato viejo ("id": 1). Generamos un UUID real.
-                            entityId = ilen::ecs::GenerateUUID();
-                            metaJson["uuid"] = entityId;
-                            entityJson.erase("id"); // Borramos el ID viejo
-                            jsonNeedsSave = true;
-                        }
-                        else {
-                            // Entidad completamente nueva
-                            entityId = ilen::ecs::GenerateUUID();
-                            metaJson["uuid"] = entityId;
-                            jsonNeedsSave = true;
-                        }
-
-                        aliveEntities.push_back(entityId);
-
-                        // 3. Empaquetado normal de los componentes
-                        for (auto& [compName, compData] : componentsJson.items()) {
-                            uint32_t hashId = ilen::resources::scene::HashComponent(compName);
-                            ILEN_LOG("Hash guardado %u", hashId);
-                            auto& buffer = componentBuffers[hashId];
-                            
-                            if (g_SchemaManager.PackComponent(hashId, compData, buffer.rawData)) {
-                                buffer.componentHash = hashId;
-                                buffer.entityCount++;
-                                buffer.entityIDs.push_back(entityId);
-                            } else {
-                                ILEN_WARNING_P(DEBUG_PREFIX, "Ignorado: %s en Entidad %llu (No en schema)", compName.c_str(), entityId);
-                            }
-                        }
-                    }
-                }
-
-                // Si se generaron UUIDs o se migró el JSON, guardamos los cambios en el archivo original
-                if (jsonNeedsSave) {
-                    std::ofstream outSourceFile(currentScenePath);
-                    outSourceFile << sceneJson.dump(4);
-                    outSourceFile.close();
-                }
-
-                if (!fs::exists(savePath.parent_path())) {
-                    std::error_code ec; fs::create_directories(savePath.parent_path(), ec);
-                }
-
-                std::ofstream outFile(savePath, std::ios::binary);
-                ilen::binary::headers::IlenSceneHeader header{};
-                strncpy(header.magicNumber, "ENECS_NELI", sizeof(header.magicNumber) - 1);
-                header.version = 1;
-                header.totalEntities = aliveEntities.size();
-                header.totalComponentTypes = componentBuffers.size();
-
-                outFile.write(reinterpret_cast<const char*>(&header), sizeof(ilen::binary::headers::IlenSceneHeader));
-                outFile.write(reinterpret_cast<const char*>(aliveEntities.data()), header.totalEntities * sizeof(ilen::ecs::UUID));
-
-                for (const auto& [hash, buffer] : componentBuffers) {
-                    outFile.write(reinterpret_cast<const char*>(&buffer.componentHash), sizeof(uint32_t));
-                    outFile.write(reinterpret_cast<const char*>(&buffer.entityCount), sizeof(uint32_t));
-                    
-                    uint32_t dataSizeBytes = buffer.rawData.size();
-                    outFile.write(reinterpret_cast<const char*>(&dataSizeBytes), sizeof(uint32_t));
-                    outFile.write(reinterpret_cast<const char*>(buffer.entityIDs.data()), buffer.entityCount * sizeof(ilen::ecs::UUID));
-                    outFile.write(buffer.rawData.data(), dataSizeBytes);
-                }
-                outFile.close();
+                // Llamamos a tu función modular con las rutas preparadas
+                dataBinarization(filesToCompile[j].inputPath, filesToCompile[j].savePath);
             }
         }, &group);
     }
@@ -492,16 +523,21 @@ void binarizeScene(std::filesystem::path projectDataFolder) {
     for (const auto& sceneData : manifestData[SCENE_MANIFEST_LIST]) {
         uint32_t id = sceneData[SCENE_MANIFEST_ID];
         fs::path originalPath = sceneData[SCENE_MANIFEST_PATH].get<std::string>();
-        std::string compiledPath = originalPath.replace_extension(".ilenscene").generic_string();
+        
+        // INTERCEPCIÓN: Reemplazamos la extensión dependiendo de si el ID indica que es Prefab o Escena
+        std::string compiledPath;
+        if (id == 0) {
+            compiledPath = originalPath.replace_extension(".ilenprefab").generic_string();
+        } else {
+            compiledPath = originalPath.replace_extension(".ilenscene").generic_string();
+        }
+
         uint32_t pathSize = compiledPath.length();
         binaryManifestFile.write(reinterpret_cast<const char*>(&id), sizeof(uint32_t));
         binaryManifestFile.write(reinterpret_cast<const char*>(&pathSize), sizeof(uint32_t));
         binaryManifestFile.write(compiledPath.c_str(), pathSize);
     }
     binaryManifestFile.close();
-
-    //if (!fs::exists(manifestBinaryPath.parent_path())) fs::create_directories(manifestBinaryPath.parent_path());
-   // fs::copy_file(manifestBinaryPath, globalManifestPath, fs::copy_options::overwrite_existing);
     
-    ILEN_WARNING_P(DEBUG_PREFIX, "End of scene binarization: %.4f", ilen::time::Time::getTotalTime());
+    ILEN_WARNING_P(DEBUG_PREFIX, "End of data binarization: %.4f", ilen::time::Time::getTotalTime());
 }
