@@ -26,7 +26,7 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Versión minima de despliegue")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Versión minima de despliegue")
 
 set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_CXX_COMPILER_WORKS 1)

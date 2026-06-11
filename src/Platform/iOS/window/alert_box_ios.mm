@@ -17,30 +17,32 @@ namespace ilen::window::box {
                                                             }];
             
             [alert addAction:okAction];
-            // Find a suitable window scene and root view controller without using deprecated keyWindow
-            UIScene* activeScene = nil;
+            // Prefer the active window scene, but retain a connected scene as a fallback.
+            UIWindowScene* windowScene = nil;
             for (UIScene* scene in [UIApplication sharedApplication].connectedScenes) {
-                if (scene.activationState == UISceneActivationStateForegroundActive && [scene isKindOfClass:[UIWindowScene class]]) {
-                    activeScene = scene;
+                if (![scene isKindOfClass:[UIWindowScene class]]) {
+                    continue;
+                }
+
+                UIWindowScene* candidateScene = (UIWindowScene*)scene;
+                if (!windowScene) {
+                    windowScene = candidateScene;
+                }
+                if (scene.activationState == UISceneActivationStateForegroundActive) {
+                    windowScene = candidateScene;
                     break;
                 }
             }
 
             UIWindow* presentingWindow = nil;
-            if (activeScene) {
-                UIWindowScene* windowScene = (UIWindowScene*)activeScene;
-                for (UIWindow* window in windowScene.windows) {
-                    if (window.isKeyWindow) {
-                        presentingWindow = window;
-                        break;
-                    }
+            for (UIWindow* window in windowScene.windows) {
+                if (window.isKeyWindow) {
+                    presentingWindow = window;
+                    break;
                 }
-                if (!presentingWindow) {
-                    presentingWindow = windowScene.windows.firstObject;
-                }
-            } else {
-                // Fallback for older cases where scene may be nil
-                presentingWindow = [UIApplication sharedApplication].windows.firstObject;
+            }
+            if (!presentingWindow) {
+                presentingWindow = windowScene.windows.firstObject;
             }
 
             UIViewController* presenter = presentingWindow.rootViewController;
