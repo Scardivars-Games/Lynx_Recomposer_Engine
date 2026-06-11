@@ -6,6 +6,8 @@ Cada hito termina en una build ejecutable. No se comienza el siguiente hasta que
 
 El core seguirá siendo C++ sin dependencias externas. Los frameworks nativos estarán detrás de interfaces de plataforma y las librerías externas solo podrán usarse en `ilen-modules`.
 
+Nota: Roadmap generado con IA, por lo que puede ser que algunas cosas no tengan sentido, o no aplique para el motor. De momento es un buen esbozo general de los siguientes pasos a seguir.
+
 ## Fase 1: Base Estable
 
 ### Build 0.1 — Motor estabilizado
