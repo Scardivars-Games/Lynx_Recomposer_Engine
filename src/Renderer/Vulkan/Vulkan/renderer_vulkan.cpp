@@ -1,6 +1,6 @@
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
 #define VK_USE_PLATFORM_XCB_KHR
-#include <Vulkan/renderer-vulkan.h>
+#include <Vulkan/renderer_vulkan.h>
 #include <algorithm>
 #include <cstring>
 
@@ -464,7 +464,7 @@ void VulkanRender::generateRenderPasses(){
 
             if(lastUsedGraphicsOptions & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
                 vulkan::VulkanAttachmentData velocityBufferAttach;
-                velocityBufferAttach.format = vulkan::utils::transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF, swapchainImageFormat);
+                velocityBufferAttach.format = vulkan::utils::transformEngineToNativePixelFormat(ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG16_FLOAT, swapchainImageFormat);
                 velocityBufferAttach.initialLayout = vk::ImageLayout::eUndefined;
                 velocityBufferAttach.samples = vk::SampleCountFlagBits::e1;
                 velocityBufferAttach.loadOp = vk::AttachmentLoadOp::eClear;
@@ -623,6 +623,18 @@ IGPUTexture* VulkanRender::getDrawableTexturePtr() {
 }
 
 std::vector<IGPUTexture*> VulkanRender::getAllSceneTexturesPtr(){
+
+}
+
+std::shared_ptr<IGPUTexture> VulkanRender::createTexture(const IlenGPUTextureDescriptor& descriptor, const void* initialData) {
+
+}
+
+std::shared_ptr<IGPUSampler> VulkanRender::createSampler(const IlenGPUSamplerDescriptor& descriptor) {
+
+}
+
+void VulkanRender::defineSupportedGPUCompression(){
 
 }
 

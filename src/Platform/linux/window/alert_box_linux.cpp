@@ -1,5 +1,5 @@
 #if ILEN_LINUX
-#include <ilen/window/alert-box.h>
+#include <ilen/window/alert_box.h>
 #include <ilen/core/lifetime.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>

@@ -1,6 +1,6 @@
 #pragma once
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <ilen/render/gpu-interfaces/shaders.h>
+#include <ilen/render/gpu_interfaces/shaders.h>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <unordered_map>

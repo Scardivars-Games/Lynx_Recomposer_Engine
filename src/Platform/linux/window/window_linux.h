@@ -19,6 +19,8 @@ namespace ilen::window {
             ~WindowsNativeLinuxXCB() override;
             void pollEvents() override;
             bool shouldClose() override {return m_shouldClose; }
+            void updateGamepads() override;
+            bool shouldPause() override;
             const void* getNativeView() const override;
             void* getNativeWindow() const override {return m_connection; }
             bool checkWindowResize(uint32_t &outWidth, uint32_t &outHeight) override;

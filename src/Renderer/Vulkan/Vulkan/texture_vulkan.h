@@ -1,6 +1,6 @@
 #pragma once
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <ilen/render/gpu-interfaces/texture.h>
+#include <ilen/render/gpu_interfaces/texture.h>
 #include <memory>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>

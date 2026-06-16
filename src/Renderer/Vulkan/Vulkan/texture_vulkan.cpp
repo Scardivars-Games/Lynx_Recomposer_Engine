@@ -1,5 +1,5 @@
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <Vulkan/texture-vulkan.h>
+#include <Vulkan/texture_vulkan.h>
 using namespace ilen::render;
 
 VulkanTexture::VulkanTexture(const vk::Image& image, vk::Format imageFormat, vk::raii::Device& logicDevice) {

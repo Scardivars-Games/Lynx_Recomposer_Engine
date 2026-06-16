@@ -1,10 +1,10 @@
 #pragma once
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <ilen/render/gpu-interfaces/buffers.h>
+#include <ilen/render/gpu_interfaces/buffers.h>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
-#include <Vulkan/engine-to-native-vulkan-converters.h>
-#include <ilen/headers/ilen-logs.h>
+#include <Vulkan/engine_to_native_vulkan_converters.h>
+#include <ilen/headers/ilen_logs.h>
 
 namespace ilen::render {
     class VulkanRender;

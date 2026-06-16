@@ -1,9 +1,9 @@
 #pragma once
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <ilen/render/gpu-interfaces/instance-buffer.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/render/gpu_interfaces/instance_buffer.h>
+#include <ilen/headers/ilen_logs.h>
 #include <vulkan/vulkan_raii.hpp>
-#include <Vulkan/buffers-vulkan.h>
+#include <Vulkan/buffers_vulkan.h>
 #include <atomic>
 
 

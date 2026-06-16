@@ -1,8 +1,8 @@
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <Vulkan/shaders-vulkan.h>
+#include <Vulkan/shaders_vulkan.h>
 #include <ilen/core/filemanager.h>
 
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 
 using namespace ilen::render;
 using namespace ilen::core;

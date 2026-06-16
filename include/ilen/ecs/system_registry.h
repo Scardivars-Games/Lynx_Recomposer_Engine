@@ -81,3 +81,4 @@ namespace ilen::ecs {
         static SystemSignature<SystemClass> instance;\
     };\
     inline ilen::ecs::SystemSignature<SystemClass> ilen::ecs::SystemSignature<SystemClass>::instance;
+    

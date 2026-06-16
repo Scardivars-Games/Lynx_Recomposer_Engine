@@ -1,5 +1,5 @@
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
-#include <Vulkan/render-pipelines-vulkan.h>
+#include <Vulkan/render_pipelines_vulkan.h>
 
 using namespace ilen::render;
 
@@ -142,7 +142,7 @@ VulkanRenderPipeline::VulkanRenderPipeline(vk::raii::Device& device, const IlenR
 
             }*/
 
-        if(descriptor.isSpecialPipeline) {
+        if(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE) {
             //Special Pipelines son aquellos que no escriben en el buffer 0 (dibujado normal) Esto es principalmente para PSO de Post-Procesado
             colorBlendAttachment.colorWriteMask = {}; //No escribe en ningún canal
         }else {

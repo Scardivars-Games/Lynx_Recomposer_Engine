@@ -98,9 +98,9 @@ target_include_directories(BC7_Wrapper PUBLIC "external/bc7enc")
 target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE BC7_Wrapper)
 target_include_directories(ILEN_FILE_BINARIZATION PRIVATE "external/bc7enc" "external/astc-encoder/Source")
 
-if(APPLE)
-    target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE astcenc-native-static)
-endif()
+#if(APPLE)
+target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE astcenc-native-static)
+#endif()
 
 #OLD IDEA
 # Enlazamos automáticamente dependiendo de la arquitectura de la computadora

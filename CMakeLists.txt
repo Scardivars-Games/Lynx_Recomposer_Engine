@@ -89,12 +89,17 @@ if(ILEN_OPTIMIZED_BUILD_FLAGS)
             -O3
             ${ARCH_FLAGS}
             -ffast-math
-            -flto=thin
+            $<$<CXX_COMPILER_ID:Clang>:-flto=thin>
+            $<$<CXX_COMPILER_ID:GNU>:-flto=auto>            
             -funroll-loops
             -fomit-frame-pointer
-            -fstrict-vtable-pointers
             -DNDEBUG
         )
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_compile_options(${PROJECT_NAME} PRIVATE -fstrict-vtable-pointers)
+endif()
+
 
         set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
     else()

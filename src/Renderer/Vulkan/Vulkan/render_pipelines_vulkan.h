@@ -1,8 +1,8 @@
 #pragma once
 #if ILEN_LINUX || ILEN_WINDOWS || ILEN_ANDROID
 #include <ilen/headers/enumerations.h>
-#include <ilen/render/gpu-interfaces/render-pipelines.h>
-#include <ilen/resources/shaders-manager.h>
+#include <ilen/render/gpu_interfaces/render_pipelines.h>
+#include <ilen/resources/shaders_manager.h>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vulkan_raii.hpp>
 #include <mutex>

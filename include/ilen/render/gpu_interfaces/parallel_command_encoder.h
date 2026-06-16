@@ -4,6 +4,8 @@
 #include <ilen/render/gpu_interfaces/buffers.h>
 #include <ilen/render/gpu_interfaces/render_encoders.h>
 #include <ilen/render/gpu_interfaces/texture.h>
+#include <memory>
+#include <cstring>
 
 namespace ilen::render {
     class IRenderer;

@@ -42,3 +42,4 @@ namespace ilen::game {
 
 #define ILEN_REGISTER_SCRIPT(Type) \
     inline static ilen::game::AutoRegisterScript<Type> ILEN_CONCAT(auto_reg_script_, __LINE__)(#Type)
+    

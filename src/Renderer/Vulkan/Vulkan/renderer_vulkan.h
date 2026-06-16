@@ -4,16 +4,16 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <ilen/window/window.h>
 
-#include <Vulkan/shaders-vulkan.h>
-#include <Vulkan/texture-vulkan.h>
-#include <Vulkan/render-pipelines-vulkan.h>
-#include <Vulkan/version-adapters-vulkan.h>
-#include <Vulkan/engine-to-native-vulkan-converters.h>
-#include <Vulkan/buffers-vulkan.h>
-#include <Vulkan/instance-buffer-vulkan.h>
+#include <Vulkan/shaders_vulkan.h>
+#include <Vulkan/texture_vulkan.h>
+#include <Vulkan/render_pipelines_vulkan.h>
+#include <Vulkan/version_adapters_vulkan.h>
+#include <Vulkan/engine_to_native_vulkan_converters.h>
+#include <Vulkan/buffers_vulkan.h>
+#include <Vulkan/instance_buffer_vulkan.h>
 
 #if ILEN_LINUX
-#include <window/window-linux.h>
+#include <window/window_linux.h>
 #endif
 
 namespace ilen::render {
@@ -33,6 +33,7 @@ namespace ilen::render {
             void endFrame() override;
             void endEncoding(IGPUParallelCommandEncoder* encoder) override;
             void regenerateEncoderDescriptor() override;
+            void defineSupportedGPUCompression() override; //Nuevo con las texturass
 
             //Builder for GPU Interfaces
             std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data) override;
@@ -41,6 +42,8 @@ namespace ilen::render {
             std::unique_ptr<IGPUParallelCommandEncoder> createNewParallelCommandEncoder(IlenParallelEncoderDescriptor&& descriptor) override;
             std::unique_ptr<IGPUTexture> createNewPlatformTexture(const IlenGPUTextureDescriptor& descriptor) override;
             std::unique_ptr<IGPUInstanceBuffer>createInstanceBuffer(size_t bufferSize, std::string bufferName) override;
+            std::shared_ptr<IGPUTexture> createTexture(const IlenGPUTextureDescriptor& descriptor, const void* initialData = nullptr) override; //Nuevo con las texturass
+            std::shared_ptr<IGPUSampler> createSampler(const IlenGPUSamplerDescriptor& descriptor) override; //Nuevo con las texturas
 
             //getters of encoders and buffers.
             std::unique_ptr<IGPUParallelCommandEncoder> getParallelCommandEncoder() override;

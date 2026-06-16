@@ -1,8 +1,8 @@
 #if ILEN_LINUX
-#include <window/window-linux.h>
+#include <window/window_linux.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_icccm.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 
 static xcb_ewmh_connection_t* ewmh = nullptr;
 
@@ -239,6 +239,14 @@ bool WindowsNativeLinuxXCB::checkWindowResize(uint32_t &outWidth, uint32_t &outH
 
 const void* WindowsNativeLinuxXCB::getNativeView() const{
     return static_cast<const void*>(&surfaceInfo);
+}
+
+void WindowsNativeLinuxXCB::updateGamepads() {
+
+}
+
+bool WindowsNativeLinuxXCB::shouldPause() {
+
 }
 
 #endif
