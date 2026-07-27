@@ -22,6 +22,14 @@ namespace ilen::core::options {
     struct PhysicsOptions {
         static constexpr double PhysicsUpdateTime = 60.0; //Se actualizan las físicas 60 veces por segundo. 
         static inline float gravity = -9.81f; //Velocidad de la gravedad
+
+        // Matriz de colisiones: 32 capas inicializadas con todos los bits en 1 (Todo choca con todo)
+        static inline uint32_t collisionMatrix[32] = {
+            0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+            0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+            0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,
+            0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF
+        };
     };
 
     struct ECSOptions {

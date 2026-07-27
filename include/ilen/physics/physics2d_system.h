@@ -5,6 +5,7 @@
 #include <ilen/ecs/system.h>
 #include <ilen/ecs/ecs.h>
 #include <ilen/ecs/system_registry.h>
+#include <ilen/physics/collision_matrix.h>
 #include <vector>
 
 namespace ilen::ecs::systems {
@@ -19,6 +20,7 @@ namespace ilen::ecs::systems {
             ComponentArray<TransformComponent>* transformComponentArray = nullptr;
             ComponentArray<TransformOrder>* transformOrderArray = nullptr;
             ComponentArray<physics::PhysicsOrder>* physicsOrderArray = nullptr;
+            ComponentArray<EntityMetadataComponent>* entityMetadataArray = nullptr;
         };
 
         public:

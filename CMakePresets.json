@@ -73,6 +73,15 @@
             "inherits": [
                 "Release -- Optimized Build"
             ]
+        },
+        {   
+            "name": "Debug -- Metal",
+            "description": "",
+            "configurePreset": "debug-metalhud",
+            "displayName": "",
+            "inherits": [
+                "Release -- Optimized Build"
+            ]
         }
     ]
 }

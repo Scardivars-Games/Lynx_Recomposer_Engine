@@ -27,7 +27,7 @@ void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
 }
 
 
-//TODO, hacer este sistema multihilo.
+//TODO: hacer este sistema multihilo.
 void PhysicsSystem2D::Update() {
     ilen::time::ScopedTimer timer("Physics 2D update");
    
@@ -39,6 +39,7 @@ void PhysicsSystem2D::Update() {
     componentArray.transformComponentArray = p_coordinator->getComponentArray<TransformComponent>();
     componentArray.physicsOrderArray = p_coordinator->getComponentArray<physics::PhysicsOrder>();
     componentArray.transformOrderArray = p_coordinator->getComponentArray<TransformOrder>();
+    componentArray.entityMetadataArray = p_coordinator->getComponentArray<EntityMetadataComponent>();
 
     m_accumulatedTransformOrder.clear();
 
@@ -252,13 +253,20 @@ void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componen
         Entity a = m_dynamicEntities[i];
         maths::aabb::AABB2D aabbA = dynamicsAABBs[i];
         auto* rbA = componentsArray->rigidbodyComponentArray->getData(a);
+        auto* metadataA = componentsArray->entityMetadataArray->getData(a);
 
         //Colisiones Dynamic vs Dynamic
         for(size_t j = i + 1; j < dynamicCount; j++){
             Entity b = m_dynamicEntities[j];
+
+            auto* metadataB = componentsArray->entityMetadataArray->getData(b);
+
+            if(!ilen::physics::CollisionMatrix::CanCollide(metadataA->layers, metadataB->layers)){
+                continue;
+            }
+
             maths::aabb::AABB2D aabbB = dynamicsAABBs[j];
             auto* rbB = componentsArray->rigidbodyComponentArray->getData(b);
-
 
             auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsDynamic>(aabbA, aabbB, rbA->prevPosition, rbB->prevPosition);
 
@@ -277,6 +285,13 @@ void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componen
         //Colisiones dynamic vs Static
         for(size_t j = 0; j < staticCount; j++){
             Entity s = m_staticEntities[j];
+            
+            auto* metadataS = componentsArray->entityMetadataArray->getData(s);
+
+            if(!ilen::physics::CollisionMatrix::CanCollide(metadataA->layers, metadataS->layers)){
+                continue;
+            }
+            
             const maths::aabb::AABB2D& aabbStatic = m_staticAABBs[j];
 
             auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsStatic>(aabbA, aabbStatic, rbA->prevPosition);
