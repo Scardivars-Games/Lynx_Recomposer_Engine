@@ -6,4 +6,16 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "macOS deploy target for macOS, and internal tools")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "macOS deploy target for macOS, and internal tools")
+
+execute_process(
+    COMMAND scrun --sdk macosx -f clang
+    OUTPUT_VARIABLE CMAKE_C_COMPILER
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+execute_process(
+    COMMAND xcrun --sdk macosx -f clang++
+    OUTPUT_VARIABLE CMAKE_CXX_COMPILER
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)

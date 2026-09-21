@@ -10,6 +10,10 @@
 #include <ilen_public/API/scenes_api.h>
 #include <ilen/core/runtime_options.h>
 
+#if ILEN_DEBUG
+#include <ilen/debug/debug_render_system_2d.h>
+#endif
+
 using namespace ilen::game;
 using namespace ilen::core;
 using namespace ilen::ecs::components;
@@ -97,7 +101,7 @@ void Cube::Update() {
         //Hay touches!!!
         for(int i = 0; i < touches; i++) {
             if(InputAPI::IsTouchNew(i)){
-                PhysicsAPI::AddImpulse(entity, vec2(0, 5));
+                PhysicsAPI::AddImpulse(entity, vec2(0, 50));
                 break;
             }
         }
@@ -133,6 +137,17 @@ void Cube::Update() {
             }
         }
     }
+
+        //Debug, activar
+#if ILEN_DEBUG
+    using DebugSystem = ilen::ecs::systems::DebugRenderSystem2D;
+    auto& debutSettings = DebugSystem::GetSettings();
+
+    if(InputAPI::IsKeyPressed(Key::K)) {
+        //Toglear las opciones
+        debutSettings.showColliders = !debutSettings.showColliders;
+    }
+#endif
 }
 
 
@@ -236,6 +251,16 @@ void GravityCamera::LateUpdate() {
 
 void PlayerSpawner::Init() {
     ILEN_LOG_P("Player Spawner", "Spwaneando al jugador");
-    EntityAPI::LoadPrefab("Player_Prefab");
+    EntityAPI::LoadPrefab("Player_Prefab", TransformAPI::GetEntityPosition(entity));
+
+#if ILEN_DEBUG
+    using DebugSystem = ilen::ecs::systems::DebugRenderSystem2D;
+    auto& debutSettings = DebugSystem::GetSettings();
+
+    debutSettings.colliderMode = ilen::debug::DebugShapeMode2D::Solid;
+    debutSettings.staticColor = ilen::graphics::Color{0.0f,0.5f,1.0f,0.4f};
+    debutSettings.dynamicColor = ilen::graphics::Color{1.0f, 0.0f,0.0f, 0.4f};
+    debutSettings.showColliders = false;
+#endif
 }
 #endif //!ILEN_ONLY_ECS

@@ -33,7 +33,7 @@ namespace ilen::core::options {
     };
 
     struct ECSOptions {
-        static constexpr inline uint32_t GameMaxEntities = 10000;
+        static constexpr inline uint32_t GameMaxEntities = 150;
     };
 
     struct PredefinedAssetsID {

@@ -53,5 +53,5 @@ namespace  ilen::ecs::systems {
     };
 }
 
-REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::PostProcessSystem, ilen::ecs::SystemPhase::Render, 2);
+REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::PostProcessSystem, ilen::ecs::SystemPhase::Render, 10);
 REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::PostProcessSystem, ilen::ecs::components::RenderComponent);

@@ -294,7 +294,10 @@ void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componen
             
             const maths::aabb::AABB2D& aabbStatic = m_staticAABBs[j];
 
-            auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsStatic>(aabbA, aabbStatic, rbA->prevPosition);
+            const auto* colliderA = componentsArray->boxColliderArray->getData(a);
+            const vec2 previousCenter = rbA->prevPosition + colliderA->offset;
+
+            auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsStatic>(aabbA, aabbStatic, previousCenter);
             if(result.hit){
                 resolveCollision(a, s, result, componentsArray);
 

@@ -16,6 +16,7 @@ namespace ilen::engine::api {
             static bool isActive(Entity entity);
             static Entity GetEntityByName(std::string entityName);
             static void LoadPrefab(std::string prefabName);
+            static void LoadPrefab(std::string prefabName, vec3 prefabPosition);
         private:
             static void Init(const ilen::EngineContext* context);
             static void ResetMetadataPointer(); //Resetea el puntero de los metadatos, para obtener uno válido el próximo frame.

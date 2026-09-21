@@ -255,11 +255,15 @@ bool MetalRender::acquireDrawable(){
         }
         
         if(isParallelEncoderInOtherObject){
+            [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+            _frameAutoReleasePool = nullptr;
             ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "The parallel encoder was given to another process, but never returned a parallel encoder to the renderer");
             return;
         }
         
         if(!_commandBuffer[_actualFrame]){
+            [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
+            _frameAutoReleasePool = nullptr;
             if(_drawables[_actualFrame] == nil){
                 dispatch_semaphore_signal(_frameSemaphores[_actualFrame]);
                 _actualFrame = (_actualFrame + 1) % MAX_FRAMES_IN_FLIGHT;

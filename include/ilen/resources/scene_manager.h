@@ -11,6 +11,7 @@
 
 #include <ilen/ecs/ecs.h>
 #include <ilen/ecs/types.h>
+#include <ilen/headers/maths.h>
 #include <ilen/resources/binary_headers.h>
 #include <ilen/headers/ilen_logs.h>
 
@@ -87,6 +88,7 @@ namespace ilen::resources::scene {
 
             //Prefabs
             std::vector<Entity> LoadPrefab(const std::string& name);
+            std::vector<Entity> LoadPrefab(const std::string& name, ilen::maths::vector::vec3 prefabPosition);
 
             //Registros de parseadores
             std::unordered_map<uint32_t, DeseralizationCallback> m_deserializers;

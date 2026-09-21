@@ -46,6 +46,7 @@ namespace  ilen::render {
     }
 
     MetalShader::~MetalShader() {
+        [_shaderLibrary release];
         _shaderLibrary = nil;
         
         for(auto pair: _shaderFunctions){

@@ -98,7 +98,11 @@ namespace ilen::render {
         }
 #endif
     }
-}
 
+    MetalBuffer::~MetalBuffer() {
+        [_buffer release];
+        _buffer = nil;
+    };
+}
 #endif
 

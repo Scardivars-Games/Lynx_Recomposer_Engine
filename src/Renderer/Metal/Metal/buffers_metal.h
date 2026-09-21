@@ -13,7 +13,7 @@ namespace ilen::render
         public:
             MetalBuffer(id<MTLDevice> device, const IlenBufferDescriptor& descriptor, const void* data, id<MTLCommandQueue> commandQueue);
 
-            ~MetalBuffer() override = default;
+            ~MetalBuffer() override;
 
             const IlenBufferDescriptor& getDescriptor() const override;
             void* getNativeHandle() const override;

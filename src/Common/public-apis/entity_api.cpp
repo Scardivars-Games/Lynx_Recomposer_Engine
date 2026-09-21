@@ -35,3 +35,7 @@ void EntityAPI::ResetMetadataPointer(){
 void EntityAPI::LoadPrefab(std::string prefabName) {
     p_sceneManager->LoadPrefab(prefabName);
 }
+
+void EntityAPI::LoadPrefab(std::string prefabName, vec3 prefabPosition) {
+    p_sceneManager->LoadPrefab(prefabName, prefabPosition);
+}

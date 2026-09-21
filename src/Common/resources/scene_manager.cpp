@@ -318,6 +318,37 @@ std::vector<Entity> SceneManager::LoadPrefab(const std::string& name) {
     return instancedEntities;
 }
 
+std::vector<Entity> SceneManager::LoadPrefab(const std::string& name, ilen::maths::vector::vec3 prefabPosition) {
+    if(!ilen::core::threading::t_IsMainThread) {
+        auto& buffer = p_context->p_commandDispatcher->getBuffer(
+            ilen::core::threading::t_ThreadIndex
+        );
+
+        buffer.push([this, name, prefabPosition] {
+            LoadPrefab(name, prefabPosition);
+        });
+        return {};
+    }
+
+    auto entities = LoadPrefab(name);
+
+    for(Entity entity: entities) {
+        auto* transform = p_context->p_coordinator->getComponent<ilen::ecs::components::TransformComponent>(entity);
+
+        if(!transform){
+            continue;
+        }
+
+        if(transform->parent != NULL_ENTITY) {
+            continue;
+        }
+
+        transform->position += prefabPosition;
+    }
+
+    return entities;
+}
+
 void SceneManager::SetActiveScene(SceneID id) {
     std::lock_guard<std::mutex> lock(m_mutex);
     if (m_loadedScenes.contains(id)) {
