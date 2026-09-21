@@ -202,7 +202,7 @@ void PhysicsSystem2D::applyGravity(float dt, ArrayOfComponentsUsed* componentsAr
         auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
         if(!rb || !rb->usesGravity /*|| rb->isInGround*/) continue; //Es increible que desactivar el calculo de la gravedad si se toca el cielo hace colapsar todo, XD.
 
-        rb->velocity.y += ilen::core::options::PhysicsOptions::gravity - rb->gravityScale * dt;
+        rb->velocity.y += ilen::core::options::PhysicsOptions::gravity * rb->gravityScale * dt;
 
         //Clamp a la velocidad máxima vertical del motor (tanto si va para arriba como abajo)
         if(std::abs(rb->velocity.y) > rb->terminalVelocity) {
@@ -251,7 +251,7 @@ void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componen
     //Bucle para detectar colisiones (a futuro hay que descartar rapidamente antes de hacer este bucle usando un VBB Volume Bounding Box, o algo así se llama)
     for(size_t i = 0; i < dynamicCount; i++){
         Entity a = m_dynamicEntities[i];
-        maths::aabb::AABB2D aabbA = dynamicsAABBs[i];
+        maths::aabb::AABB2D& aabbA = dynamicsAABBs[i];
         auto* rbA = componentsArray->rigidbodyComponentArray->getData(a);
         auto* metadataA = componentsArray->entityMetadataArray->getData(a);
 
@@ -299,7 +299,7 @@ void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componen
                 resolveCollision(a, s, result, componentsArray);
 
                 //Actulizamos los aabb por esa colision.
-                vec2 correctionA = result.normal * (result.depth * 0.5f);
+                vec2 correctionA = result.normal * result.depth;
                 dynamicsAABBs[i].center +=correctionA;
             }
         }

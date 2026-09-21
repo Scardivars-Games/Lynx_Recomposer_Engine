@@ -158,6 +158,7 @@ ExternalProject_Add(
 )
 
 set(ILEN_NATIVE_TOOL_NAMES
+    ILEN_TEMPORAL_SCENE_EDITOR
     ILEN_METAL_COMPILER
     ILEN_FILE_BINARIZATION
     ILEN_SCENE_BINARIZER
@@ -189,6 +190,7 @@ function(add_ilen_native_tool TOOL_NAME)
 endfunction()
 
 add_ilen_native_tool(ILEN_METAL_COMPILER)
+add_ilen_native_tool(ILEN_TEMPORAL_SCENE_EDITOR)
 add_ilen_native_tool(ILEN_FILE_BINARIZATION)
 add_ilen_native_tool(ILEN_SCENE_BINARIZER)
 add_ilen_native_tool(ILEN_COMPONENTS_REFLECTION_TOOLS)

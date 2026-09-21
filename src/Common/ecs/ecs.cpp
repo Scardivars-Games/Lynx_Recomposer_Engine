@@ -42,6 +42,7 @@ Entity ECSCoordinator::getEntityByName(std::string name){
         return m_nameToEntityMap[name];
     }
 
+    ILEN_ERROR_P("ENTITY_API", "No existe una entidad con el nombre %s en la escena actual del motor", name.c_str());
     return NULL_ENTITY;
 }
 

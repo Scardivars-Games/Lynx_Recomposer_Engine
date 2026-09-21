@@ -1,43 +1,17 @@
 {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-        
-        
         {
-            "name": "(lldb) Iniciar Release",
-            "type": "cppdbg",
+            "type": "lldb-dap",
             "request": "launch",
-            "MIMode" : "lldb",
-            "program": "${workspaceFolder}/build/release-opt-metalhud/ilen-engine.app/Contents/MacOS/ilen-engine",
+            "name": "Debug",
+            "program": "${command:cmake.launchTargetPath}",
             "args": [],
-            "cwd": "${workspaceFolder}",
-            "osx": {
-                "MIMode": "lldb"
-            }
-        },
-        {
-            "name": "(lldb) Iniciar Debug",
-            "type": "cppdbg",
-            "request": "launch",
-            "MIMode" : "lldb",
-            "program": "${workspaceFolder}/build/debug/ilen-engine.app/Contents/MacOS/ilen-engine",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "osx": {
-                "MIMode": "lldb"
-            }
-        },
-        {
-            "name": "Binarizador, DEBUG",
-            "type": "cppdbg",
-            "request": "launch",
-            "MIMode" : "lldb",
-            "program": "${workspaceFolder}/build/debug/ILEN_MODULES/executable/ILEN_FILE_BINARIZATION",
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "osx": {
-                "MIMode": "lldb"
-            }
+            "env": [],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }

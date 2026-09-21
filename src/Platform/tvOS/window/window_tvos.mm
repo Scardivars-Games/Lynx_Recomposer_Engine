@@ -1,9 +1,9 @@
 #if defined (__APPLE__) && ILEN_TVOS
-#include <window/window-tvos.h>
+#include <window/window_tvos.h>
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
 #include <ilen/headers/core.h>
-#include <input/apple-controllers.h>
+#include <input/apple_controllers.h>
 
 @interface IlenViewTV : UIView
 @property (nonatomic, assign) ilen::window::WindowNativeTVOS* owner;

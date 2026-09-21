@@ -87,7 +87,10 @@ namespace ilen::render {
                 _instanceBuffer[i] = createInstanceBuffer(instanceBufferSize, "Instance Main Ring Buffer -> Frame " + std::to_string(_actualFrame));
             }
             
-            _inFlightSemaphores = dispatch_semaphore_create(MAX_FRAMES_IN_FLIGHT);
+            _frameSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
+            for (auto& semaphore : _frameSemaphores) {
+                semaphore = dispatch_semaphore_create(1);
+            }
             
             
             //Es importante que los command encoder
@@ -107,6 +110,12 @@ namespace ilen::render {
     }
 
     MetalRender::~MetalRender() {
+        // Esperar a los lectores de cada slot antes de liberar sus recursos.
+        for (auto semaphore : _frameSemaphores) {
+            dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+            dispatch_semaphore_signal(semaphore);
+            dispatch_release(semaphore);
+        }
         for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
             if(_parallelCommandEncoder[i]){
                 IRenderer::FinalizeEncoding(_parallelCommandEncoder[i].get());
@@ -122,7 +131,7 @@ namespace ilen::render {
 void MetalRender::beginFrame() {
    /* 
     //        ILEN_LOG("Waitin for frame %i. Start time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
-    dispatch_semaphore_wait(_inFlightSemaphores, DISPATCH_TIME_FOREVER);
+    dispatch_semaphore_wait(_frameSemaphores[_actualFrame], DISPATCH_TIME_FOREVER);
     //ILEN_LOG("Getted frame %i. End time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
     
     _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
@@ -175,7 +184,7 @@ void MetalRender::beginFrame() {
     _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
     _parallelCommandEncoder[_actualFrame] = std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], std::move(parallelEncoderDescriptor));*/
 
-    dispatch_semaphore_wait(_inFlightSemaphores, DISPATCH_TIME_FOREVER);
+    dispatch_semaphore_wait(_frameSemaphores[_actualFrame], DISPATCH_TIME_FOREVER);
 
     _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
     generateFrameTextures();
@@ -252,7 +261,7 @@ bool MetalRender::acquireDrawable(){
         
         if(!_commandBuffer[_actualFrame]){
             if(_drawables[_actualFrame] == nil){
-                dispatch_semaphore_signal(_inFlightSemaphores);
+                dispatch_semaphore_signal(_frameSemaphores[_actualFrame]);
                 _actualFrame = (_actualFrame + 1) % MAX_FRAMES_IN_FLIGHT;
             }
             return;
@@ -265,7 +274,7 @@ bool MetalRender::acquireDrawable(){
             ILEN_ERROR_P(DEBUG_PREFIX, "Llamado el end frame sin un válido parallel encoder creado");
         }
         
-        __block dispatch_semaphore_t semaphore = _inFlightSemaphores;
+        dispatch_semaphore_t semaphore = _frameSemaphores[_actualFrame];
     
         [_commandBuffer[_actualFrame] addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
             dispatch_semaphore_signal(semaphore);
@@ -504,11 +513,11 @@ void MetalRender::defineSupportedGPUCompression() {
     if([_device supportsFamily:MTLGPUFamilyApple6]){
         compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
     }
-#if ILEN_MACOS
+//#if ILEN_MACOS
     else if([_device supportsBCTextureCompression]){
         compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
     }
-#endif
+//#endif
     else {
         compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
     }
@@ -518,4 +527,3 @@ void MetalRender::defineSupportedGPUCompression() {
 
 
 #endif // defined (__APPLE__)
-

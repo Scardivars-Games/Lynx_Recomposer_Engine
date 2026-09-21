@@ -3,6 +3,8 @@
 #include <vector>
 #include <functional>
 #include <utility>
+#include <mutex>
+#include <deque>
 #include <ilen/headers/ilen_logs.h>
 #include <ilen/ecs/types.h>
 
@@ -14,18 +16,22 @@ namespace ilen::job_system {
             }
 
             void push(std::function<void()> command) {
+                std::lock_guard lock(m_mutex);
                 m_commands.emplace_back(std::move(command));
             }
 
             void execute() {
-                for(auto& command: m_commands){
-                    command();
+                std::vector<std::function<void()>> pending;
+                {
+                    std::lock_guard lock(m_mutex);
+                    pending.swap(m_commands);
                 }
+                for (auto& command : pending) command();
 
-                m_commands.clear();
             }
 
         private:
+            std::mutex m_mutex;
             std::vector<std::function<void()>> m_commands;
     };
 
@@ -48,6 +54,6 @@ namespace ilen::job_system {
                 }
             }
         private:
-            std::vector<CommandBuffer> m_ThreadBuffers;
+            std::deque<CommandBuffer> m_ThreadBuffers;
     };
 }

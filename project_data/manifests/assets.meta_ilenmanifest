@@ -33,102 +33,102 @@
       "path": "models/predefined/cube.obj"
     },
     {
-      "id": 16,
+      "id": 17,
       "name": "character-employee-assets/models",
       "path": "models/character-employee.obj"
     },
     {
-      "id": 17,
+      "id": 18,
       "name": "cash-register-assets/models",
       "path": "models/cash-register.obj"
     },
     {
-      "id": 18,
+      "id": 19,
       "name": "shelf-bags-assets/models",
       "path": "models/shelf-bags.obj"
     },
     {
-      "id": 19,
+      "id": 20,
       "name": "display-bread-assets/models",
       "path": "models/display-bread.obj"
     },
     {
-      "id": 20,
+      "id": 21,
       "name": "fence-assets/models",
       "path": "models/fence.obj"
     },
     {
-      "id": 21,
+      "id": 22,
       "name": "shelf-end-assets/models",
       "path": "models/shelf-end.obj"
     },
     {
-      "id": 22,
+      "id": 23,
       "name": "bottle-return-assets/models",
       "path": "models/bottle-return.obj"
     },
     {
-      "id": 23,
+      "id": 24,
       "name": "freezer-assets/models",
       "path": "models/freezer.obj"
     },
     {
-      "id": 24,
+      "id": 25,
       "name": "freezers-standing-assets/models",
       "path": "models/freezers-standing.obj"
     },
     {
-      "id": 25,
+      "id": 26,
       "name": "wall-door-rotate-assets/models",
       "path": "models/wall-door-rotate.obj"
     },
     {
-      "id": 26,
+      "id": 27,
       "name": "display-fruit-assets/models",
       "path": "models/display-fruit.obj"
     },
     {
-      "id": 27,
+      "id": 28,
       "name": "wall-corner-assets/models",
       "path": "models/wall-corner.obj"
     },
     {
-      "id": 28,
+      "id": 29,
       "name": "column-assets/models",
       "path": "models/column.obj"
     },
     {
-      "id": 29,
+      "id": 30,
       "name": "fence-door-rotate-assets/models",
       "path": "models/fence-door-rotate.obj"
     },
     {
-      "id": 30,
+      "id": 31,
       "name": "floor-assets/models",
       "path": "models/floor.obj"
     },
     {
-      "id": 31,
+      "id": 32,
       "name": "wall-assets/models",
       "path": "models/wall.obj"
     },
     {
-      "id": 32,
+      "id": 33,
       "name": "shopping-basket-assets/models",
       "path": "models/shopping-basket.obj"
     },
     {
-      "id": 33,
+      "id": 34,
       "name": "shelf-boxes-assets/models",
       "path": "models/shelf-boxes.obj"
     },
     {
-      "id": 34,
+      "id": 35,
       "name": "wall-window-assets/models",
       "path": "models/wall-window.obj"
     },
     {
-      "id": 35,
+      "id": 36,
       "name": "shopping-cart-assets/models",
       "path": "models/shopping-cart.obj"
     }
@@ -180,7 +180,12 @@
       "id": 15,
       "name": "Prota_SpriteSheet-assets/textures",
       "path": "textures/Prota_SpriteSheet.png"
+    },
+    {
+      "id": 16,
+      "name": "atlas_temp_ground-assets/textures",
+      "path": "textures/atlas_temp_ground.png"
     }
   ],
-  "totalOfElements": 35
+  "totalOfElements": 36
 }

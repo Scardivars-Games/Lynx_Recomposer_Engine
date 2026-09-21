@@ -3,10 +3,10 @@
 #if ILEN_TVOS
 #import <UIKit/UIKit.h>
 #include <ilen/core/lifetime.h>
-#include <ilen/headers/ilen-logs.h>
+#include <ilen/headers/ilen_logs.h>
 #include <ilen/core/exceptions.h>
-#include <ilen/input/input-buffer.h>
-#include <window/window-tvos.h>
+#include <ilen/input/input_buffer.h>
+#include <window/window_tvos.h>
 
 @class SceneDelegate;
 

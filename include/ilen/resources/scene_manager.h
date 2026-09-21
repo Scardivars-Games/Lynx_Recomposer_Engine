@@ -7,6 +7,7 @@
 #include <atomic>
 #include <memory>
 #include <cstdint>
+#include <future>
 
 #include <ilen/ecs/ecs.h>
 #include <ilen/ecs/types.h>
@@ -31,7 +32,8 @@ namespace ilen::resources::scene {
         ReadingDisk, //Leyendo escena
         WaitingForSystems, //Componentes en el ecs, esperando por los sistemas a cargar
         PendingActivation, //Escena lista, esperando orden para mostrar
-        Done
+        Done,
+        Failed
     };
 
     enum class LoadSceneMode {
@@ -46,7 +48,7 @@ namespace ilen::resources::scene {
             std::atomic<float> progress;
             std::atomic<AsyncLoadingPhase> phase;
             std::atomic<bool> allowSceneActivation;
-            bool isDone() const { return phase == AsyncLoadingPhase::Done; }
+            bool isDone() const { return phase == AsyncLoadingPhase::Done || phase == AsyncLoadingPhase::Failed; }
     };
 
     using AsyncOperationPtr = std::shared_ptr<AsyncOperation>;
@@ -91,7 +93,20 @@ namespace ilen::resources::scene {
         private:
             void LoadManifest();
             std::vector<Entity> ParseSceneFile(const std::string& binaryFilePath);
-            void LoadSceneAsyncInternal(SceneID id, LoadSceneMode mode, AsyncOperationPtr operation);
+            struct ComponentBlock {
+                uint32_t hash;
+                std::vector<UUID> owners;
+                std::vector<char> data;
+            };
+            struct ParsedScene {
+                std::vector<UUID> uuids;
+                std::vector<ComponentBlock> blocks;
+            };
+            static ParsedScene ReadSceneFile(const std::string& path);
+            std::vector<Entity> InstantiateScene(ParsedScene& scene);
+            void BeginLoad(SceneID id, LoadSceneMode mode, AsyncOperationPtr operation);
+            std::future<ParsedScene> m_pendingScene;
+            LoadSceneMode m_loadingMode = LoadSceneMode::Single;
 
             ilen::EngineContext* p_context;
 

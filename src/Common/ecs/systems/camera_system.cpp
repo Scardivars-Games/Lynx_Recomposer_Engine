@@ -15,17 +15,12 @@ namespace ilen::ecs::systems {
         p_coordinator = engineContext->p_coordinator.get();
         p_Renderer = engineContext->p_gameRenderer.get();
 
-        //Asignarles a cada cámara un buffer para la matriz
+        m_frameData.clear();
+        m_mainCamera = nullptr;
+
+        // Los buffers se crean al subir el primer frame de cada cámara.
         for (auto const& entity: entities) {
             auto* cameraComponent = p_coordinator->getComponent<CameraComponent>(entity);
-
-            render::IlenBufferDescriptor descriptor{};
-            descriptor.bufferLabelName = "Camera Buffer for entity " + std::to_string(entity);
-            descriptor.bufferSize = sizeof(ilen::render::structs::CameraData);
-            descriptor.bufferType = ILEN_RENDER_GPU_BUFFER_UNIFORM;
-            descriptor.count = 1; //Solo hay una cámara por buffer
-            descriptor.stride = 0; //Misma cosa
-            cameraComponent->cameraBuffer = p_Renderer->createBuffer(descriptor, nullptr);
 
 
             if (cameraComponent->isPrimary == true) {
@@ -39,6 +34,10 @@ namespace ilen::ecs::systems {
     }
 
     void CameraSystem::Update() {
+        m_mainCamera = nullptr;
+        std::erase_if(m_frameData, [this](const auto& entry) {
+            return !entities.contains(entry.first);
+        });
         {
             ilen::time::ScopedTimer timer("Camera system update");
 
@@ -106,12 +105,35 @@ namespace ilen::ecs::systems {
                 cameraComponent->viewProjectionMatrix = viewProjectionMatrix;
                 //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
 
-                //Guardando los datos de cámara en su respectivo buffer.
-                ilen::render::structs::CameraData cameraData{};
+                // PreRender solo prepara CPU: la GPU puede seguir leyendo el frame anterior.
+                auto& cameraData = m_frameData[entity].data;
                 cameraData.currentViewProjectionMatrix = viewProjectionMatrix;
                 cameraData.previousViewProjectionMatrix = previousProjectionMatrix;
-                cameraComponent->cameraBuffer->writeDataToBuffer(&cameraData, 0 ,0);
             }
+        }
+    }
+
+    void CameraSystem::UploadFrameData() {
+        if (!p_Renderer) return;
+        const auto frame = p_Renderer->getActualFrameInFlight();
+        const auto frameCount = p_Renderer->getActualNumOfFramesInFlight();
+        for (auto& [entity, state] : m_frameData) {
+            auto* camera = p_coordinator->getComponent<CameraComponent>(entity);
+            if (!camera) continue;
+            if (state.buffers.empty()) {
+                state.buffers.resize(frameCount);
+                for (size_t slot = 0; slot < frameCount; ++slot) {
+                    render::IlenBufferDescriptor descriptor{};
+                    descriptor.bufferLabelName = "Camera " + std::to_string(entity) + " frame " + std::to_string(slot);
+                    descriptor.bufferSize = sizeof(render::structs::CameraData);
+                    descriptor.bufferType = ILEN_RENDER_GPU_BUFFER_UNIFORM;
+                    descriptor.count = 1;
+                    state.buffers[slot] = p_Renderer->createBuffer(descriptor, nullptr);
+                }
+            }
+            // beginFrame ya esperó a que la GPU liberase este slot.
+            camera->cameraBuffer = state.buffers[frame];
+            camera->cameraBuffer->writeDataToBuffer(&state.data, sizeof(state.data), 0);
         }
     }
 

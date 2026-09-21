@@ -192,7 +192,7 @@ namespace ilen{
         //El init de los script generar actualmente componentes, por eso es necesario que sea primero.
         scriptingSystemPtr->Init(engineContext.get());
 
-        //Cargar escena de indice 0
+        //Cargar escena de indice 1 (0 siempre significa prefab)
         engineContext->p_sceneManager->LoadScene(1);
 
         ILEN_LOG_P(DEBUG_PREFIX, "INICIALIZANDO SYSTEMAS NATIVOS DEL MOTOR");
@@ -247,10 +247,12 @@ namespace ilen{
 
 
         if(!engineContext->p_gameWindow->shouldPause()){
-        ILEN_WARNING("FPS: %.2f", 1.0/frameTime);
+        //ILEN_WARNING("FPS: %.2f", 1.0/frameTime);
 #if !IGNORE_RENDERING
             {
                 ilen::time::ScopedTimer timer("Game CPU Time");
+                // Aplicar cargas asíncronas completas antes de ejecutar sistemas del ECS.
+                engineContext->p_sceneManager->Update(static_cast<float>(frameTime));
                 //Calculamos el FIXED Update
                 {
                         ilen::time::ScopedTimer timer("Fixed Update execution");
@@ -292,6 +294,9 @@ namespace ilen{
                                         ilen::time::ScopedTimer timer("Begin frame time");
                                         engineContext->p_gameRenderer->beginFrame(); //Prepara la GPU para recibir comando de dibujo
                                 }
+                                // Subir uniformes solo después de adquirir el slot de GPU.
+                                auto cameraSystem = engineContext->p_coordinator->getSystem<ilen::ecs::systems::CameraSystem>();
+                                if (cameraSystem) cameraSystem->UploadFrameData();
                                 //Aquí deberia poblarse el queue de dibujado.
                                 for(auto& system : engineContext->p_coordinator->getSystemsByPhase(ilen::ecs::SystemPhase::Render)){
                                         system->Update();

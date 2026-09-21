@@ -30,7 +30,7 @@ execute_process(
 )
 
 # Versión mínima de despliegue para tvOS
-set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Versión mínima de despliegue para tvOS")
+set(CMAKE_OSX_DEPLOYMENT_TARGET "15.0" CACHE STRING "Versión mínima de despliegue para tvOS")
 
 # Forzar que CMake no intente compilar un programa de prueba (útil en cross-compilation)
 set(CMAKE_C_COMPILER_WORKS 1)

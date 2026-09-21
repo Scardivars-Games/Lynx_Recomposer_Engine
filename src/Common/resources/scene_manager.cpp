@@ -5,6 +5,8 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
+#include <stdexcept>
+#include <unordered_set>
 
 using namespace ilen::resources::scene;
 
@@ -50,6 +52,7 @@ void SceneManager::LoadManifest() {
         std::string path(pathSize, '\0');
         file.read(path.data(), pathSize);
 
+        //Todos los prefabs tienen como ID de escena el 0.
         if(id == 0) {
             m_prefabNameToPath[orderedName[i]] = path;
         }else {
@@ -58,57 +61,71 @@ void SceneManager::LoadManifest() {
     }
 }
 
-std::vector<Entity> SceneManager::ParseSceneFile(const std::string& binaryFilePath){
-    std::vector<Entity> runtimeEntities;
-
-    std::ifstream file(binaryFilePath, std::ios::binary);
-    if(!file.is_open()) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "Fallo al abrir escena: %s", binaryFilePath.c_str());
-        return runtimeEntities;
-    }
-
+SceneManager::ParsedScene SceneManager::ReadSceneFile(const std::string& path) {
+    std::ifstream file(path, std::ios::binary | std::ios::ate);
+    if (!file) throw std::runtime_error("No se pudo abrir escena: " + path);
+    auto remaining = file.tellg();
+    file.seekg(0);
+    auto read = [&](void* destination, size_t bytes) {
+        if (bytes > static_cast<size_t>(remaining)) throw std::runtime_error("Escena truncada: " + path);
+        if (bytes && !file.read(static_cast<char*>(destination), bytes)) throw std::runtime_error("Error leyendo escena: " + path);
+        remaining -= static_cast<std::streamoff>(bytes);
+    };
     ilen::binary::headers::IlenSceneHeader header{};
-    file.read(reinterpret_cast<char*>(&header), sizeof(header));
-
-    std::vector<UUID> savedUUIDs(header.totalEntities);
-    file.read(reinterpret_cast<char*>(savedUUIDs.data()), header.totalEntities * sizeof(UUID));
-
-    std::unordered_map<UUID, Entity> uuidToRuntimeID;
-    runtimeEntities.reserve(header.totalEntities);
-
-    for(uint32_t i = 0; i < header.totalEntities; i++) {
-        Entity newEntity = p_context->p_coordinator->createEntity();
-        uuidToRuntimeID[savedUUIDs[i]] = newEntity;
-        runtimeEntities.push_back(newEntity);
+    read(&header, sizeof(header));
+    if (std::string_view(header.magicNumber, 10) != "ENECS_NELI" || header.version != 1 || header.totalEntities > MAX_ENTITIES)
+        throw std::runtime_error("Cabecera de escena inválida: " + path);
+    ParsedScene scene;
+    scene.uuids.resize(header.totalEntities);
+    read(scene.uuids.data(), scene.uuids.size() * sizeof(UUID));
+    std::unordered_set<UUID> ids(scene.uuids.begin(), scene.uuids.end());
+    if (ids.size() != scene.uuids.size() || ids.contains(0)) 
+        throw std::runtime_error("UUIDs inválidos en escena");
+    for (uint32_t i = 0; i < header.totalComponentTypes; ++i) {
+        uint32_t hash, count, size;
+        read(&hash, sizeof(hash)); read(&count, sizeof(count)); read(&size, sizeof(size));
+        if (count > header.totalEntities || static_cast<uint64_t>(count) * sizeof(UUID) + size > static_cast<uint64_t>(remaining))
+            throw std::runtime_error("Bloque de componentes inválido");
+        ComponentBlock block{hash, std::vector<UUID>(count), std::vector<char>(size)};
+        read(block.owners.data(), count * sizeof(UUID));
+        read(block.data.data(), size);
+        for (auto id : block.owners) if (!ids.contains(id)) throw std::runtime_error("Componente sin entidad válida");
+        scene.blocks.push_back(std::move(block));
     }
+    return scene;
+}
 
-    for(uint32_t i = 0; i < header.totalComponentTypes; i++) {
-        uint32_t compHash, entityCount, dataSizeBytes;
-        file.read(reinterpret_cast<char*>(&compHash), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&entityCount), sizeof(uint32_t));
-        file.read(reinterpret_cast<char*>(&dataSizeBytes), sizeof(uint32_t));
-
-        std::vector<UUID> componentOwnerUUIDs(entityCount);
-        file.read(reinterpret_cast<char*>(componentOwnerUUIDs.data()), sizeof(UUID) * entityCount);
-        
-        std::vector<char> rawData(dataSizeBytes);
-        file.read(rawData.data(), dataSizeBytes);
-
-        auto deserializerIt = m_deserializers.find(compHash);
-        if(deserializerIt != m_deserializers.end()) {
-            char* currentStream = rawData.data();
-
-            for(uint32_t j = 0; j < entityCount; j++)  {
-                Entity realEntity = uuidToRuntimeID[componentOwnerUUIDs[j]];
-                deserializerIt->second(realEntity, currentStream, uuidToRuntimeID, p_context);
-            }
-        } else {
-            ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Se ha tratado de cargar una escena con datos no válidos para esta aplicacion");
-            return runtimeEntities;
-        }   
+std::vector<Entity> SceneManager::InstantiateScene(ParsedScene& scene) {
+    for (const auto& block : scene.blocks)
+        if (!m_deserializers.contains(block.hash)) throw std::runtime_error("Componente desconocido en escena");
+    std::vector<Entity> entities;
+    std::unordered_map<UUID, Entity> mapping;
+    try {
+        for (auto id : scene.uuids) {
+            auto entity = p_context->p_coordinator->createEntity();
+            mapping.emplace(id, entity);
+            entities.push_back(entity);
+        }
+        for (auto& block : scene.blocks) {
+            char* stream = block.data.data();
+            for (auto id : block.owners)
+                m_deserializers.at(block.hash)(mapping.at(id), stream, mapping, p_context);
+        }
+    } catch (...) {
+        for (auto entity : entities) p_context->p_coordinator->destroyEntity(entity);
+        throw;
     }
+    return entities;
+}
 
-    return runtimeEntities;
+std::vector<Entity> SceneManager::ParseSceneFile(const std::string& path) {
+    try {
+        auto scene = ReadSceneFile(path);
+        return InstantiateScene(scene);
+    } catch (const std::exception& error) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "Error cargando prefab: %s", error.what());
+        return {};
+    }
 }
 
 void SceneManager::DontDestroyOnLoad(Entity entity){
@@ -119,6 +136,10 @@ void SceneManager::DontDestroyOnLoad(Entity entity){
 }
 
 void SceneManager::LoadScene(SceneID id, LoadSceneMode mode) {
+    if (!ilen::core::threading::t_IsMainThread) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "LoadScene síncrono requiere el hilo principal; use LoadSceneAsync");
+        return;
+    }
     AsyncOperationPtr op = LoadSceneAsync(id, mode);
     if(!op) return;
 
@@ -141,45 +162,64 @@ AsyncOperationPtr SceneManager::LoadSceneAsync(SceneID id, LoadSceneMode mode) {
         return nullptr;
     }
 
-    m_loadingSceneID = id;
-    m_currentAsyncOp = std::make_shared<AsyncOperation>();
-    m_currentAsyncOp->phase = AsyncLoadingPhase::ReadingDisk;
-    m_currentAsyncOp->progress = 0.0f;
-
-    p_context->p_jobSystem->SubmitJob([this, id, mode, op = m_currentAsyncOp]() {
-        LoadSceneAsyncInternal(id, mode, op);
-    });
-
-    return m_currentAsyncOp;
+    auto operation = std::make_shared<AsyncOperation>();
+    operation->phase = AsyncLoadingPhase::ReadingDisk;
+    if (!ilen::core::threading::t_IsMainThread) {
+        p_context->p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex).push(
+            [this, id, mode, operation] { BeginLoad(id, mode, operation); });
+    } else {
+        BeginLoad(id, mode, operation);
+    }
+    return operation;
 }
 
-void SceneManager::LoadSceneAsyncInternal(SceneID id, LoadSceneMode mode, AsyncOperationPtr operation) {
-    operation->progress = 0.1f;
-
-    if(mode == LoadSceneMode::Single) {
-        std::lock_guard<std::mutex> lock(m_mutex);
-        for (const auto& [sceneID, entities] : m_loadedScenes) {
-            for(auto entity: entities){
-                if(std::find(m_persistentEntities.begin(), m_persistentEntities.end(), entity) == m_persistentEntities.end()) {
-                    p_context->p_coordinator->destroyEntity(entity);
-                }
-            }
-        }
-        m_loadedScenes.clear();
+void SceneManager::BeginLoad(SceneID id, LoadSceneMode mode, AsyncOperationPtr operation) {
+    if (m_currentAsyncOp) {
+        ILEN_ERROR_P(DEBUG_PREFIX, "Ya hay una carga de escena en curso");
+        operation->phase = AsyncLoadingPhase::Failed;
+        return;
     }
-
-    operation->progress = 0.3f;
-
-    std::string scenePath = ilen::core::FileManager::fileRoute(m_idToPath[id], ILEN_FILE_TYPE_SCENE);
-    m_pendingEntities = ParseSceneFile(scenePath);
-
-    operation->progress = 0.5f;
-    operation->phase = AsyncLoadingPhase::WaitingForSystems;
+    m_loadingSceneID = id;
+    m_loadingMode = mode;
+    m_currentAsyncOp = operation;
+    auto promise = std::make_shared<std::promise<ParsedScene>>();
+    m_pendingScene = promise->get_future();
+    auto path = ilen::core::FileManager::fileRoute(m_idToPath.at(id), ILEN_FILE_TYPE_SCENE);
+    // El trabajador solo lee datos. No toca entidades, componentes ni colas del ECS.
+    p_context->p_jobSystem->SubmitJob([path, promise] {
+        try { promise->set_value(ReadSceneFile(path)); }
+        catch (...) { promise->set_exception(std::current_exception()); }
+    });
 }
 
 void SceneManager::Update(float dt) {
-    if(!m_currentAsyncOp) return;
+    if (!ilen::core::threading::t_IsMainThread) return;
     p_context->p_commandDispatcher->ExecuteAll();
+    if (!m_currentAsyncOp) return;
+    if (m_currentAsyncOp->phase == AsyncLoadingPhase::ReadingDisk) {
+        if (m_pendingScene.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
+        try {
+            auto scene = m_pendingScene.get();
+            for (const auto& block : scene.blocks)
+                if (!m_deserializers.contains(block.hash)) throw std::runtime_error("Componente desconocido en escena");
+            if (m_loadingMode == LoadSceneMode::Single) {
+                std::lock_guard lock(m_mutex);
+                for (const auto& [id, entities] : m_loadedScenes)
+                    for (auto entity : entities)
+                        if (std::find(m_persistentEntities.begin(), m_persistentEntities.end(), entity) == m_persistentEntities.end())
+                            p_context->p_coordinator->destroyEntity(entity);
+                m_loadedScenes.clear();
+                m_activeSceneID = 0;
+            }
+            m_pendingEntities = InstantiateScene(scene);
+            m_currentAsyncOp->phase = AsyncLoadingPhase::WaitingForSystems;
+        } catch (const std::exception& error) {
+            ILEN_ERROR_P(DEBUG_PREFIX, "Error cargando escena: %s", error.what());
+            m_currentAsyncOp->phase = AsyncLoadingPhase::Failed;
+            m_currentAsyncOp.reset();
+            return;
+        }
+    }
 
     if(m_currentAsyncOp->phase == AsyncLoadingPhase::WaitingForSystems) {
         auto status = p_context->p_assetsManager->getAssetLoadStatus();
@@ -251,6 +291,11 @@ void SceneManager::UnloadScene(const std::string& name) {
 }
 
 std::vector<Entity> SceneManager::LoadPrefab(const std::string& name) {
+    if (!ilen::core::threading::t_IsMainThread) {
+        p_context->p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex).push(
+            [this, name] { LoadPrefab(name); });
+        return {}; // Desde scripts trabajadores se instancia al vaciar la cola principal.
+    }
     if(!m_prefabNameToPath.contains(name)) {
         ILEN_ERROR_P(DEBUG_PREFIX, "Prefab no encontrado en el manifiesto: %s", name.c_str());
         return {};

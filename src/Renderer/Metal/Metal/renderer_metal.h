@@ -71,7 +71,7 @@ namespace ilen::render {
             std::vector<std::unique_ptr<IGPUParallelCommandEncoder>> _parallelCommandEncoder;
             std::vector<std::unique_ptr<IGPUInstanceBuffer>> _instanceBuffer;
 
-            dispatch_semaphore_t _inFlightSemaphores;
+            std::vector<dispatch_semaphore_t> _frameSemaphores;
         
             std::vector<std::unique_ptr<IGPUTexture>> _sceneTexture;
             std::vector<std::unique_ptr<IGPUTexture>> _depthTexture;

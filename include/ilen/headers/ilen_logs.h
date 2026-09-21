@@ -65,7 +65,7 @@
     
 #define ILEN_WARNING_P(prefix, format, ...) \
     do { \
-        char prefixBuffer[1024]; \
+        char prefixBuffer[2048]; \
         snprintf(prefixBuffer, sizeof(prefixBuffer), "%s (%s:%d)", prefix, __ILEN_FILENAME__, __LINE__); \
         ilen::internal::Debug::Warning(format, prefixBuffer, ##__VA_ARGS__); \
     } while (0)

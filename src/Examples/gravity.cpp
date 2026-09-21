@@ -29,13 +29,13 @@ void Cube::Init() {
     deathZoneMobileSize = ilen::window::IWindow::getWidth() * deathZoneThreshold;
     lastWindowWidth = ilen::window::IWindow::getWidth();
 
-    int elementosPrueba = 1000;
+    /*int elementosPrueba = 1000;
 
     for (int i = 0; i < elementosPrueba; i++) {
         EntityAPI::LoadPrefab("Bubble_Prefab");
-    }
+    }*/
 
-    ScenesAPI::LoadSceneAdditiveAsync("ModelTest");
+    //ScenesAPI::LoadSceneAdditiveAsync("ModelTest");
     
     //Inicializar los sistemas (En el motor normal, al leer los datos de la escena, ahí los iniciaría en vez de esta forma)
     //coordinator->registerComponent<TransformComponent>();
@@ -65,6 +65,13 @@ void Cube::Init() {
 void Cube::Update() {
     using namespace ilen::engine::api;
     using namespace ilen::input;
+    vec3 playerPos = TransformAPI::GetEntityPosition(entity);
+    vec3 camPos = TransformAPI::GetEntityPosition(EntityAPI::GetEntityByName("Camara"));
+
+    /*if(playerPos.x == camPos.x && playerPos.y == playerPos.y) {
+        ILEN_LOG_P("TEST","Camara y Jugador comparten posición.");
+    }*/
+
     if(InputAPI::IsKeyDown(Key::D) || InputAPI::IsKeyDown(Key::Right)){
         TransformAPI::Translate(entity, vec2(velocity, 0.0f) * time::Time::getDeltaTime());
         RenderingAPI::FlipSpriteInX(entity, false);
@@ -81,7 +88,7 @@ void Cube::Update() {
     }
 
     if(InputAPI::IsKeyPressed(Key::Space) || InputAPI::IsButtonPressed(GamepadButton::South)) {
-        PhysicsAPI::AddImpulse(entity, vec2(0, 100));
+        PhysicsAPI::AddImpulse(entity, vec2(0, 50));
     }
 
     auto touches = InputAPI::GetTotalTouches();
@@ -90,7 +97,7 @@ void Cube::Update() {
         //Hay touches!!!
         for(int i = 0; i < touches; i++) {
             if(InputAPI::IsTouchNew(i)){
-                PhysicsAPI::AddImpulse(entity, vec2(0, 100));
+                PhysicsAPI::AddImpulse(entity, vec2(0, 5));
                 break;
             }
         }
@@ -179,6 +186,8 @@ void PointerPos::Update(){
 
 
 void Ground::Init() {   
+    //EntityAPI::LoadPrefab("Player_Prefab");
+
     //Inicializar los sistemas (En el motor normal, al leer los datos de la escena, ahí los iniciaría en vez de esta forma)
     //coordinator->registerComponent<TransformComponent>();
     //coordinator->registerComponent<RenderComponent>();
@@ -218,11 +227,15 @@ void GravityCamera::Init() {
 
 void GravityCamera::LateUpdate() {
     //Obtener posicion de la camara
-    vec3 playerPos = TransformAPI::GetEntityPosition(EntityAPI::GetEntityByName("Cubo de prueba"));
+    vec3 playerPos = TransformAPI::GetEntityPosition(EntityAPI::GetEntityByName("Player"));
     vec3 actualPos = TransformAPI::GetEntityPosition(entity);
-    vec3 newPos(playerPos.x, actualPos.y, actualPos.z);
-    ILEN_LOG_P("AYUDA", vector::to_string(newPos).c_str());
+    vec3 newPos(playerPos.x, playerPos.y, actualPos.z);
+    //ILEN_LOG_P("AYUDA", vector::to_string(newPos).c_str());
     TransformAPI::SetPosition(entity, newPos);
 }
 
+void PlayerSpawner::Init() {
+    ILEN_LOG_P("Player Spawner", "Spwaneando al jugador");
+    EntityAPI::LoadPrefab("Player_Prefab");
+}
 #endif //!ILEN_ONLY_ECS

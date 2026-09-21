@@ -1,0 +1,3194 @@
+{
+    "entities": [
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_0",
+                    "tags": 1,
+                    "uuid": 17326046088489793623
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_1",
+                    "tags": 1,
+                    "uuid": 9234763180042434259
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -25.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_2",
+                    "tags": 1,
+                    "uuid": 11737270948862124075
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_3",
+                    "tags": 1,
+                    "uuid": 17116136541114279814
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -13.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_4",
+                    "tags": 1,
+                    "uuid": 4337509583293052153
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -10.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_5",
+                    "tags": 1,
+                    "uuid": 16746114568959106082
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -7.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_6",
+                    "tags": 1,
+                    "uuid": 5596463682714790888
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -4.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_7",
+                    "tags": 1,
+                    "uuid": 6709674093334755620
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -1.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_8",
+                    "tags": 1,
+                    "uuid": 5026918816036311961
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        1.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_9",
+                    "tags": 1,
+                    "uuid": 18125145131961089667
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        4.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_10",
+                    "tags": 1,
+                    "uuid": 14473225182467093972
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        7.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_11",
+                    "tags": 1,
+                    "uuid": 16660035350809172730
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        10.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_12",
+                    "tags": 1,
+                    "uuid": 4816232911100181751
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        13.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_13",
+                    "tags": 1,
+                    "uuid": 17481370824152974056
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        16.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_14",
+                    "tags": 1,
+                    "uuid": 6413939315713240338
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        19.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_15",
+                    "tags": 1,
+                    "uuid": 13592506013557068608
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        22.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_16",
+                    "tags": 1,
+                    "uuid": 6416640631969521657
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        25.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_17",
+                    "tags": 1,
+                    "uuid": 5531732252972513076
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        27.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_18",
+                    "tags": 1,
+                    "uuid": 12196372462787855997
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        24.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_19",
+                    "tags": 1,
+                    "uuid": 536707513866869600
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -19.5,
+                        24.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_20",
+                    "tags": 1,
+                    "uuid": 11038146372488697386
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        24.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_21",
+                    "tags": 1,
+                    "uuid": 12918259004706127763
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -1.5,
+                        24.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_22",
+                    "tags": 1,
+                    "uuid": 14483150808349308769
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        24.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_23",
+                    "tags": 1,
+                    "uuid": 2868888486237980188
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_24",
+                    "tags": 1,
+                    "uuid": 3711904131792365997
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -25.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_25",
+                    "tags": 1,
+                    "uuid": 2647436255851882250
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_26",
+                    "tags": 1,
+                    "uuid": 13019561350612949310
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -1.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_27",
+                    "tags": 1,
+                    "uuid": 10085120080115493105
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        1.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_28",
+                    "tags": 1,
+                    "uuid": 17139667074143939542
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        4.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_29",
+                    "tags": 1,
+                    "uuid": 2670791774233331039
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        7.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_30",
+                    "tags": 1,
+                    "uuid": 5192084776477630349
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        21.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_31",
+                    "tags": 1,
+                    "uuid": 4939329081469665613
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_32",
+                    "tags": 1,
+                    "uuid": 6551211742064238221
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -19.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_33",
+                    "tags": 1,
+                    "uuid": 723277265079715524
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_34",
+                    "tags": 1,
+                    "uuid": 14711285530583515906
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -13.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_35",
+                    "tags": 1,
+                    "uuid": 15706863945850423957
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -10.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_36",
+                    "tags": 1,
+                    "uuid": 17496681373431126836
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -7.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_37",
+                    "tags": 1,
+                    "uuid": 2988095555495220840
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -1.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_38",
+                    "tags": 1,
+                    "uuid": 14223542549741396512
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        1.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_39",
+                    "tags": 1,
+                    "uuid": 12602645230469896348
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        4.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_40",
+                    "tags": 1,
+                    "uuid": 5519424059447985401
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        7.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_41",
+                    "tags": 1,
+                    "uuid": 12311648979135187876
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        10.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_42",
+                    "tags": 1,
+                    "uuid": 3369178855774455154
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        13.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_43",
+                    "tags": 1,
+                    "uuid": 4897400296078794136
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        16.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_44",
+                    "tags": 1,
+                    "uuid": 15739005110032206220
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        19.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_45",
+                    "tags": 1,
+                    "uuid": 13393917382685601388
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        18.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_46",
+                    "tags": 1,
+                    "uuid": 5825856239074224193
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        15.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_47",
+                    "tags": 1,
+                    "uuid": 12166663993729750629
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -25.5,
+                        15.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_48",
+                    "tags": 1,
+                    "uuid": 17765627293248173156
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        15.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_49",
+                    "tags": 1,
+                    "uuid": 7356048105217079145
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -1.5,
+                        15.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_50",
+                    "tags": 1,
+                    "uuid": 8112111970509483784
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        15.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_51",
+                    "tags": 1,
+                    "uuid": 17167229002510351071
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        12.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_52",
+                    "tags": 1,
+                    "uuid": 11938873356957439012
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -19.5,
+                        12.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_53",
+                    "tags": 1,
+                    "uuid": 8807475301924053425
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        12.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_54",
+                    "tags": 1,
+                    "uuid": 12060843501547454342
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        7.5,
+                        12.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_55",
+                    "tags": 1,
+                    "uuid": 17212152970090870365
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        10.5,
+                        12.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_56",
+                    "tags": 1,
+                    "uuid": 15213008961031926835
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        13.5,
+                        12.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_57",
+                    "tags": 1,
+                    "uuid": 6155432996526697681
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        12.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_58",
+                    "tags": 1,
+                    "uuid": 410354250729567122
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        9.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_59",
+                    "tags": 1,
+                    "uuid": 3064559908967078271
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -25.5,
+                        9.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_60",
+                    "tags": 1,
+                    "uuid": 8049464234859753037
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        9.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_61",
+                    "tags": 1,
+                    "uuid": 10233646296456947318
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        9.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_62",
+                    "tags": 1,
+                    "uuid": 10740714732745512557
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_63",
+                    "tags": 1,
+                    "uuid": 7881069901092177972
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -19.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_64",
+                    "tags": 1,
+                    "uuid": 1186673181406184022
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_65",
+                    "tags": 1,
+                    "uuid": 12496276364947227965
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -13.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_66",
+                    "tags": 1,
+                    "uuid": 5456302980982867651
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -10.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_67",
+                    "tags": 1,
+                    "uuid": 14145030581847417935
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -7.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_68",
+                    "tags": 1,
+                    "uuid": 13028802988902038550
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -4.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_69",
+                    "tags": 1,
+                    "uuid": 10374692016214751183
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -1.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_70",
+                    "tags": 1,
+                    "uuid": 8857824998659467495
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        1.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_71",
+                    "tags": 1,
+                    "uuid": 15068822992201885886
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        4.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_72",
+                    "tags": 1,
+                    "uuid": 8781646092038052969
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        7.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_73",
+                    "tags": 1,
+                    "uuid": 3505836330799240862
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        10.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_74",
+                    "tags": 1,
+                    "uuid": 10029132966581645575
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        22.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_75",
+                    "tags": 1,
+                    "uuid": 4239570871920042513
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        25.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_76",
+                    "tags": 1,
+                    "uuid": 15445225183865992820
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        6.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_77",
+                    "tags": 1,
+                    "uuid": 9588773922450166776
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        3.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_78",
+                    "tags": 1,
+                    "uuid": 4013940954223099969
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        3.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_79",
+                    "tags": 1,
+                    "uuid": 958332311598214469
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -28.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_80",
+                    "tags": 1,
+                    "uuid": 5884770116564736385
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -25.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_81",
+                    "tags": 1,
+                    "uuid": 2284139286134700801
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -22.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_82",
+                    "tags": 1,
+                    "uuid": 18415854485223796119
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -19.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_83",
+                    "tags": 1,
+                    "uuid": 14096624779108091152
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -16.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_84",
+                    "tags": 1,
+                    "uuid": 7692754769264405435
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -13.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_85",
+                    "tags": 1,
+                    "uuid": 15955861320006540763
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -10.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_86",
+                    "tags": 1,
+                    "uuid": 400809951204957359
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -7.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_87",
+                    "tags": 1,
+                    "uuid": 13046748734267408723
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -4.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_88",
+                    "tags": 1,
+                    "uuid": 9871464065778059536
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        -1.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_89",
+                    "tags": 1,
+                    "uuid": 13077238800874534368
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        1.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_90",
+                    "tags": 1,
+                    "uuid": 4281816469108968828
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        4.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_91",
+                    "tags": 1,
+                    "uuid": 14094762143292932730
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        7.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_92",
+                    "tags": 1,
+                    "uuid": 14534587380798343977
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        10.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_93",
+                    "tags": 1,
+                    "uuid": 4681042727100399137
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        13.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_94",
+                    "tags": 1,
+                    "uuid": 14633651869713548793
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        16.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_95",
+                    "tags": 1,
+                    "uuid": 12005299066515099662
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        19.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_96",
+                    "tags": 1,
+                    "uuid": 9423168141769573264
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        22.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_97",
+                    "tags": 1,
+                    "uuid": 13943552847445685639
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        25.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra_98",
+                    "tags": 1,
+                    "uuid": 6592512191266830148
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 3,
+                    "mainTexID": 16
+                },
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "TransformComponent": {
+                    "position": [
+                        28.5,
+                        0.0,
+                        100.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 0,
+                    "name": "Player Spawn",
+                    "tags": 0,
+                    "uuid": 11853330071814241582
+                },
+                "ScriptingBridgeComponent": {
+                    "scriptName": "ilen::game::PlayerSpawner"
+                },
+                "TransformComponent": {
+                    "position": [
+                        -10.5,
+                        24.0,
+                        10.0
+                    ]
+                }
+            }
+        }
+    ],
+    "scene_name": "TemporalGroundTest"
+}

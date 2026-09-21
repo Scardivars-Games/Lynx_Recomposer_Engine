@@ -20,47 +20,65 @@ void TransformAPI::Init(const ilen::EngineContext* context) {
 }
 
 void TransformAPI::Translate(Entity e, vec3 delta) {
-    accumulate(e, [&](TransformOrder& o){ o.translation += delta; });
+    if(e != NULL_ENTITY){
+        accumulate(e, [&](TransformOrder& o){ o.translation += delta; });
+    }
 }
 
 void TransformAPI::Rotate(Entity e, vec3 euler) {
-    accumulate(e, [&](TransformOrder& o){ o.rotation += euler; });
+    if(e != NULL_ENTITY){
+        accumulate(e, [&](TransformOrder& o){ o.rotation += euler; });
+    }
 }
 
 void TransformAPI::Rotate(Entity e, vec3 axis, float angle) {
-    accumulate(e, [&](TransformOrder& o){ o.rotation += axis * angle; });
+    if(e != NULL_ENTITY){
+            accumulate(e, [&](TransformOrder& o){ o.rotation += axis * angle; });
+    }
 }
 
 void TransformAPI::Scale(Entity e, vec3 factor) {
-    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= factor; o.isNewScale = true;});
+    if(e != NULL_ENTITY){
+            accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= factor; o.isNewScale = true;});
+    }
 }
 
 void TransformAPI::Scale(Entity e, float uniform) {
-    accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= uniform; o.isNewScale = true;});
+    if(e != NULL_ENTITY){
+            accumulate(e, [&](TransformOrder& o){ o.scaleMultiplier *= uniform; o.isNewScale = true;});
+    }
 }
 
 void TransformAPI::SetPosition(Entity e, vec3 newPos){
-    accumulate(e, [&](TransformOrder& o){ o.translation += newPos; o.isNewPos = true; });
+    if(e != NULL_ENTITY){
+            accumulate(e, [&](TransformOrder& o){ o.translation += newPos; o.isNewPos = true; });
+    }
 }
 
 //Este método modifica el sistema de parenting del transform.
 //entity es la entidad a la cual se le va a añadir una entidad hijo. En otras palabras, es la entidad padre.
 //newChildren es la entidad nueva que cambia de padre y se hace hijo de entity
 void TransformAPI::AddChildren(Entity entity, Entity newChildren){
-    auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
-    auto* transformParent =  transformArray->getData(entity);
-    auto* transformChildren = transformArray->getData(newChildren);
-    auto it = std::ranges::find(transformParent->childrens, newChildren);
+    if(entity != NULL_ENTITY && newChildren != NULL_ENTITY){
+        auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
+        auto* transformParent =  transformArray->getData(entity);
+        auto* transformChildren = transformArray->getData(newChildren);
+        auto it = std::ranges::find(transformParent->childrens, newChildren);
 
-    if(it == transformParent->childrens.end()){
-        //Esta entidad no existe entre sus hijos
-        transformParent->childrens.push_back(newChildren);
-        transformChildren->parent = entity;
+        if(it == transformParent->childrens.end()){
+            //Esta entidad no existe entre sus hijos
+            transformParent->childrens.push_back(newChildren);
+            transformChildren->parent = entity;
+        }
     }
 }
 
 vec3 TransformAPI::GetEntityPosition(Entity entity) {
-    return p_coordinator->getComponent<TransformComponent>(entity)->position;
+    if(entity != NULL_ENTITY){
+        return p_coordinator->getComponent<TransformComponent>(entity)->position;
+    }else {
+        return vec3(0.0,0.0,0.0);
+    }
 }
 
 void TransformAPI::ExecuteAllAccumulatedTransform() {

@@ -26,19 +26,23 @@ namespace ilen::game{
             void Init() override;
     };
 
+    class PlayerSpawner final: public GameObject {
+        public:
+            void Init() override;
+    };
+    
     class GravityCamera final : public GameObject {
         public:
             void Init() override;
             void LateUpdate() override;
     };
-
-
 }
 
 ILEN_REGISTER_SCRIPT(ilen::game::Cube);
 ILEN_REGISTER_SCRIPT(ilen::game::PointerPos);
 ILEN_REGISTER_SCRIPT(ilen::game::Ground);
 ILEN_REGISTER_SCRIPT(ilen::game::GravityCamera);
+ILEN_REGISTER_SCRIPT(ilen::game::PlayerSpawner);
 
 
 #endif //!ILEN_ONLY_ECS

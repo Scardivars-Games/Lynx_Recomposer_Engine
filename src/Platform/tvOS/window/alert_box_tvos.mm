@@ -1,6 +1,6 @@
 #if defined (__APPLE__) && ILEN_TVOS
 
-#include <ilen/window/alert-box.h>
+#include <ilen/window/alert_box.h>
 #include <cstdlib>
 #import <UIKit/UIKit.h>
 

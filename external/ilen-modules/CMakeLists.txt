@@ -9,6 +9,8 @@ set(BUILD_SHARED_LIBS OFF CACHE BOOL "Forzar dependencias estáticas" FORCE)
 include_directories(${PARENT_INCLUDE_DIR} ${CMAKE_SOURCE_DIR}/include)
 
 add_executable(ILEN_METAL_COMPILER modules/ilen_metal_compiler.cpp)
+add_executable(ILEN_TEMPORAL_SCENE_EDITOR modules/ilen_temporal_scene_editor.cpp)
+target_include_directories(ILEN_TEMPORAL_SCENE_EDITOR PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
 add_executable(ILEN_SLANG_COMPILER modules/ilen_slang_converter.cpp)
 add_executable(ILEN_FILE_BINARIZATION
         modules/ilen_file_binarization.cpp
@@ -113,6 +115,7 @@ target_link_libraries(ILEN_FILE_BINARIZATION PRIVATE astcenc-native-static)
 #endif()
 
 install(TARGETS ILEN_METAL_COMPILER DESTINATION executable/$<CONFIG>)
+install(TARGETS ILEN_TEMPORAL_SCENE_EDITOR DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_FILE_BINARIZATION DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_SLANG_COMPILER DESTINATION executable/$<CONFIG>)
 install(TARGETS ILEN_SCENE_BINARIZER DESTINATION executable/$<CONFIG>)
