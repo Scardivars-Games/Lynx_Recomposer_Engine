@@ -291,6 +291,11 @@ namespace ilen::enumerations {
         UserBit10 = 1 << 20,
     };
 
+    enum class ILEN_COLLIDER_SHAPE_TYPE_2D: uint8_t {
+        Box,
+        ConvexPolygon
+    };
+
     inline ILEN_LAYER_SYSTEM operator|(ILEN_LAYER_SYSTEM a, ILEN_LAYER_SYSTEM b)
     {
         return static_cast<ILEN_LAYER_SYSTEM>(

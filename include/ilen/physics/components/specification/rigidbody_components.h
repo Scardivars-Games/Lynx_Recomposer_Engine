@@ -29,13 +29,6 @@ namespace ilen::ecs::components::physics {
         ILEN_PROPERTY bool isStatic = false;
     };
 
-    ILEN_COMPONENT
-    struct BoxCollider2D {
-        ILEN_PROPERTY vec2 halfExtents{0.5f, 0.5f};
-        ILEN_PROPERTY vec2 offset{0.0f, 0.0f};
-        ILEN_PROPERTY bool isTrigger = false; //No opone resistencia al objeto, pero determina un espacio físico.
-    };
-
     //3D
     ILEN_COMPONENT
     struct Rigidbody3D {
@@ -52,12 +45,5 @@ namespace ilen::ecs::components::physics {
         ILEN_PROPERTY  bool isInGround = false;
         ILEN_PROPERTY bool usesGravity = true;
         ILEN_PROPERTY bool isStatic = false;
-    };
-
-    ILEN_COMPONENT
-    struct BoxCollider3D {
-        ILEN_PROPERTY vec3 halfExtents{0.5f};
-        ILEN_PROPERTY vec3 offset{0.0f};
-        ILEN_PROPERTY bool isTrigger = false; //No opone resistencia al objeto, pero determina un espacio físico.
     };
 }

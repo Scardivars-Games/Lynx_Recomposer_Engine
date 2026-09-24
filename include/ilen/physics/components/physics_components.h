@@ -4,3 +4,4 @@
 #include <ilen/physics/components/specification/rigidbody_components.h>
 #include <ilen/physics/components/specification/collision_components.h>
 #include <ilen/physics/components/specification/physics_ordering_components.h>
+#include <ilen/physics/components/specification/collider_components.h>
