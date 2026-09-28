@@ -1,10 +1,12 @@
 //Este módulo tendrá como fin binarizar los archivos de escenas del motor. Estos se encontraran en la carpeta del proyecto, y luego
 //en project_data/scenes.
 
+#include <cstdint>
 #include <iostream>
 #include <sstream>
 #include <filesystem>
 #include <fstream>
+#include <sys/types.h>
 #include <vector>
 #include <unordered_map>
 #include <string>
@@ -58,6 +60,7 @@ enum class SchemaType: uint8_t {
     VectorUint32 = 9,
     Uint64 = 10,
     VectorUint64 = 11,
+    VectorFloat2 = 12,
     Unknown = 255
 };
 
@@ -92,6 +95,7 @@ class SchemaManager {
             if (typeStr == "string") return SchemaType::String;
             if (typeStr == "vector<uint32_t>" || typeStr == "vector<uint32>") return SchemaType::VectorUint32;
             if (typeStr == "vector<uint64_t>" || typeStr == "vector<uint64>") return SchemaType::VectorUint64;
+            if(typeStr == "vector<float2>") return SchemaType::VectorFloat2;
             return SchemaType::Unknown;
         }
 
@@ -209,11 +213,41 @@ class SchemaManager {
                             uint64_t val = item.get<uint64_t>();
                             dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&val), reinterpret_cast<char*>(&val) + sizeof(uint64_t));
                         }
+                    } else if (field.type == SchemaType::VectorFloat2 && jVal.is_array()) {
+                        const uint32_t count = static_cast<uint32_t>(jVal.size());
+                        dynamicPayload.insert(dynamicPayload.end(),
+                            reinterpret_cast<const char*>(&count),
+                            reinterpret_cast<const char*>(&count) + sizeof(uint32_t)
+                        );
+
+                        for(const auto& item : jVal) {
+                            if(!item.is_array() || item.size() < 2) {
+                                ILEN_ERROR_P(DEBUG_PREFIX, "Un elemento de vector<float2> no contiene 2 valores.");
+                                return false;
+                            }
+
+                            const float x = item[0].get<float>();
+                            const float y = item[1].get<float>();
+
+                            dynamicPayload.insert(
+                                dynamicPayload.end(),
+                                reinterpret_cast<const char*>(&x),
+                                reinterpret_cast<const char*>(&x) + sizeof(float)
+                            );
+
+                            dynamicPayload.insert(
+                                dynamicPayload.end(),
+                                reinterpret_cast<const char*>(&y),
+                                reinterpret_cast<const char*>(&y) + sizeof(float)
+                            );
+                        }
                     }
                 } else {
                     if (field.type == SchemaType::String || 
                         field.type == SchemaType::VectorUint32 || 
-                        field.type == SchemaType::VectorUint64) {
+                        field.type == SchemaType::VectorUint64 ||
+                        field.type == SchemaType::VectorFloat2
+                    ) {
                             uint32_t emptyLen = 0;
                             dynamicPayload.insert(dynamicPayload.end(), reinterpret_cast<char*>(&emptyLen), reinterpret_cast<char*>(&emptyLen) + sizeof(uint32_t));
                     }

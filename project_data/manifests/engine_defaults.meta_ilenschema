@@ -131,6 +131,30 @@
         "namespace": "ilen::ecs::components",
         "size": 320
     },
+    "ConvexPolygonCollider2D": {
+        "fields": [
+            {
+                "name": "vertices",
+                "offset": 8,
+                "size": 24,
+                "type": "vector<float2>"
+            },
+            {
+                "name": "offset",
+                "offset": 48,
+                "size": 8,
+                "type": "float2"
+            },
+            {
+                "name": "isTrigger",
+                "offset": 57,
+                "size": 1,
+                "type": "bool"
+            }
+        ],
+        "namespace": "ilen::ecs::components::physics",
+        "size": 64
+    },
     "EntityMetadataComponent": {
         "fields": [
             {

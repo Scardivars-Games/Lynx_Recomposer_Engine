@@ -1,19 +1,25 @@
-#include <ilen/physics/physics2d_system.h>
+#include <algorithm>
+#include <ilen/physics/physics_2d_system.h>
 #include <ilen/headers/ecs.h>
 #include <ilen/headers/ecs_components.h>
-//#include <ilen_public/API/transform_api.h>
-#include <ilen_public/API/physics2d_api.h>
+#include <ilen_public/API/physics_2d_api.h>
+#include <iterator>
+#include <optional>
+#include <utility>
+
 
 using namespace ilen::ecs::systems;
 using namespace ilen::ecs::components;
+using namespace ilen::maths::vector;
 
 void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
     p_coordinator = engineContext->p_coordinator.get();
     p_jobSystem = engineContext->p_jobSystem.get();
     p_commandDispatcher = engineContext->p_commandDispatcher.get();
 
-    m_staticEntities.reserve(MAX_ENTITIES);
     m_dynamicEntities.reserve(MAX_ENTITIES);
+    m_staticProxies.reserve(MAX_ENTITIES);
+    m_dynamicProxies.reserve(MAX_ENTITIES);
     
 #if ILEN_DEBUG
     m_staticGuards.reserve(MAX_ENTITIES);
@@ -21,6 +27,7 @@ void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
 
     p_coordinator->registerComponent<physics::Rigidbody2D>();
     p_coordinator->registerComponent<physics::BoxCollider2D>();
+    p_coordinator->registerComponent<physics::ConvexPolygonCollider2D>();
     p_coordinator->registerComponent<physics::CollisionComponent2D>();
 
     ilen::engine::api::PhysicsAPI::Init(engineContext);
@@ -40,6 +47,7 @@ void PhysicsSystem2D::Update() {
     componentArray.physicsOrderArray = p_coordinator->getComponentArray<physics::PhysicsOrder>();
     componentArray.transformOrderArray = p_coordinator->getComponentArray<TransformOrder>();
     componentArray.entityMetadataArray = p_coordinator->getComponentArray<EntityMetadataComponent>();
+    componentArray.convexPolygonCollider = p_coordinator->getComponentArray<physics::ConvexPolygonCollider2D>();
 
     m_accumulatedTransformOrder.clear();
 
@@ -47,7 +55,7 @@ void PhysicsSystem2D::Update() {
     syncEntities(&componentArray);
 
     //if(m_dynamicEntities.size() + m_staticEntities.size() != entities.size())
-    if(m_dynamicEntities.empty() && m_staticEntities.empty()) return;
+    if(m_dynamicEntities.empty() && m_staticProxies.empty()) return;
 
     constexpr float dt = 1.0f / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
 
@@ -56,7 +64,8 @@ void PhysicsSystem2D::Update() {
     applyForces(dt, &componentArray);
     applyGravity(dt, &componentArray);
     integrate(dt, &componentArray);
-    detectAndResolve(dt, &componentArray);
+    rebuildDynamicProxies(dt, &componentArray);
+    detectAndResolve(&componentArray);
 
     for(auto& [id, order] : m_accumulatedTransformOrder) {
         order.hasOrders = true;
@@ -70,88 +79,174 @@ void PhysicsSystem2D::Update() {
 
 void PhysicsSystem2D::registerEntity(Entity e, ArrayOfComponentsUsed* componentsArray) {
     auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
-    auto* collider = componentsArray->boxColliderArray->getData(e);
+    auto* boxColider = componentsArray->boxColliderArray->getData(e);
+    auto* polygonCollider = componentsArray->convexPolygonCollider->getData(e);
 
-    if(!rb || !collider) return;
+    if(!rb) return;
+
+    if((boxColider == nullptr) == (polygonCollider == nullptr)) {
+        ILEN_ERROR_P("PHYSICS_2D", "La entidad %u debe tener al menos un collider 2D", e);
+        return;
+    }
 
     //Método de seguridad para forzar el collider si este no existe.
-    if (collider->halfExtents.x == 0.0f && collider->halfExtents.y == 0.0f) {
-        ilen::engine::api::PhysicsAPI::GenerateBoxColliderSize(e, collider);
+    if(boxColider && boxColider->halfExtents.x == 0.0f && boxColider->halfExtents.y == 0.0f) {
+        ilen::engine::api::PhysicsAPI::GenerateBoxColliderSize(e, boxColider);
+    }
+
+    auto proxy = buildProxy(e, componentsArray);
+
+    if(!proxy.has_value()) {
+        return;
     }
 
     if(rb->isStatic) {
-        m_staticEntities.push_back(e);
-        m_staticAABBs.push_back(buildAABB(e, componentsArray));
+        m_staticProxies.push_back(std::move(*proxy));
+
+        m_registrationStates[e] = RegistrationState::Static;
 #if ILEN_DEBUG
         auto* transform = p_coordinator->getComponent<TransformComponent>(e);
-        StaticGuard guard{e, static_cast<vec2>(transform->position), 0, 60};
-        m_staticGuards.push_back(guard);
+        m_staticGuards.push_back({
+            .entity = e,
+            .originalPosition = transform->position,
+            .originalRotation = transform->rotation,
+            .originalScale = transform->scale,
+            .frameCounter = 0,
+            .checkInterval = 15
+        });
 #endif
-    }else{
-        m_dynamicEntities.push_back(e);
+        return;
     }
+
+    m_dynamicEntities.push_back(e);
+    m_registrationStates[e] = RegistrationState::Dynamic;
 }
 
 void PhysicsSystem2D::syncEntities(ArrayOfComponentsUsed* componentsArray) {
-    //Primero borramos las entidades que se hallan eliminado
-    for(int i = (int)m_dynamicEntities.size() - 1; i >= 0; i--){
-        if(entities.find(m_dynamicEntities[i]) == entities.end()){
-            m_dynamicEntities[i] = m_dynamicEntities.back();
-            m_dynamicEntities.pop_back();
+    //Se encarga de eliminar y registrar las entidades con colliders para calcularse
+    for(int i = static_cast<int>(m_dynamicEntities.size()) - 1; i >= 0; i--) {
+        const Entity entity = m_dynamicEntities[i];
+
+        if(entities.find(entity) != entities.end()){
+            continue; //Existe
         }
-    }
 
-    for(int i = (int)m_staticEntities.size() - 1; i >= 0; i--){
-        if(entities.find(m_staticEntities[i]) == entities.end()){
-            m_staticEntities[i] = m_staticEntities.back();
-            m_staticAABBs[i] = m_staticAABBs.back();
-            m_staticEntities.pop_back();
-            m_staticAABBs.pop_back();
+        m_registrationStates[entity] = RegistrationState::None;
+        m_dynamicEntities[i] = m_dynamicEntities.back();
+        m_dynamicEntities.pop_back();
+    } 
 
+    for(int i = static_cast<int>(m_staticProxies.size()) - 1; i >= 0; i--){ 
+        const Entity entity = m_staticProxies[i].entity;
+
+        if(entities.find(entity) != entities.end()) {
+            continue;
+        }
+
+        m_registrationStates[entity] = RegistrationState::None;
+        m_staticProxies[i] = std::move(m_staticProxies.back());
+        m_staticProxies.pop_back();
 #if ILEN_DEBUG
-            m_staticGuards[i] = m_staticGuards.back();
-            m_staticGuards.pop_back();
+        m_staticGuards[i] = std::move(m_staticGuards.back());
+        m_staticGuards.pop_back();
 #endif
-        }
     }
 
-    //Ahora, buscamos los nuevos, y los añadimos
-    size_t totalInternos = m_dynamicEntities.size() + m_staticEntities.size();
-    if(entities.size() > totalInternos){
-        for(Entity e: entities) {
-            bool inDynamic = std::find(m_dynamicEntities.begin(), m_dynamicEntities.end(), e) != m_dynamicEntities.end();
-            bool inStatic = std::find(m_staticEntities.begin(), m_staticEntities.end(), e) != m_staticEntities.end();
+    for(Entity entity: entities) {
+        if(entity >= MAX_ENTITIES) {
+            continue;
+        }
 
-            if(!inDynamic && !inStatic){
-                registerEntity(e, componentsArray);
-            }
+        if(m_registrationStates[entity] == RegistrationState::None) {
+            registerEntity(entity, componentsArray);
         }
     }
 }
 
 void PhysicsSystem2D::unregisterEntity(Entity e){
-    //Borramos los dinámicos
-    auto itDyn = std::find(m_dynamicEntities.begin(), m_dynamicEntities.end(), e);
-    if(itDyn != m_dynamicEntities.end()) {
-        *itDyn = m_dynamicEntities.back();
-        m_dynamicEntities.pop_back();
+    if(e >= MAX_ENTITIES) {
         return;
     }
 
-    auto itStat = std::find(m_staticEntities.begin(), m_staticEntities.end(), e);
-    if(itStat != m_staticEntities.end()){
-        size_t index = std::distance(m_staticEntities.begin(), itStat);
+    const RegistrationState state = m_registrationStates[e];
 
-        m_staticEntities[index] = m_staticEntities.back();
-        m_staticAABBs[index] = m_staticAABBs.back();
+    if(state == RegistrationState::Dynamic) {
+        auto iterator = std::find(
+            m_dynamicEntities.begin(),
+            m_dynamicEntities.end(),
+            e
+        );
 
-        m_staticEntities.pop_back();
-        m_staticAABBs.pop_back();
-#if ILEN_DEBUG
-        m_staticGuards[index] = m_staticGuards.back();
-        m_staticGuards.pop_back();
-#endif
+        //Movemos el valor del final de la lista (es puntero) al puntero que tiene iterator, borrando el dato eliminado. Luego eliminamos ese
+        //último lugar, que ahora esta inútil.
+        if(iterator != m_dynamicEntities.end()) {
+            *iterator = m_dynamicEntities.back();
+            m_dynamicEntities.pop_back();
+        }
     }
+
+    if(state == RegistrationState::Static) {
+        auto iterator = std::find_if(
+            m_staticProxies.begin(),
+            m_staticProxies.end(),
+            [e](const ilen::physics::ColliderProxy2D& proxy) {
+                return proxy.entity == e;
+            }
+        );
+
+        if(iterator != m_staticProxies.end()) {
+            const size_t index = static_cast<size_t>(
+                std::distance(
+                    m_staticProxies.begin(), 
+                    iterator
+                )
+            );
+
+            m_staticProxies[index] = std::move(m_staticProxies.back());
+            m_staticProxies.pop_back();
+
+#if ILEN_DEBUG
+            m_staticGuards[index] = std::move(m_staticGuards.back());
+            m_staticGuards.pop_back();
+#endif
+        }
+    }
+
+    m_registrationStates[e] = RegistrationState::None;
+}
+
+std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
+    Entity entity, ArrayOfComponentsUsed* componentsArray
+) {
+    auto* transform = componentsArray->transformComponentArray->getData(entity);
+    auto* rb = componentsArray->rigidbodyComponentArray->getData(entity);
+    auto* metadata = componentsArray->entityMetadataArray->getData(entity);
+
+    if(!transform || !rb || !metadata) {
+        return std::nullopt;
+    }
+
+    if(auto* box = componentsArray->boxColliderArray->getData(entity)) {
+        return ilen::physics::ColliderProxyBuilder2D::FromBox(
+            entity, 
+            *transform ,
+            *rb,
+            *box,
+            *metadata
+        );
+    }
+
+    if(auto* polygon = componentsArray->convexPolygonCollider->getData(entity)) {
+        return ilen::physics::ColliderProxyBuilder2D::FromPolygon(
+            entity,
+            *transform,
+            *rb,
+            *polygon,
+            *metadata
+        );
+    }
+
+    return std::nullopt;
 }
 
 void PhysicsSystem2D::registerPrevPosition(ArrayOfComponentsUsed* componentsArray){
@@ -170,11 +265,40 @@ void PhysicsSystem2D::clearCollisionData(ArrayOfComponentsUsed* componentsArray)
             col->contacts.clear();
         }
     }
-    for(Entity e: m_staticEntities){
-        if(auto* col = componentsArray->collisionComponentArray->getData(e)){
+    for(const auto& proxy : m_staticProxies){
+        if(auto* col = componentsArray->collisionComponentArray->getData(proxy.entity)){
             col->contacts.clear();
         }
     }
+}
+
+void PhysicsSystem2D::rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentArray) {
+    m_dynamicProxies.clear();
+    m_dynamicProxies.reserve(m_dynamicEntities.size());
+
+    for(Entity entity : m_dynamicEntities) {
+        auto proxy = buildProxy(entity, componentArray);
+        if(!proxy.has_value()) {
+            continue;
+        }
+
+        auto* rb = componentArray->rigidbodyComponentArray->getData(entity);
+        if(!rb) continue;
+
+        translateProxy(*proxy, rb->velocity * dt);
+
+        m_dynamicProxies.push_back(std::move(*proxy));
+    }
+}
+
+void PhysicsSystem2D::translateProxy(
+    ilen::physics::ColliderProxy2D& proxy, const vec2& translation
+) {
+    for(vec2& vertex : proxy.worldVertices) {
+        vertex += translation;
+    }
+
+    proxy.bounds.center += translation;
 }
 
 void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArray){
@@ -230,86 +354,51 @@ void PhysicsSystem2D::integrate(float dt, ArrayOfComponentsUsed* componentsArray
     }
 }
 
-void PhysicsSystem2D::detectAndResolve(float dt, ArrayOfComponentsUsed* componentsArray) {
-    size_t dynamicCount = m_dynamicEntities.size();
-    size_t staticCount = m_staticEntities.size();  
+void PhysicsSystem2D::detectAndResolve(ArrayOfComponentsUsed* componentsArray) {
+    size_t dynamicCount = m_dynamicProxies.size();
+    size_t staticCount = m_staticProxies.size();  
 
-    std::vector<AABB2D> dynamicsAABBs(dynamicCount);
-    for(size_t i = 0; i < dynamicCount; i++){
-        Entity e = m_dynamicEntities[i];
-        dynamicsAABBs[i] = buildAABB(e, componentsArray);
+   for(size_t i = 0; i < dynamicCount; i++) {
+        auto& proxyA = m_dynamicProxies[i];
+        for(size_t j = i + 1; j < dynamicCount; j++) {
+            auto& proxyB = m_dynamicProxies[j];
+            const auto layerA = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyA.layerMask);
+            const auto layerB = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyB.layerMask);
 
-        //ajustamos la AABB para el movimiento de este frame, realizado durante integrate.
-        auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
-        if(rb) {
-            vec2 predictedMovement = rb->velocity * dt;
-            dynamicsAABBs[i].center += predictedMovement;
-        }
-    }
-    //
-
-    //Bucle para detectar colisiones (a futuro hay que descartar rapidamente antes de hacer este bucle usando un VBB Volume Bounding Box, o algo así se llama)
-    for(size_t i = 0; i < dynamicCount; i++){
-        Entity a = m_dynamicEntities[i];
-        maths::aabb::AABB2D& aabbA = dynamicsAABBs[i];
-        auto* rbA = componentsArray->rigidbodyComponentArray->getData(a);
-        auto* metadataA = componentsArray->entityMetadataArray->getData(a);
-
-        //Colisiones Dynamic vs Dynamic
-        for(size_t j = i + 1; j < dynamicCount; j++){
-            Entity b = m_dynamicEntities[j];
-
-            auto* metadataB = componentsArray->entityMetadataArray->getData(b);
-
-            if(!ilen::physics::CollisionMatrix::CanCollide(metadataA->layers, metadataB->layers)){
+            if(!ilen::physics::CollisionMatrix::CanCollide(
+                layerA, layerB
+            )) {
                 continue;
             }
 
-            maths::aabb::AABB2D aabbB = dynamicsAABBs[j];
-            auto* rbB = componentsArray->rigidbodyComponentArray->getData(b);
-
-            auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsDynamic>(aabbA, aabbB, rbA->prevPosition, rbB->prevPosition);
-
-            if(result.hit) {
-                resolveCollision(a, b, result, componentsArray);
-
-                //Actulizamos los aabb por esa colision.
-                vec2 correctionA = result.normal * (result.depth * 0.5f);
-                vec2 correctionB = correctionA * -1.0f;
-
-                dynamicsAABBs[i].center +=correctionA;
-                dynamicsAABBs[j].center += correctionB;
+            auto manifold = ilen::physics::NarrowPhase2D::Test(proxyA, proxyB);
+            if(manifold.has_value()) {
+                resolveCollision(proxyA, proxyB, *manifold, componentsArray);
             }
         }
 
-        //Colisiones dynamic vs Static
-        for(size_t j = 0; j < staticCount; j++){
-            Entity s = m_staticEntities[j];
-            
-            auto* metadataS = componentsArray->entityMetadataArray->getData(s);
+        for(size_t j = 0; j < staticCount; j++) {
+            auto& proxyStatic = m_staticProxies[j];
 
-            if(!ilen::physics::CollisionMatrix::CanCollide(metadataA->layers, metadataS->layers)){
+            const auto dynamicLayer = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyA.layerMask);
+            const auto staticLayer = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyStatic.layerMask);
+
+            if(!ilen::physics::CollisionMatrix::CanCollide(dynamicLayer, staticLayer)) {
                 continue;
             }
-            
-            const maths::aabb::AABB2D& aabbStatic = m_staticAABBs[j];
 
-            const auto* colliderA = componentsArray->boxColliderArray->getData(a);
-            const vec2 previousCenter = rbA->prevPosition + colliderA->offset;
+            auto manifold = ilen::physics::NarrowPhase2D::Test(proxyA, proxyStatic);
 
-            auto result = maths::aabb::intersectAABB2D<CollisionResolutionType::DynamicVsStatic>(aabbA, aabbStatic, previousCenter);
-            if(result.hit){
-                resolveCollision(a, s, result, componentsArray);
-
-                //Actulizamos los aabb por esa colision.
-                vec2 correctionA = result.normal * result.depth;
-                dynamicsAABBs[i].center +=correctionA;
+            if(manifold.has_value()) {
+                resolveCollision(
+                    proxyA, proxyStatic, *manifold, componentsArray
+                );
             }
         }
     }
 }
 
-ilen::maths::aabb::AABB2D PhysicsSystem2D::buildAABB(Entity e, ArrayOfComponentsUsed* componentsArray) const {
+/*ilen::maths::aabb::AABB2D PhysicsSystem2D::buildAABB(Entity e, ArrayOfComponentsUsed* componentsArray) const {
     auto* transform = componentsArray->transformComponentArray->getData(e);
     auto* collider = componentsArray->boxColliderArray->getData(e);
 
@@ -325,116 +414,117 @@ ilen::maths::aabb::AABB2D PhysicsSystem2D::buildAABB(Entity e, ArrayOfComponents
     scaledHalfExtents.y = collider->halfExtents.y * transform->scale.y;
 
     return maths::aabb::AABB2D::fromCenterHalf(center, scaledHalfExtents);
-}
+}*/
 
-void PhysicsSystem2D::resolveCollision(Entity a, Entity b, const ilen::maths::aabb::IntersectResult2D& result, ArrayOfComponentsUsed* componentsArray){
-    auto* colA = componentsArray->boxColliderArray->getData(a);
-    auto* colB = componentsArray->boxColliderArray->getData(b);
+void PhysicsSystem2D::resolveCollision(
+    ilen::physics::ColliderProxy2D& proxyA,
+    ilen::physics::ColliderProxy2D& proxyB,
+    const physics::ContactManifold2D& manifold,
+    ArrayOfComponentsUsed* componentsArray
+){
+    writeContacts(manifold, componentsArray);
 
+    if(manifold.isTrigger) {
+        return;
+    }
 
-    bool isTriggerCollision = colA->isTrigger || colB->isTrigger;
-    writeContact(a, b, result, isTriggerCollision, componentsArray);
+    auto* rigidbodyA = componentsArray->rigidbodyComponentArray->getData(proxyA.entity);
+    auto* rigidbodyB = componentsArray->rigidbodyComponentArray->getData(manifold.entityB);
 
-    maths::aabb::IntersectResult2D resultB = result;
-    resultB.normal.x = -result.normal.x;
-    resultB.normal.y = -result.normal.y;
-    writeContact(b, a, resultB, isTriggerCollision, componentsArray);
+    const bool dynamicA = rigidbodyA && !rigidbodyA->isStatic;
+    const bool dynamicB = rigidbodyB && !rigidbodyB->isStatic;
 
-    if(isTriggerCollision) return;
+    if(dynamicA && !dynamicB) {
+        const vec2 separation = manifold.normal * manifold.penetration;
+        m_accumulatedTransformOrder[proxyA.entity].translation += static_cast<vec3>(separation);
+        translateProxy(proxyA, separation);
 
-    //Corrección de la transformación
-    auto* rbA = componentsArray->rigidbodyComponentArray->getData(a);
-    auto* rbB = componentsArray->rigidbodyComponentArray->getData(b);
-    
-    bool aIsDynamic = rbA && !rbA->isStatic;
-    bool bIsDynamic = rbB && !rbB->isStatic;
-
-    if(aIsDynamic && !bIsDynamic){
-        //Elemento dinamico choca con objeto estático. Eso significa que el dinamico penetra el 100%
-        vec3 separation(result.normal * result.depth);
-        //ilen::engine::api::TransformAPI::Translate(a, separation);
-        TransformOrder order{};
-        if(m_accumulatedTransformOrder.contains(a)) {
-            order = m_accumulatedTransformOrder[a];
-        }
-        order.translation += separation;
-        
-        m_accumulatedTransformOrder[a] = order;
-
-        if(std::abs(result.normal.y) > 0.0f){
-            rbA->velocity.y = 0.0f;
-            if(result.normal.y > 0.0f) rbA->isInGround = true;
+        const float normalVelocity = ilen::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
+        if(normalVelocity < 0.0f) {
+            rigidbodyA->velocity -= manifold.normal * normalVelocity;
         }
 
-        if(std::abs(result.normal.x) > 0.0f){
-            rbA->velocity.x = 0.0f;
-        }
-    } else if( aIsDynamic && bIsDynamic){
-        //Dinamico vs Dinamico. Digamos que se prenentan un 50% cada uno.
-        vec3 separationA(result.normal * (result.depth * 0.5f));
-        vec3 separationB(separationA * -1.0f);
-
-        //ilen::engine::api::TransformAPI::Translate(a, separationA);
-        //ilen::engine::api::TransformAPI::Translate(b, separationB);
-        TransformOrder order{};
-        if(m_accumulatedTransformOrder.contains(a)) {
-            order = m_accumulatedTransformOrder[a];
-        }
-        order.translation += separationA;
-        
-        m_accumulatedTransformOrder[a] = order;
-
-        order = {};
-        if(m_accumulatedTransformOrder.contains(b)) {
-            order = m_accumulatedTransformOrder[b];
-        }
-        order.translation += separationB;
-        
-        m_accumulatedTransformOrder[b] = order;
-
-        if(std::abs(result.normal.y) > 0.0f){
-            rbA->velocity.y = 0.0f;
-            rbB->velocity.y = 0.0f;
+        if(manifold.normal.y > 0.5f) {
+            rigidbodyA->isInGround = true;
         }
 
-        if(std::abs(result.normal.x) > 0.0f){
-            rbA->velocity.x = 0.0f;
-            rbB->velocity.x = 0.0f;
+        return;
+    }
+
+    if(dynamicA && dynamicB) {
+        const vec2 separationA = manifold.normal * (manifold.penetration * 0.5f);
+        const vec2 separationB = separationA * -1.0f;
+
+        m_accumulatedTransformOrder[proxyA.entity].translation += static_cast<vec3>(separationA);
+        m_accumulatedTransformOrder[proxyB.entity].translation += static_cast<vec3>(separationB);
+
+        translateProxy(proxyA, separationA);
+        translateProxy(proxyB, separationB);
+
+        const float velocityA = ilen::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
+        if(velocityA < 0.0f) {
+            rigidbodyA->velocity -= manifold.normal * velocityA;
+        }
+
+        const vec2 normalB = manifold.normal * -1.0f;
+        const float velocityB = ilen::maths::vector::dot(rigidbodyB->velocity, normalB);
+
+        if(velocityB < 0.0f) {
+            rigidbodyB->velocity -= normalB * velocityB;
+        }
+
+        if(manifold.normal.y > 0.5f) {
+            rigidbodyA->isInGround = true;
+        }
+
+        if (normalB.y > 0.5f) {
+            rigidbodyB->isInGround = true;
         }
     }
 }
 
-void PhysicsSystem2D::writeContact(Entity receiver, Entity other, const ilen::maths::aabb::IntersectResult2D& result, bool wasTrigger, ArrayOfComponentsUsed* componentsArray){
-    if(auto* colComp = componentsArray->collisionComponentArray->getData(receiver)) {
-        physics::CollisionContact2D contact;
-        contact.other = other;
-        contact.normal = result.normal;
-        contact.depth = result.depth;
-        contact.wasTrigger = wasTrigger;
-        colComp->contacts.push_back(contact);
+void PhysicsSystem2D::writeContacts(const physics::ContactManifold2D& manifold, ArrayOfComponentsUsed* componentsArray){
+    if(auto* collisionA = componentsArray->collisionComponentArray->getData(manifold.entityA)) {
+        collisionA->contacts.push_back(manifold);
+    }
+
+    if(auto* collisionB = componentsArray->collisionComponentArray->getData(manifold.entityB)) {
+        physics::ContactManifold2D mirrored = manifold;
+        mirrored.entityA = manifold.entityB;
+        mirrored.entityB = manifold.entityA;
+        mirrored.normal = manifold.normal * -1.0f;
+
+        collisionB->contacts.push_back(std::move(mirrored));
     }
 }
 
 #if ILEN_DEBUG
 void PhysicsSystem2D::checkStaticGuard(ArrayOfComponentsUsed* componentsArray) {
-    for (auto& guard : m_staticGuards) {
-                guard.frameCounter--;
-
-        if (guard.frameCounter <= 0) {
-            if (auto* transform = componentsArray->transformComponentArray->getData(guard.entity)) {
-                if (transform->position.x != guard.originalPosition.x || 
-                    transform->position.y != guard.originalPosition.y) {
-                    
-                    std::cerr << "[ILEN_PHYSICS_ERROR] Entidad estatica (ID: " << guard.entity 
-                            << ") ha sido movida! Pos original: (" << guard.originalPosition.x << ", " 
-                            << guard.originalPosition.y << ") Pos actual: (" 
-                            << transform->position.x << ", " << transform->position.y << ").\n";
-                            
-                    guard.originalPosition = maths::vector::vec2(transform->position.x, transform->position.y);
-                }
-            }
-            guard.frameCounter = guard.checkInterval;
+    for(StaticGuard& guard : m_staticGuards) {
+        guard.frameCounter--;
+        if(guard.frameCounter > 0) {
+            continue;
         }
-            }
+
+        guard.frameCounter = guard.checkInterval;
+        auto* transform = componentsArray->transformComponentArray->getData(guard.entity);
+        auto* rigidbody = componentsArray->rigidbodyComponentArray->getData(guard.entity);
+
+        if(!transform || !rigidbody) {
+            continue;
+        }
+
+        if(
+            transform->position != guard.originalPosition ||
+            transform->rotation != guard.originalRotation ||
+            transform->scale != guard.originalScale
+        ) {
+            ILEN_ERROR_P("PHYSICS_2D", "La entidad estática %u modifico su Transform", guard.entity);
+        }
+
+        if(!rigidbody->isStatic) {
+            ILEN_ERROR_P("PHYSICS_2D", "La entidad %u fue registrada como estática y luego fue cambiado ese estado", guard.entity);
+        }
+    }
 }
 #endif

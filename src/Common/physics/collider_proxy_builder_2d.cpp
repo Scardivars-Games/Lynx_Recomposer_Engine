@@ -43,7 +43,7 @@ namespace ilen::physics {
             return std::nullopt; //El collider no existe
         }
 
-        const float rotation = transform.rotation.z = DegreesToRadians;
+        const float rotation = transform.rotation.z * DegreesToRadians;
         const vec2 scaledOffset {
             collider.offset.x * transform.scale.x, collider.offset.y * transform.scale.y
         };

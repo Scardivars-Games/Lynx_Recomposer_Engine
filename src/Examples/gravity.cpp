@@ -2,7 +2,7 @@
 
 #include <ilen_examples/gravity.h>
 #include <ilen_public/API/input_api.h>
-#include <ilen_public/API/physics2d_api.h>
+#include <ilen_public/API/physics_2d_api.h>
 #include <ilen_public/API/entity_api.h>
 #include <ilen_public/API/camera_api.h>
 #include <ilen_public/API/transform_api.h>

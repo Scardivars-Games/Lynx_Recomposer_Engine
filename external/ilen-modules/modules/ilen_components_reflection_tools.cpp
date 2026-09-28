@@ -25,7 +25,23 @@ TypeInfo GetTypeInfo(std::string cppType, const std::string& arraySizeStr) {
     };
     
     //Tipos dinamicos, como vector o string (se guarda en punteros, y no en la memoria del struct.)
-    if(contains(cppType, "vector<")) return {"vector<uint32_t>", 24, 8};
+    if(contains(cppType, "vector<")) {
+        if(contains(cppType, "vec2") || contains(cppType, "Vector2") || contains(cppType, "float2")) {
+            return {"vector<float2>", 24, 8};
+        }
+        if(contains(cppType, "uint64_t") || contains(cppType, "UUID")) {
+            return {"vector<uint64_t>", 24, 8};
+        }
+
+        if(contains(cppType, "uint32_t") ||
+            contains(cppType, "uint32") || 
+            contains(cppType, "Entity")
+        ){
+            return {"vector<uint32_t>", 24, 8};
+        }
+
+        return {"unknown", 0, 1};
+    } 
     if(contains(cppType, "string")) return {"string", 32, 8};
     
     //Funciones de la biblio de mates
@@ -351,6 +367,14 @@ int main(int argc, char* argv[]) {
                         cppCode += "                        uint32_t val = *reinterpret_cast<uint32_t*>(stream);\n";
                         cppCode += "                        comp." + name + ".push_back(val);\n";
                         cppCode += "                        stream += sizeof(uint32_t);\n";
+                    }else if (type == "vector<float2>") {
+                        cppCode += "                        float x = 0.0f;\n";
+                        cppCode += "                        float y = 0.0f;\n";
+                        cppCode += "                        std::memcpy(&x, stream, sizeof(float));\n";
+                        cppCode += "                        stream += sizeof(float);\n";
+                        cppCode += "                        std::memcpy(&y, stream, sizeof(float));\n";
+                        cppCode += "                        stream += sizeof(float);\n";
+                        cppCode += "                        comp." + name + ".emplace_back(x, y);\n";
                     }
                     cppCode += "                    }\n";
                     cppCode += "                } else {\n";
@@ -358,8 +382,12 @@ int main(int argc, char* argv[]) {
                     // Si el componente usa valores por defecto, DEBEMOS avanzar el stream para no corromper la memoria
                     if (type == "vector<uint64_t>" || type == "vector<UUID>") {
                         cppCode += "                    stream += (" + name + "_count * sizeof(UUID));\n";
-                    } else if (type == "vector<uint32_t>" || type == "vector<uint32>") {
+                    }
+                    else if (type == "vector<uint32_t>" || type == "vector<uint32>") {
                         cppCode += "                    stream += (" + name + "_count * sizeof(uint32_t));\n";
+                    }
+                    else if (type == "vector<float2>") {
+                        cppCode += "                    stream += (" + name + "_count * sizeof(float) * 2);\n";
                     }
                     cppCode += "                }\n";
                 }

@@ -270,6 +270,30 @@ namespace ilen::maths::vector{
         return a;
     }
 
+    //Resta acumulada
+    template<typename T, size_t N>
+    constexpr inline Vector<T, N>& operator-=(Vector<T, N>& a, const Vector<T, N>& b) {
+        if constexpr (N == 2) {
+            a.x -= b.x;
+            a.y -= b.y;    
+        } else if constexpr (N == 3) {
+            a.x -= b.x;
+            a.y -= b.y;
+            a.z -= b.z;
+        } else if constexpr (N == 4) {
+            a.x -= b.x;
+            a.y -= b.y;
+            a.z -= b.z;
+            a.w -= b.w;
+        }else {
+            for(size_t i = 0; i < N; i++) {
+                a[i] - b[i];
+            }
+        }
+
+        return a;
+    }
+
     // Multiplicação acumulada por escalar: v *= scalar
     template<typename T, size_t N>
     constexpr inline Vector<T, N>& operator*=(Vector<T, N>& v, const T& scalar) {

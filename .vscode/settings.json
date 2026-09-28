@@ -1,0 +1,11 @@
+{
+    "cmake.configureArgs": [
+        "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+    ],
+    "cmake.copyCompileCommands": "${workspaceFolder}/build/compile_commands/compile_commands.json",
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build/compile_commands",
+        "--background-index",
+        "--clang-tidy"
+    ]
+}

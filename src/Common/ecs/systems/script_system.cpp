@@ -4,7 +4,7 @@
 #include <ilen/game_logic/script_registry.h>
 #include <ilen/core/engine_context.h>
 #include <ilen_public/API/transform_api.h>
-#include <ilen_public/API/physics2d_api.h>
+#include <ilen_public/API/physics_2d_api.h>
 #include <ilen_public/API/entity_api.h>
 #include <ilen_public/API/camera_api.h>
 #include <ilen_public/API/rendering_api.h>

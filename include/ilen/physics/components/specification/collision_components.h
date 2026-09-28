@@ -34,6 +34,7 @@ namespace ilen::ecs::components::physics {
 
         float penetration = 0.0f; //Penetracion del contacto (antes depth)
         float timeOfImpact = 1.0; //Instance del impacto intervalo [0, 1]
+        bool hasContactPoint = false; //True si el punto de contacto fue calculado por un algoritmo de forma exacta
         bool isTrigger = false;
     };
 

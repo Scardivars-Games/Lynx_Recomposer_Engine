@@ -1,8 +1,9 @@
-#include <ilen_public/API/physics2d_api.h>
+#include <ilen_public/API/physics_2d_api.h>
 
 using namespace ilen::engine::api;
 using namespace ilen::ecs;
-using namespace components;
+using namespace ilen::ecs::components;
+using namespace ilen::ecs::components::physics;
 
 void PhysicsAPI::Init(const ilen::EngineContext* context){
     p_coordinator = context->p_coordinator.get();
@@ -18,7 +19,7 @@ void PhysicsAPI::Init(const ilen::EngineContext* context){
     }
 }
 
-void PhysicsAPI::GenerateBoxColliderSize(Entity e, physics::BoxCollider2D* collider){
+void PhysicsAPI::GenerateBoxColliderSize(Entity e, BoxCollider2D* collider){
     //Si el tamaño no es 0, el box collider ya existe y se respeta.
     if(collider->halfExtents.x != 0.0f && collider->halfExtents.y != 0.0f) return;
 
@@ -58,7 +59,7 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
     if(!orderArray) return;
 
     std::vector<Entity> registeredEntities;
-    std::vector<physics::PhysicsOrder> accumulatedOrders;
+    std::vector<PhysicsOrder> accumulatedOrders;
     registeredEntities.reserve(ilen::ecs::MAX_ENTITIES);
     accumulatedOrders.reserve(ilen::ecs::MAX_ENTITIES);
 
@@ -88,7 +89,7 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
                 accumulatedOrders.push_back(order);
             }
 
-            order = physics::PhysicsOrder{};
+            order = PhysicsOrder{};
         }
         ta.touched.clear();
     }
