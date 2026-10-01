@@ -11,6 +11,7 @@
 #include <ilen/physics/components/physics_components.h>
 #include <ilen/physics/collider_proxy_builder_2d.h>
 #include <ilen/physics/narrow_phase_2d.h>
+#include <ilen/physics/broad_phase_2d.h>
 #include <optional>
 
 namespace ilen::ecs::systems {
@@ -64,14 +65,14 @@ namespace ilen::ecs::systems {
             //Debido al que sistema de físicas es de los más complejos, vamos a dividir las diferentes
             //partes del proceso en funciones especializadas, de esa forma es más facil entender el flujo
             //del sistema.
-            inline void syncEntities(ArrayOfComponentsUsed* componentsArray);
-            inline void clearCollisionData(ArrayOfComponentsUsed* componentsArray);
-            inline void registerPrevPosition(ArrayOfComponentsUsed* ComponentArray);
-            inline void applyForces(float dt, ArrayOfComponentsUsed* ComponentArray);
-            inline void applyGravity(float dt, ArrayOfComponentsUsed* componentsArray);
-            inline void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
-            inline void rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentsArray);
-            inline void detectAndResolve(ArrayOfComponentsUsed* componentsArray);
+            void syncEntities(ArrayOfComponentsUsed* componentsArray);
+            void clearCollisionData(ArrayOfComponentsUsed* componentsArray);
+            void registerPrevPosition(ArrayOfComponentsUsed* ComponentArray);
+            void applyForces(float dt, ArrayOfComponentsUsed* ComponentArray);
+            void applyGravity(float dt, ArrayOfComponentsUsed* componentsArray);
+            void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
+            void rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentsArray);
+            void detectAndResolve(ArrayOfComponentsUsed* componentsArray);
             //Construir Proxies
             std::optional<ilen::physics::ColliderProxy2D> buildProxy(Entity entity, ArrayOfComponentsUsed* componentsArray);
 
@@ -94,6 +95,8 @@ namespace ilen::ecs::systems {
                 const vec2& translation
             );
 
+            ilen::physics::BroadPhase2D m_broadPhase{4.0f};
+            bool m_staticBroadPhaseDirty = true;
 #if ILEN_DEBUG
             struct StaticGuard {
                 Entity entity = NULL_ENTITY;
@@ -120,6 +123,9 @@ namespace ilen::ecs::systems {
                 size_t satTests = 0;
                 size_t collisionDetected = 0;
 
+                size_t bruteForcePairs = 0;
+                size_t broadPhaseCandidates = 0;
+
                 size_t totalPairs() const {
                     return dynamicVsDynamicPairs + dynamicVsStaticPairs;
                 }
@@ -132,7 +138,7 @@ namespace ilen::ecs::systems {
             CollisionDebugStats m_collisionDebugStats{};
             
             uint32_t m_collisionDebugFrameCounter = 0;
-            uint32_t m_collisionDebugReportInterval = 0;
+            uint32_t m_collisionDebugReportInterval = 60;
 
             void reportCollisionDebugStats();
 #endif

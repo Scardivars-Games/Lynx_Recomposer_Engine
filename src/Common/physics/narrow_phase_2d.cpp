@@ -140,9 +140,9 @@ namespace ilen::physics {
             return std::nullopt;
         }
 
-        if(!ilen::maths::aabb::overlapAABB2D(proxyA.bounds, proxyB.bounds)) {
+        /*if(!ilen::maths::aabb::overlapAABB2D(proxyA.bounds, proxyB.bounds)) {
             return std::nullopt;
-        }
+        }*/
 
         float minimumPenetration = std::numeric_limits<float>::max();
         vec2 minimumNormal{0.0f};

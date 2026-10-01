@@ -7,6 +7,7 @@
 #include <optional>
 #include <utility>
 #include "ilen/maths/AABB.h"
+#include "ilen/physics/narrow_phase_2d.h"
 
 
 using namespace ilen::ecs::systems;
@@ -107,8 +108,9 @@ void PhysicsSystem2D::registerEntity(Entity e, ArrayOfComponentsUsed* components
 
     if(rb->isStatic) {
         m_staticProxies.push_back(std::move(*proxy));
-
+        m_staticBroadPhaseDirty = true;
         m_registrationStates[e] = RegistrationState::Static;
+
 #if ILEN_DEBUG
         auto* transform = p_coordinator->getComponent<TransformComponent>(e);
         m_staticGuards.push_back({
@@ -151,6 +153,7 @@ void PhysicsSystem2D::syncEntities(ArrayOfComponentsUsed* componentsArray) {
         m_registrationStates[entity] = RegistrationState::None;
         m_staticProxies[i] = std::move(m_staticProxies.back());
         m_staticProxies.pop_back();
+        m_staticBroadPhaseDirty = true;
 #if ILEN_DEBUG
         m_staticGuards[i] = std::move(m_staticGuards.back());
         m_staticGuards.pop_back();
@@ -209,6 +212,7 @@ void PhysicsSystem2D::unregisterEntity(Entity e){
 
             m_staticProxies[index] = std::move(m_staticProxies.back());
             m_staticProxies.pop_back();
+            m_staticBroadPhaseDirty = true;
 
 #if ILEN_DEBUG
             m_staticGuards[index] = std::move(m_staticGuards.back());
@@ -363,7 +367,81 @@ void PhysicsSystem2D::detectAndResolve(ArrayOfComponentsUsed* componentsArray) {
 #if ILEN_DEBUG
     m_collisionDebugStats.reset();
 #endif
+    if(m_staticBroadPhaseDirty) {
+        m_broadPhase.RebuildStaticGrid(m_staticProxies);
+        
+        m_staticBroadPhaseDirty = false;
+    }
 
+    const auto& candidatePairs = m_broadPhase.BuildCandidatesPairs(m_dynamicProxies);
+
+#if ILEN_DEBUG
+    const size_t dynamicCount = m_dynamicProxies.size();
+    const size_t staticCount = m_staticProxies.size();
+
+    m_collisionDebugStats.bruteForcePairs = (dynamicCount * (dynamicCount > 0 ? dynamicCount - 1 : 0)) / 2 + dynamicCount * staticCount;
+    m_collisionDebugStats.broadPhaseCandidates = candidatePairs.size();
+#endif
+
+    for(const auto& pair: candidatePairs) {
+        if(!pair.proxyA || !pair.proxyB) {
+            continue;
+        }
+
+        auto& proxyA = *pair.proxyA;
+        auto& proxyB = *pair.proxyB;
+
+#if ILEN_DEBUG
+        if(proxyB.isStatic) {
+            m_collisionDebugStats.dynamicVsStaticPairs++;
+        } else {
+            m_collisionDebugStats.dynamicVsDynamicPairs++;
+        }
+#endif
+
+        const auto layerA = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyA.layerMask);
+        const auto layerB = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyB.layerMask);
+    
+        if(!ilen::physics::CollisionMatrix::CanCollide(
+                layerA, layerB
+            )) {
+#if ILEN_DEBUG
+            m_collisionDebugStats.rejectedByLayer++;
+#endif
+            continue;
+        }
+
+#if ILEN_DEBUG
+        m_collisionDebugStats.aabbTests++;
+#endif
+
+        if(!ilen::maths::aabb::overlapAABB2D(proxyA.bounds, proxyB.bounds)){
+#if ILEN_DEBUG
+            m_collisionDebugStats.rejectedByAABB++;
+#endif
+            continue;
+        }
+
+#if ILEN_DEBUG
+        m_collisionDebugStats.satTests++;
+#endif
+
+        auto manifold = ilen::physics::NarrowPhase2D::Test(proxyA, proxyB);
+
+        if(!manifold.has_value()) {
+            continue;
+        }
+
+#if ILEN_DEBUG
+        m_collisionDebugStats.collisionDetected++;
+#endif
+        resolveCollision(proxyA, proxyB, *manifold, componentsArray);
+    }
+
+
+
+//Implementación sin BroadPhase
+/*
     size_t dynamicCount = m_dynamicProxies.size();
     size_t staticCount = m_staticProxies.size();  
 
@@ -455,7 +533,7 @@ void PhysicsSystem2D::detectAndResolve(ArrayOfComponentsUsed* componentsArray) {
             }
         }
     }
-}
+}*/
 
 /*ilen::maths::aabb::AABB2D PhysicsSystem2D::buildAABB(Entity e, ArrayOfComponentsUsed* componentsArray) const {
     auto* transform = componentsArray->transformComponentArray->getData(e);
@@ -473,7 +551,8 @@ void PhysicsSystem2D::detectAndResolve(ArrayOfComponentsUsed* componentsArray) {
     scaledHalfExtents.y = collider->halfExtents.y * transform->scale.y;
 
     return maths::aabb::AABB2D::fromCenterHalf(center, scaledHalfExtents);
-}*/
+*/
+}
 
 void PhysicsSystem2D::resolveCollision(
     ilen::physics::ColliderProxy2D& proxyA,
@@ -599,22 +678,31 @@ void PhysicsSystem2D::reportCollisionDebugStats() {
     const size_t pairs = m_collisionDebugStats.totalPairs();
     const size_t passedAABB = m_collisionDebugStats.aabbTests - m_collisionDebugStats.rejectedByAABB;
 
+    const size_t avoidedPairs = 
+        m_collisionDebugStats.bruteForcePairs >= m_collisionDebugStats.broadPhaseCandidates
+        ? m_collisionDebugStats.bruteForcePairs - m_collisionDebugStats.broadPhaseCandidates
+        : 0;
+
+    const float reduction = 
+        m_collisionDebugStats.bruteForcePairs > 0
+        ? 100.0f * static_cast<float>(avoidedPairs) / static_cast<float>(m_collisionDebugStats.bruteForcePairs)
+        : 0.0f;
+
     ILEN_LOG_P(
-        "PHYSICS_2D_STATS", 
-        "Pares=%zu | Dynamic-Dynamic=%zu | "
-        "Dynamic-Static=%zu | Capas descartadas=%zu | "
-        "AABB=%zu | AABB descartadas=%zu | "
-        "SAT=%zu | Colisiones=%zu",
-        pairs,
-        m_collisionDebugStats.dynamicVsDynamicPairs,
-        m_collisionDebugStats.dynamicVsStaticPairs,
+        "PHYSICS_2D_STATS",
+        "Fuerza bruta=%zu | Broadphase=%zu | "
+        "Descartados=%zu | Reduccion=%.2f%% | "
+        "Capas=%zu | AABB=%zu | SAT=%zu | "
+        "Colisiones=%zu",
+        m_collisionDebugStats.bruteForcePairs,
+        m_collisionDebugStats.broadPhaseCandidates,
+        avoidedPairs,
+        reduction,
         m_collisionDebugStats.rejectedByLayer,
         m_collisionDebugStats.aabbTests,
-        m_collisionDebugStats.rejectedByAABB,
         m_collisionDebugStats.satTests,
         m_collisionDebugStats.collisionDetected
     );
-
     ILEN_LOG_P(
         "PHYSICS_2D_STATS",
         "Candidatos que superaron AABB=%zu",
