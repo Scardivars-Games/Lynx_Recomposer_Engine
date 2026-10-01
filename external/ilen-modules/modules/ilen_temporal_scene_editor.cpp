@@ -1,5 +1,13 @@
-// Editor provisional: [] vacío, [G] Ground, [P] marcador de aparición del prefab.
+// Editor provisional: [] vacío, [G] Ground, [R] RotateGround, [P] marcador de aparición del prefab.
 // Casillas de 3x3; fila inferior en Y=0, grid centrado en X, Z=100.
+//
+// Para añadir una letra nueva al editor:
+// 1. Crea un vector de posiciones como `rotatingGrounds`.
+// 2. Reconoce la letra en el bloque `if (value == ...)` y guarda allí su casilla.
+// 3. Limpia ese vector junto a los demás cuando el grid sea inválido.
+// 4. Recorre sus posiciones y añade a `scene["entities"]` los componentes deseados.
+// 5. Si se usa una escena base, decide arriba qué entidades antiguas debe reemplazar.
+// 6. Añade una prueba que lea el JSON producido y compruebe sus componentes.
 #include <charconv>
 #include <cstdint>
 #include <random>
@@ -109,7 +117,10 @@ int main(int argc, char* argv[]) {
         if (width > maxCells || height > maxCells / width)
             throw std::runtime_error("El grid supera el límite de 1000000 casillas.");
 
+        // Cada vector contiene pares (columna, fila). Separarlos por tipo permite
+        // crear después componentes distintos para G, R y P.
         std::vector<std::pair<std::size_t, std::size_t>> grounds;
+        std::vector<std::pair<std::size_t, std::size_t>> rotatingGrounds;
         std::vector<std::pair<std::size_t, std::size_t>> players;
         std::string unknownCell;
         std::size_t rows = 0;
@@ -126,12 +137,15 @@ int main(int argc, char* argv[]) {
                     malformed = true;
                     break;
                 }
+                // Extrae el texto entre corchetes. Para admitir otra letra, añade
+                // aquí otra rama y recuerda incluirla en el mensaje de error.
                 const auto value = trim(row.substr(1, end - 1));
                 if (value == "G") grounds.emplace_back(cells, rows - 1);
+                else if (value == "R") rotatingGrounds.emplace_back(cells, rows - 1);
                 else if (value == "P") players.emplace_back(cells, rows - 1);
                 else if (!value.empty() && unknownCell.empty())
                     unknownCell = "Valor desconocido [" + std::string(value) + "] en fila " +
-                        std::to_string(rows) + ", columna " + std::to_string(cells + 1) + ". Solo se admite [], [G] o [P].";
+                        std::to_string(rows) + ", columna " + std::to_string(cells + 1) + ". Solo se admite [], [G], [R] o [P].";
                 ++cells;
                 row = trim(row.substr(end + 1));
             }
@@ -154,7 +168,9 @@ int main(int argc, char* argv[]) {
             return 1;
         }
         if (valid && !unknownCell.empty()) throw std::runtime_error(unknownCell);
-        if (!valid) { grounds.clear(); players.clear(); }
+        // Al regenerar un grid inválido se vacían también las entidades que ya se
+        // habían encontrado, para que la nueva escena coincida con el grid blanco.
+        if (!valid) { grounds.clear(); rotatingGrounds.clear(); players.clear(); }
         if (players.size() > 1)
             throw std::runtime_error("Solo se permite un marcador [P] por nivel.");
 
@@ -165,13 +181,19 @@ int main(int argc, char* argv[]) {
             baseFile >> scene;
             if (!scene.is_object() || !scene.contains("entities") || !scene["entities"].is_array())
                 throw std::runtime_error("La escena base debe contener una lista entities.");
+            // Una escena base puede contener cámaras, decorado u otras entidades.
+            // `retained` conserva lo que no sea responsabilidad de este layout.
             auto retained = nlohmann::json::array();
             for (const auto& entity : scene["entities"]) {
                 if (!entity.is_object() || !entity.contains("components") || !entity["components"].is_object())
                     throw std::runtime_error("Entidad inválida en la escena base.");
                 const auto& components = entity["components"];
-                if (components.contains("ScriptingBridgeComponent") &&
-                    components["ScriptingBridgeComponent"].value("scriptName", "") == "ilen::game::Ground") continue;
+                if (components.contains("ScriptingBridgeComponent")) {
+                    const auto script = components["ScriptingBridgeComponent"].value("scriptName", "");
+                    // `continue` no copia estos objetos: las casillas G y R del
+                    // archivo de texto crearán sus versiones nuevas más abajo.
+                    if (script == "ilen::game::Ground" || script == "ilen::game::RotateGround") continue;
+                }
                 if (!players.empty()) {
                     const auto script = components.contains("ScriptingBridgeComponent")
                         ? components["ScriptingBridgeComponent"].value("scriptName", "") : "";
@@ -194,7 +216,35 @@ int main(int argc, char* argv[]) {
         int actualGround = 0;
         for (auto& entity : scene["entities"])
             entity["components"]["EntityMetadataComponent"]["uuid"] = uuid();
+
+        // Convierte cada G del grid en una entidad del JSON de escena.
         for (const auto& [column, row] : grounds) {
+            // X resta la mitad del ancho para centrar horizontalmente el grid.
+            // Y invierte las filas: la primera línea del TXT es la fila superior.
+            // Multiplicar por cellSize convierte índices de casilla en unidades del mundo.
+            const double x = (static_cast<double>(column) - (static_cast<double>(width) - 1.0) / 2.0) * cellSize;
+            const double y = (static_cast<double>(height) - 1.0 - static_cast<double>(row)) * cellSize;
+            std::string finalName = "Tierra_" + std::to_string(actualGround);
+            scene["entities"].push_back({{"components", {
+                // Metadata: identidad y filtros generales de la entidad.
+                {"EntityMetadataComponent", {{"uuid", uuid()}, {"name", finalName}, {"tags", 1}, {"layers", 1}, {"activeStatus", true}}},
+                // Transform: posición y tamaño dentro del mundo.
+                {"TransformComponent", {{"position", {x, y, 100.0}}, {"scale", {cellSize, cellSize, cellSize}}}},
+                // Render: textura y sprite que se dibujarán.
+                {"RenderComponent", {{"mainTexID", 16}, {"defaultSpriteInTextureID", 3}}},
+                // Rigidbody estático: participa en colisiones, pero la física no lo mueve.
+                {"Rigidbody2D", {{"gravityScale", 1.0}, {"isStatic", true}}},
+                // Un objeto vacío usa los valores predeterminados del collider de caja.
+                {"BoxCollider2D", nlohmann::json::object()}
+                //{"ScriptingBridgeComponent", {{"scriptName", "ilen::game::Ground"}}}
+            }}});
+            actualGround++;
+        }
+
+        // R se construye igual que G. Sus dos diferencias están señaladas abajo:
+        // el rigidbody es dinámico y la entidad ejecuta RotateGround.
+        // Este bloque es un buen punto de partida para crear otro tipo sencillo.
+        for (const auto& [column, row] : rotatingGrounds) {
             const double x = (static_cast<double>(column) - (static_cast<double>(width) - 1.0) / 2.0) * cellSize;
             const double y = (static_cast<double>(height) - 1.0 - static_cast<double>(row)) * cellSize;
             std::string finalName = "Tierra_" + std::to_string(actualGround);
@@ -202,9 +252,11 @@ int main(int argc, char* argv[]) {
                 {"EntityMetadataComponent", {{"uuid", uuid()}, {"name", finalName}, {"tags", 1}, {"layers", 1}, {"activeStatus", true}}},
                 {"TransformComponent", {{"position", {x, y, 100.0}}, {"scale", {cellSize, cellSize, cellSize}}}},
                 {"RenderComponent", {{"mainTexID", 16}, {"defaultSpriteInTextureID", 3}}},
-                {"Rigidbody2D", {{"gravityScale", 1.0}, {"isStatic", true}}},
-                {"BoxCollider2D", nlohmann::json::object()}
-                //{"ScriptingBridgeComponent", {{"scriptName", "ilen::game::Ground"}}}
+                // false permite que el sistema físico actualice esta entidad.
+                {"Rigidbody2D", {{"gravityScale", 0.0f}, {"isStatic", false}}},
+                {"BoxCollider2D", nlohmann::json::object()},
+                // ScriptingBridgeComponent conecta la entidad con una clase de juego.
+                {"ScriptingBridgeComponent", {{"scriptName", "ilen::game::RotateGround"}}}
             }}});
             actualGround++;
         }
@@ -236,7 +288,9 @@ int main(int argc, char* argv[]) {
             std::cout << "Grid en blanco guardado en " << inputPath << ".\n";
         }
         save(scenePath, serialized);
-        std::cout << "Escena creada en " << scenePath << ". Grounds generados: " << grounds.size() << ". Marcadores de player generados: " << players.size() << ".\n";
+        std::cout << "Escena creada en " << scenePath << ". Grounds generados: " << grounds.size()
+                  << ". RotateGrounds generados: " << rotatingGrounds.size()
+                  << ". Marcadores de player generados: " << players.size() << ".\n";
         return 0;
     } catch (const std::exception& error) {
         std::cerr << "Error: " << error.what() << '\n';

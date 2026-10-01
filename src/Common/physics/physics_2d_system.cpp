@@ -6,6 +6,7 @@
 #include <iterator>
 #include <optional>
 #include <utility>
+#include "ilen/maths/AABB.h"
 
 
 using namespace ilen::ecs::systems;
@@ -66,6 +67,10 @@ void PhysicsSystem2D::Update() {
     integrate(dt, &componentArray);
     rebuildDynamicProxies(dt, &componentArray);
     detectAndResolve(&componentArray);
+
+#if ILEN_DEBUG
+    reportCollisionDebugStats();
+#endif
 
     for(auto& [id, order] : m_accumulatedTransformOrder) {
         order.hasOrders = true;
@@ -355,6 +360,10 @@ void PhysicsSystem2D::integrate(float dt, ArrayOfComponentsUsed* componentsArray
 }
 
 void PhysicsSystem2D::detectAndResolve(ArrayOfComponentsUsed* componentsArray) {
+#if ILEN_DEBUG
+    m_collisionDebugStats.reset();
+#endif
+
     size_t dynamicCount = m_dynamicProxies.size();
     size_t staticCount = m_staticProxies.size();  
 
@@ -365,14 +374,39 @@ void PhysicsSystem2D::detectAndResolve(ArrayOfComponentsUsed* componentsArray) {
             const auto layerA = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyA.layerMask);
             const auto layerB = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyB.layerMask);
 
+#if ILEN_DEBUG
+            m_collisionDebugStats.dynamicVsDynamicPairs++;
+#endif
+
             if(!ilen::physics::CollisionMatrix::CanCollide(
                 layerA, layerB
             )) {
+#if ILEN_DEBUG
+                m_collisionDebugStats.rejectedByLayer++;
+#endif
                 continue;
             }
 
+#if ILEN_DEBUG
+            m_collisionDebugStats.aabbTests++;
+#endif
+
+            if(!ilen::maths::aabb::overlapAABB2D(proxyA.bounds, proxyB.bounds)){
+#if ILEN_DEBUG
+                m_collisionDebugStats.rejectedByAABB++;
+#endif
+                continue;
+            }
+
+#if ILEN_DEBUG
+            m_collisionDebugStats.satTests++;
+#endif
+
             auto manifold = ilen::physics::NarrowPhase2D::Test(proxyA, proxyB);
             if(manifold.has_value()) {
+#if ILEN_DEBUG
+                m_collisionDebugStats.collisionDetected++;
+#endif
                 resolveCollision(proxyA, proxyB, *manifold, componentsArray);
             }
         }
@@ -383,13 +417,38 @@ void PhysicsSystem2D::detectAndResolve(ArrayOfComponentsUsed* componentsArray) {
             const auto dynamicLayer = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyA.layerMask);
             const auto staticLayer = static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyStatic.layerMask);
 
+#if ILEN_DEBUG
+            m_collisionDebugStats.dynamicVsStaticPairs++;
+#endif
+
             if(!ilen::physics::CollisionMatrix::CanCollide(dynamicLayer, staticLayer)) {
+#if ILEN_DEBUG
+                m_collisionDebugStats.rejectedByLayer++;
+#endif
                 continue;
             }
+
+#if ILEN_DEBUG
+            m_collisionDebugStats.aabbTests++;
+#endif
+
+            if(!ilen::maths::aabb::overlapAABB2D(proxyA.bounds, proxyStatic.bounds)){
+#if ILEN_DEBUG
+                m_collisionDebugStats.rejectedByAABB++;
+#endif
+                continue;
+            }
+
+#if ILEN_DEBUG
+            m_collisionDebugStats.satTests++;
+#endif
 
             auto manifold = ilen::physics::NarrowPhase2D::Test(proxyA, proxyStatic);
 
             if(manifold.has_value()) {
+#if ILEN_DEBUG
+                m_collisionDebugStats.collisionDetected++;
+#endif
                 resolveCollision(
                     proxyA, proxyStatic, *manifold, componentsArray
                 );
@@ -526,5 +585,40 @@ void PhysicsSystem2D::checkStaticGuard(ArrayOfComponentsUsed* componentsArray) {
             ILEN_ERROR_P("PHYSICS_2D", "La entidad %u fue registrada como estática y luego fue cambiado ese estado", guard.entity);
         }
     }
+}
+
+void PhysicsSystem2D::reportCollisionDebugStats() {
+    m_collisionDebugFrameCounter++;
+
+    if(m_collisionDebugFrameCounter < m_collisionDebugReportInterval) {
+        return;
+    }
+
+    m_collisionDebugFrameCounter = 0;
+
+    const size_t pairs = m_collisionDebugStats.totalPairs();
+    const size_t passedAABB = m_collisionDebugStats.aabbTests - m_collisionDebugStats.rejectedByAABB;
+
+    ILEN_LOG_P(
+        "PHYSICS_2D_STATS", 
+        "Pares=%zu | Dynamic-Dynamic=%zu | "
+        "Dynamic-Static=%zu | Capas descartadas=%zu | "
+        "AABB=%zu | AABB descartadas=%zu | "
+        "SAT=%zu | Colisiones=%zu",
+        pairs,
+        m_collisionDebugStats.dynamicVsDynamicPairs,
+        m_collisionDebugStats.dynamicVsStaticPairs,
+        m_collisionDebugStats.rejectedByLayer,
+        m_collisionDebugStats.aabbTests,
+        m_collisionDebugStats.rejectedByAABB,
+        m_collisionDebugStats.satTests,
+        m_collisionDebugStats.collisionDetected
+    );
+
+    ILEN_LOG_P(
+        "PHYSICS_2D_STATS",
+        "Candidatos que superaron AABB=%zu",
+        passedAABB
+    );
 }
 #endif

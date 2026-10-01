@@ -8,7 +8,8 @@ ILEN_TEMPORAL_SCENE_EDITOR nivel.txt --base-scene project_data/scenes/gravity_te
 ```
 
 Escribe `nivel.meta_ilenscene` junto al `.txt`. `Level_Name` determina `scene_name`.
-`[]` está vacío; `[G]` crea Tierra con textura 36, sprite 3 y script `ilen::game::Ground`.
+`[]` está vacío; `[G]` crea Tierra. `[R]` crea la misma Tierra que `[G]`, pero
+con rigidbody dinámico (`isStatic: false`) y el script `ilen::game::RotateGround`.
 `[P]` genera un marcador llamado `Player Spawn` con UUID, metadatos activos,
 la posición XY de su casilla y Z=10, y el script temporal `ilen::game::Ground`.
 No lleva render, físicas, collider ni cámara. Solo se admite un `[P]` por nivel.
@@ -23,7 +24,8 @@ La escala de Ground es `[3,3,3]`: el collider por defecto de 1×1 pasa a medir
 3×3 en el mundo, llenando la casilla y haciendo contiguos los bloques del suelo.
 
 La escena base es opcional. Conserva sus campos y entidades excepto aquellas cuyo
-script sea `ilen::game::Ground`, que sustituye por el layout. Asigna nuevos UUIDs
+script sea `ilen::game::Ground` o `ilen::game::RotateGround`, que sustituye por el
+layout. Asigna nuevos UUIDs
 uint64 positivos y distintos a todas las entidades exportadas. No modifica la base.
 Si hay `[P]`, reemplaza también el jugador `Cube`, `GravityCamera` y cualquier
 cámara principal de la base para evitar duplicados. Sin `[P]`, conserva los otros

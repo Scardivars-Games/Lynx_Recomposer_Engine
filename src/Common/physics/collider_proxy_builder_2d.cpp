@@ -13,6 +13,11 @@ namespace ilen::physics {
     namespace {
         constexpr float DegreesToRadians = M_PI / 180.0f;
 
+        //Se hace el ajuste de -rotation, para que el motor de físicas use la misma convención que el motor visual.
+        float TransformRotationToRadians(float rotationInDegrees) {
+            return -rotationInDegrees * DegreesToRadians;
+        }
+
         vec2 RotatePoint(
             const vec2& point,
             float radians
@@ -43,7 +48,7 @@ namespace ilen::physics {
             return std::nullopt; //El collider no existe
         }
 
-        const float rotation = transform.rotation.z * DegreesToRadians;
+        const float rotation =  TransformRotationToRadians(transform.rotation.z);
         const vec2 scaledOffset {
             collider.offset.x * transform.scale.x, collider.offset.y * transform.scale.y
         };
@@ -110,7 +115,7 @@ namespace ilen::physics {
 
         proxy.bounds = CalculateBounds(proxy.worldVertices);
 
-        const float rotation = transform.rotation.z * DegreesToRadians;
+        const float rotation = TransformRotationToRadians(transform.rotation.z);
 
         const vec2 scaledOffset {
             collider.offset.x * transform.scale.x,
@@ -134,7 +139,7 @@ namespace ilen::physics {
             localPoint.y * transform.scale.y
         };
 
-        const float rotation = transform.rotation.z * DegreesToRadians;
+        const float rotation = TransformRotationToRadians(transform.rotation.z);
 
         return static_cast<vec2>(transform.position) + RotatePoint(scaled, rotation);
     }

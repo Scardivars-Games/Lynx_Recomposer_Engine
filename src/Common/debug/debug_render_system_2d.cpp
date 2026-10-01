@@ -1,4 +1,11 @@
+#include <cstdint>
+#include <cstdlib>
 #include <ilen/debug/debug_render_system_2d.h>
+#include "ilen/debug/debug_draw_2d.h"
+#include "ilen/ecs/types.h"
+#include "ilen/graphics/color.h"
+#include "ilen/graphics/meshes.h"
+#include "ilen/physics/components/specification/collider_components.h"
 
 #if ILEN_DEBUG
 
@@ -12,8 +19,10 @@
 #include <ilen/resources/materials_manager.h>
 #include <ilen/resources/texture_manager.h>
 #include <ilen/transform/transform_component.h>
+#include <ilen/physics/collider_proxy_builder_2d.h>
 
 #include <cmath>
+#include <algorithm>
 
 namespace ilen::ecs::systems {
     using namespace ilen::maths::vector;
@@ -92,35 +101,41 @@ namespace ilen::ecs::systems {
 
         if(setting.showColliders) {
             auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
-            auto* colliderArray = p_coordinator->getComponentArray<BoxCollider2D>();
+            auto* boxColliderArray = p_coordinator->getComponentArray<BoxCollider2D>();
+            //auto* polygonColliderArray = p_coordinator->getComponentArray<ConvexPolygonCollider2D>();
             auto* rbArray = p_coordinator->getComponentArray<Rigidbody2D>();
             auto* collisionArray = p_coordinator->getComponentArray<CollisionComponent2D>();
+            auto* metadataArray = p_coordinator->getComponentArray<EntityMetadataComponent>();
 
             for(Entity entity: entities) {
                 auto* transform = transformArray->getData(entity);
-                auto* collider = colliderArray->getData(entity);
+                auto* boxCollider = boxColliderArray->getData(entity);
+                auto* rigidbody = rbArray->getData(entity);
+                auto* metadata = metadataArray->getData(entity);
 
-                if(!transform || !collider){
+                if(!transform || !boxCollider || !rigidbody || !metadata){
                     continue;
                 }
 
-                const vec2 center {
-                    transform->position.x + collider->offset.x,
-                    transform->position.y + collider->offset.y
-                };
-                
-                const vec2 halfExtents {
-                    collider->halfExtents.x * transform->scale.x,
-                    collider->halfExtents.y * transform->scale.y
-                };
+                auto proxy = ilen::physics::ColliderProxyBuilder2D::FromBox(
+                    entity,
+                    *transform,
+                    *rigidbody,
+                    *boxCollider,
+                    *metadata
+                );
+
+                if(!proxy.has_value()) {
+                    continue;
+                }
 
                 graphics::Color color = setting.dynamicColor;
 
-                if(auto* rb = rbArray->getData(entity); rb && rb->isStatic) {
+                if(rigidbody->isStatic) {
                     color = setting.staticColor;
                 }
-                
-                if(collider->isTrigger) {
+
+                if(boxCollider->isTrigger) {
                     color = setting.triggerColor;
                 }
 
@@ -129,12 +144,18 @@ namespace ilen::ecs::systems {
                 }
 
                 if(setting.colliderMode == DebugShapeMode2D::Solid){
-                    AppendSolidBox(
-                        center, halfExtents, transform->position.z, color, setting.outlineThickness
+                    AppendSolidPolygon(
+                        proxy->worldVertices,
+                        transform->position.z,
+                        color,
+                        setting.outlineThickness
                     );
                 } else {
-                    AppendWireBox(
-                        center, halfExtents, transform->position.z, color, setting.outlineThickness
+                    AppendWirePolygon(
+                        proxy->worldVertices,
+                        transform->position.z,
+                        color,
+                        setting.outlineThickness
                     );
                 }
             }
@@ -154,18 +175,24 @@ namespace ilen::ecs::systems {
                     );
                     break;
                 case DebugPrimitiveType2D::Box:
+                    const vec2 center = primitive.a;
+                    const vec2 half = primitive.b;
+
+                    const float left = center.x - std::abs(half.x);
+                    const float right = center.x + std::abs(half.x);
+                    const float bottom = center.y - std::abs(half.y);
+                    const float top = center.y + std::abs(half.y);
+
+                    const std::vector<vec2> vertices {
+                        vec2{left, bottom},
+                        vec2{right, bottom},
+                        vec2{right, top},
+                        vec2{left, top}
+                    };
+
                     if(primitive.mode == DebugShapeMode2D::Solid) {
-                        AppendSolidBox(
-                            primitive.a,
-                            primitive.b,
-                            primitive.z,
-                            primitive.color,
-                            primitive.thickness
-                        );
-                    } else {
-                        AppendWireBox(
-                            primitive.a,
-                            primitive.b,
+                        AppendSolidPolygon(
+                            vertices,
                             primitive.z,
                             primitive.color,
                             primitive.thickness
@@ -199,7 +226,7 @@ namespace ilen::ecs::systems {
             return;
         }
 
-        ILEN_LOG_P("DEBUG_RENDER", "Paso la comprobacion");
+        //ILEN_LOG_P("DEBUG_RENDER", "Paso la comprobacion");
 
         const uint8_t frame = m_renderer->getActualFrameInFlight();
         FrameBuffers& buffers = m_frameBuffers[frame];
@@ -247,7 +274,7 @@ namespace ilen::ecs::systems {
         m_renderer->returnParallelCommandEncoder(std::move(parallelEncoder));
     }
 
-    void DebugRenderSystem2D::AppendSolidBox(
+    /*void DebugRenderSystem2D::AppendSolidBox(
         vec2 center,
         vec2 half,
         float z,
@@ -304,7 +331,7 @@ namespace ilen::ecs::systems {
             vec2{left, bottom},
             z, color, thickness
         );
-    }
+    }*/
 
     void DebugRenderSystem2D::AppendLine(
         vec2 start,
@@ -374,6 +401,163 @@ namespace ilen::ecs::systems {
         m_indices.push_back(base + 0);
         m_indices.push_back(base + 2);
         m_indices.push_back(base + 3);
+    }
+
+    void DebugRenderSystem2D::AppendTriangle(
+        vec2 p0,
+        vec2 p1,
+        vec2 p2,
+        float z,
+        const graphics::Color& color
+    ) {
+        if(m_vertices.size() + 3 > MaxVertices || m_indices.size() + 3 > MaxIndices) {
+            return;
+        }
+
+        const uint32_t base = static_cast<uint32_t>(m_vertices.size());
+        auto makeVertex = [z, &color](vec2 position) {
+            render::buffers::VertexBufferData vertex{};
+
+            vertex.vertexPosition = vec4 {
+                position.x,
+                position.y,
+                z,
+                1.0f
+            };
+            
+            vertex.vertexColor = color;
+            vertex.UV = vec2{0.5f,0.5f};
+            return vertex;
+        };
+
+        m_vertices.push_back(makeVertex(p0));
+        m_vertices.push_back(makeVertex(p1));
+        m_vertices.push_back(makeVertex(p2));
+
+        m_indices.push_back(base);
+        m_indices.push_back(base + 1);
+        m_indices.push_back(base + 2);
+    }
+
+    void DebugRenderSystem2D::AppendWirePolygon(
+        const std::vector<vec2>& vertices,
+        float z,
+        const graphics::Color& color,
+        float thickness
+    ) {
+        if(vertices.size() < 3) {
+            return;
+        }
+
+        const Settings& settings = GetSettings();
+
+        const graphics::Color wireColor =
+            MakeWireColor(color, settings);
+
+        /*
+        * Contorno completo.
+        */
+        for(size_t i = 0; i < vertices.size(); i++) {
+            const size_t next =
+                (i + 1) % vertices.size();
+
+            AppendLine(
+                vertices[i],
+                vertices[next],
+                z,
+                wireColor,
+                thickness
+            );
+        }
+
+        if(!settings.showTriangulation) {
+            return;
+        }
+
+        /*
+        * Los polígonos convexos se triangulan como un fan:
+        *
+        * 0-1-2
+        * 0-2-3
+        * 0-3-4
+        *
+        * Solo dibujamos las diagonales internas. El resto de
+        * los lados ya forma parte del contorno.
+        */
+        for(size_t i = 2; i + 1 < vertices.size(); i++) {
+            AppendLine(
+                vertices[0],
+                vertices[i],
+                z,
+                wireColor,
+                thickness
+            );
+        }
+    }
+
+    void DebugRenderSystem2D::AppendSolidPolygon(
+        const std::vector<vec2>& vertices,
+        float z,
+        const graphics::Color& color,
+        float thickness
+    ) {
+        if(vertices.size() < 3) {
+            return;
+        }
+
+        const Settings& settings = GetSettings();
+
+        const graphics::Color fillColor =
+            MakeFillColor(color, settings);
+
+        /*
+        * Triangulación fan válida porque los colliders que
+        * acepta física son convexos y antihorarios.
+        */
+        for(size_t i = 1; i + 1 < vertices.size(); i++) {
+            AppendTriangle(
+                vertices[0],
+                vertices[i],
+                vertices[i + 1],
+                z,
+                fillColor
+            );
+        }
+
+        /*
+        * Se añade después del relleno para que las líneas se
+        * dibujen encima dentro del mismo command encoder.
+        */
+        AppendWirePolygon(
+            vertices,
+            z,
+            color,
+            thickness
+        );
+    }
+
+    graphics::Color DebugRenderSystem2D::MakeFillColor(
+        const graphics::Color& color,
+        const Settings& settings
+    ) {
+        return graphics::Color {
+            color.r * settings.fillDarkness,
+            color.g * settings.fillDarkness,
+            color.b * settings.fillDarkness,
+            color.a * settings.fillOpacity
+        };
+    }
+
+    graphics::Color DebugRenderSystem2D::MakeWireColor(
+        const graphics::Color& color,
+        const Settings& settings
+    ) {
+        return graphics::Color{
+            std::min(1.0f, color.r + (1.0f - color.r) * settings.wireBrightness),
+            std::min(1.0f, color.g + (1.0f - color.g) * settings.wireBrightness),
+            std::min(1.0f, color.b + (1.0f - color.b) * settings.wireBrightness),
+            color.a
+        };
     }
 }
 

@@ -64,14 +64,14 @@ namespace ilen::ecs::systems {
             //Debido al que sistema de físicas es de los más complejos, vamos a dividir las diferentes
             //partes del proceso en funciones especializadas, de esa forma es más facil entender el flujo
             //del sistema.
-            void syncEntities(ArrayOfComponentsUsed* componentsArray);
-            void clearCollisionData(ArrayOfComponentsUsed* componentsArray);
-            void registerPrevPosition(ArrayOfComponentsUsed* ComponentArray);
-            void applyForces(float dt, ArrayOfComponentsUsed* ComponentArray);
-            void applyGravity(float dt, ArrayOfComponentsUsed* componentsArray);
-            void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
-            void rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentsArray);
-            void detectAndResolve(ArrayOfComponentsUsed* componentsArray);
+            inline void syncEntities(ArrayOfComponentsUsed* componentsArray);
+            inline void clearCollisionData(ArrayOfComponentsUsed* componentsArray);
+            inline void registerPrevPosition(ArrayOfComponentsUsed* ComponentArray);
+            inline void applyForces(float dt, ArrayOfComponentsUsed* ComponentArray);
+            inline void applyGravity(float dt, ArrayOfComponentsUsed* componentsArray);
+            inline void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
+            inline void rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentsArray);
+            inline void detectAndResolve(ArrayOfComponentsUsed* componentsArray);
             //Construir Proxies
             std::optional<ilen::physics::ColliderProxy2D> buildProxy(Entity entity, ArrayOfComponentsUsed* componentsArray);
 
@@ -107,6 +107,34 @@ namespace ilen::ecs::systems {
             };
 
             std::vector<StaticGuard> m_staticGuards;
+
+            struct CollisionDebugStats {
+                size_t dynamicVsDynamicPairs = 0;
+                size_t dynamicVsStaticPairs = 0;
+
+                size_t rejectedByLayer = 0;
+
+                size_t aabbTests = 0;
+                size_t rejectedByAABB = 0;
+
+                size_t satTests = 0;
+                size_t collisionDetected = 0;
+
+                size_t totalPairs() const {
+                    return dynamicVsDynamicPairs + dynamicVsStaticPairs;
+                }
+
+                void reset() {
+                    *this = CollisionDebugStats{};
+                }
+            };
+
+            CollisionDebugStats m_collisionDebugStats{};
+            
+            uint32_t m_collisionDebugFrameCounter = 0;
+            uint32_t m_collisionDebugReportInterval = 0;
+
+            void reportCollisionDebugStats();
 #endif
         };
 }

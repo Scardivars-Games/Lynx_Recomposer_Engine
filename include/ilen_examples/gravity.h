@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ilen/game_logic/game_object.h"
+#include "ilen/game_logic/script_registry.h"
 #if !ILEN_ONLY_ECS
 
 #include <ilen/headers/gameobject.h>
@@ -36,6 +38,12 @@ namespace ilen::game{
             void Init() override;
             void LateUpdate() override;
     };
+
+    class RotateGround final : public GameObject {
+        //public Init() override;
+        public:
+            void Update() override;
+    };
 }
 
 ILEN_REGISTER_SCRIPT(ilen::game::Cube);
@@ -43,6 +51,6 @@ ILEN_REGISTER_SCRIPT(ilen::game::PointerPos);
 ILEN_REGISTER_SCRIPT(ilen::game::Ground);
 ILEN_REGISTER_SCRIPT(ilen::game::GravityCamera);
 ILEN_REGISTER_SCRIPT(ilen::game::PlayerSpawner);
-
+ILEN_REGISTER_SCRIPT(ilen::game::RotateGround);
 
 #endif //!ILEN_ONLY_ECS

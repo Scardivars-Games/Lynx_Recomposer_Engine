@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ilen/graphics/color.h"
 #if ILEN_DEBUG
 #include <ilen/debug/debug_draw_2d.h>
 #include <ilen/ecs/system.h>
@@ -28,6 +29,12 @@ namespace ilen::ecs::systems {
                 DebugShapeMode2D colliderMode = DebugShapeMode2D::Wireframe;
 
                 float outlineThickness = 0.025f;
+
+                float fillOpacity = 0.28;
+                float fillDarkness = 0.55f;
+                float wireBrightness = 0.35f;
+                
+                bool showTriangulation = true;
 
                 graphics::Color dynamicColor {
                     0.0f, 1.0f, 0.0f, 1.0f
@@ -60,7 +67,7 @@ namespace ilen::ecs::systems {
                 static constexpr size_t MaxVertices = 65536;
                 static constexpr size_t MaxIndices = 98304;
 
-                void AppendSolidBox(
+                /*void AppendSolidBox(
                     maths::vector::vec2 center,
                     maths::vector::vec2 halfExtents,
                     float z,
@@ -74,7 +81,7 @@ namespace ilen::ecs::systems {
                     float z,
                     const graphics::Color& color,
                     float thickness
-                );
+                );*/
 
                 void AppendLine(
                     maths::vector::vec2 start,
@@ -91,6 +98,38 @@ namespace ilen::ecs::systems {
                     maths::vector::vec2 p3,
                     float z,
                     const graphics::Color& color
+                );
+
+                void AppendSolidPolygon(
+                    const std::vector<maths::vector::vec2>& vertices,
+                    float z,
+                    const graphics::Color& color,
+                    float thickness
+                );
+
+                void AppendWirePolygon(
+                    const std::vector<maths::vector::vec2>& vertioces,
+                    float z,
+                    const graphics::Color& color,
+                    float thickness
+                );
+
+                void AppendTriangle(
+                    maths::vector::vec2 p0,
+                    maths::vector::vec2 p1,
+                    maths::vector::vec2 p2,
+                    float z,
+                    const graphics::Color& color
+                );
+
+                static graphics::Color MakeFillColor(
+                    const graphics::Color& color,
+                    const Settings& settings
+                );
+
+                static graphics::Color MakeWireColor(
+                    const graphics::Color& color,
+                    const Settings& settings
                 );
 
                 render::IRenderer* m_renderer = nullptr;

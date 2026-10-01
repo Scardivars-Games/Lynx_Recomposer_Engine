@@ -1,3 +1,4 @@
+#include "ilen/core/time.h"
 #if !ILEN_ONLY_ECS
 
 #include <ilen_examples/gravity.h>
@@ -258,9 +259,13 @@ void PlayerSpawner::Init() {
     auto& debutSettings = DebugSystem::GetSettings();
 
     debutSettings.colliderMode = ilen::debug::DebugShapeMode2D::Solid;
-    debutSettings.staticColor = ilen::graphics::Color{0.0f,0.5f,1.0f,0.4f};
-    debutSettings.dynamicColor = ilen::graphics::Color{1.0f, 0.0f,0.0f, 0.4f};
+    debutSettings.staticColor = ilen::graphics::Color{0.0f,0.5f,1.0f,1.0f};
+    debutSettings.dynamicColor = ilen::graphics::Color{1.0f, 0.0f,0.0f, 1.0f};
     debutSettings.showColliders = false;
 #endif
+}
+
+void RotateGround::Update() {
+    TransformAPI::Rotate(entity, vec3(0,0,50) * ilen::time::Time::getDeltaTime());
 }
 #endif //!ILEN_ONLY_ECS

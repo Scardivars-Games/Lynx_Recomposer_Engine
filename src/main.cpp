@@ -13,7 +13,7 @@ using namespace ilen;
 using namespace ilen::window;
 int main() {
     application::ApplicationMetadata metadata{};
-    metadata.applicationName = "ILEN Test";
+    metadata.applicationName = "Lemon's Conspiracy -> PreAlpha";
     metadata.applicationDeveloper = "Scardivar's Games";
     metadata.applicationVersion = "0.0.1";
     metadata.startHeight = 600;
