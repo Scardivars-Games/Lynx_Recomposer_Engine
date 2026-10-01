@@ -1,4 +1,6 @@
 #include <ilen_public/API/physics_2d_api.h>
+#include "ilen/core/runtime_options.h"
+#include "ilen/physics/components/specification/rigidbody_components.h"
 
 using namespace ilen::engine::api;
 using namespace ilen::ecs;
@@ -50,6 +52,30 @@ void PhysicsAPI::AddForce(Entity e, vec3 force) {
 
 void PhysicsAPI::AddImpulse(Entity e, vec3 impulse) {
     accumulate(e, [&](components::physics::PhysicsOrder& o){ o.accumulatedImpulse += impulse; });
+}
+
+void PhysicsAPI::ChangeObjectGravity(Entity entity, bool newState, float newMultiplier) {
+    ChangeObjectGravity(entity, newState);
+    ChangeObjectGravity(entity, newMultiplier);
+}
+
+void PhysicsAPI::ChangeObjectGravity(Entity entity, bool newState) {
+    auto* objectRigidbody = p_coordinator->getComponent<Rigidbody2D>(entity);
+    objectRigidbody->usesGravity = newState;
+}
+
+void PhysicsAPI::ChangeObjectGravity(Entity entity, float newMultiplier) {
+    auto* objectRigidbody = p_coordinator->getComponent<Rigidbody2D>(entity);
+    objectRigidbody->gravityScale = newMultiplier;
+}
+
+void PhysicsAPI::ChangeGlobalGravity(float newGravityValue) {
+    ilen::core::options::PhysicsOptions::gravity = newGravityValue;
+}
+
+void PhysicsAPI::ChangeObjectMass(Entity entity, float newMass) {
+    auto* objectRigidbody = p_coordinator->getComponent<Rigidbody2D>(entity);
+    objectRigidbody->mass = newMass;
 }
 
 void PhysicsAPI::ExecuteAllAccumulatedForces() {

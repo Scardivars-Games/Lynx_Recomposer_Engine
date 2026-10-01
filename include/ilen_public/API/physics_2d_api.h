@@ -21,6 +21,16 @@ namespace ilen::engine::api {
             // Fuerza instantánea
             static void AddImpulse(Entity entity, vec3 impulse);
 
+            //Modificación de propiedades físicas de las entidades
+            static void ChangeObjectGravity(Entity entity, bool newState);
+            static void ChangeObjectGravity(Entity entity, float newMultiplier);
+            static void ChangeObjectGravity(Entity entity, bool newState, float newMultiplier);
+
+            static void ChangeObjectMass(Entity entity, float newMass);
+
+            //Modificaciónes globales
+            static void ChangeGlobalGravity(float newGravityValue);
+
             static void GenerateBoxColliderSize(Entity e, components::physics::BoxCollider2D* collider);
             static void GenerateBoxColliderSize(Entity e, components::physics::BoxCollider3D* collider);
         private:

@@ -113,6 +113,18 @@ target_include_directories(ilen_global_includes INTERFACE ${CMAKE_CURRENT_SOURCE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ilen_global_includes)
 
+option(ILEN_BUILD_PHYSICS_BENCHMARK "Compila el benchmark aislado del broadphase 2D" OFF)
+
+if(ILEN_BUILD_PHYSICS_BENCHMARK)
+    add_executable(ilen-physics-broadphase-benchmark
+        tests/physics/broad_phase_2d_benchmark.cpp
+        src/Common/physics/broad_phase_2d.cpp
+        src/Common/maths/AABB.cpp
+    )
+    target_link_libraries(ilen-physics-broadphase-benchmark PRIVATE ilen_global_includes)
+    target_compile_features(ilen-physics-broadphase-benchmark PRIVATE cxx_std_23)
+endif()
+
 list(APPEND SHARED_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 #Threads support

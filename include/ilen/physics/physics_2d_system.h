@@ -95,7 +95,7 @@ namespace ilen::ecs::systems {
                 const vec2& translation
             );
 
-            ilen::physics::BroadPhase2D m_broadPhase{4.0f};
+            ilen::physics::BroadPhase2D m_broadPhase{15.0f};
             bool m_staticBroadPhaseDirty = true;
 #if ILEN_DEBUG
             struct StaticGuard {

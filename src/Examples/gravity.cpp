@@ -266,6 +266,7 @@ void PlayerSpawner::Init() {
 }
 
 void RotateGround::Update() {
-    TransformAPI::Rotate(entity, vec3(0,0,50) * ilen::time::Time::getDeltaTime());
+    PhysicsAPI::ChangeObjectGravity(entity, true, 0.5f);
+    //TransformAPI::Rotate(entity, vec3(0,0,50) * ilen::time::Time::getDeltaTime());
 }
 #endif //!ILEN_ONLY_ECS
