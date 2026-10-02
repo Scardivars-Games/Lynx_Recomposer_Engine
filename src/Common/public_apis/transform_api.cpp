@@ -1,4 +1,6 @@
 #include <ilen_public/API/transform_api.h>
+#include <ilen_public/API/physics_2d_api.h>
+#include <ilen/physics/components/specification/rigidbody_components.h>
 #include <ilen/transform/transform_system.h>
 
 using namespace ilen::engine::api;
@@ -20,9 +22,38 @@ void TransformAPI::Init(const ilen::EngineContext* context) {
 }
 
 void TransformAPI::Translate(Entity e, vec3 delta) {
-    if(e != NULL_ENTITY){
-        accumulate(e, [&](TransformOrder& o){ o.translation += delta; });
+    if(e == NULL_ENTITY) return;
+
+    auto* rigidbodyArray =
+        p_coordinator->getComponentArray<components::physics::Rigidbody2D>();
+    auto* rigidbody = rigidbodyArray ? rigidbodyArray->getData(e) : nullptr;
+
+    if(rigidbody) {
+        if(rigidbody->isStatic) {
+#if ILEN_DEBUG
+            ILEN_ERROR_P(
+                "TRANSFORM_API",
+                "La entidad estatica %u no puede moverse mediante Translate",
+                e
+            );
+#endif
+            return;
+        }
+
+        PhysicsAPI::Move(e, static_cast<vec2>(delta));
+
+        // La física es 2D; Z continúa perteneciendo al Transform.
+        if(delta.z != 0.0f) {
+            accumulate(e, [&](TransformOrder& order) {
+                order.translation.z += delta.z;
+            });
+        }
+        return;
     }
+
+    accumulate(e, [&](TransformOrder& order) {
+        order.translation += delta;
+    });
 }
 
 void TransformAPI::Rotate(Entity e, vec3 euler) {
@@ -50,9 +81,46 @@ void TransformAPI::Scale(Entity e, float uniform) {
 }
 
 void TransformAPI::SetPosition(Entity e, vec3 newPos){
-    if(e != NULL_ENTITY){
-            accumulate(e, [&](TransformOrder& o){ o.translation += newPos; o.isNewPos = true; });
+    if(e == NULL_ENTITY) return;
+
+    auto* rigidbodyArray =
+        p_coordinator->getComponentArray<components::physics::Rigidbody2D>();
+    auto* rigidbody = rigidbodyArray ? rigidbodyArray->getData(e) : nullptr;
+
+    if(rigidbody) {
+        if(rigidbody->isStatic) {
+#if ILEN_DEBUG
+            ILEN_ERROR_P(
+                "TRANSFORM_API",
+                "La entidad estatica %u no puede moverse mediante SetPosition",
+                e
+            );
+#endif
+            return;
+        }
+
+        PhysicsAPI::Teleport(e, static_cast<vec2>(newPos));
+
+        auto* transform = p_coordinator->getComponent<TransformComponent>(e);
+        if(transform && transform->position.z != newPos.z) {
+            const vec3 zOnlyPosition{
+                transform->position.x,
+                transform->position.y,
+                newPos.z
+            };
+
+            accumulate(e, [&](TransformOrder& order) {
+                order.translation = zOnlyPosition;
+                order.isNewPos = true;
+            });
+        }
+        return;
     }
+
+    accumulate(e, [&](TransformOrder& order) {
+        order.translation = newPos;
+        order.isNewPos = true;
+    });
 }
 
 //Este método modifica el sistema de parenting del transform.

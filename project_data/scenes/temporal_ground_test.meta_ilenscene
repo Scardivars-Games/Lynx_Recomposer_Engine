@@ -3183,7 +3183,7 @@
                     "mainTexID": 16
                 },
                 "Rigidbody2D": {
-                    "gravityScale": 0.0,
+                    "gravityScale": 25.0,
                     "isStatic": false
                 },
                 "ScriptingBridgeComponent": {

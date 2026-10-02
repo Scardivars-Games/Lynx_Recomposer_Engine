@@ -75,6 +75,7 @@ void Object3D::Init() {
 void Object3D::Update() {
     using namespace ilen::engine::api;
     TransformAPI::Rotate(entity, vec3(0, 50, 0) * ilen::time::Time::getDeltaTime());
+    
 }
 
 #endif //!ILEN_ONLY_ECS

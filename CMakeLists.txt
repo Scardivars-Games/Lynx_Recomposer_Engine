@@ -123,6 +123,14 @@ if(ILEN_BUILD_PHYSICS_BENCHMARK)
     )
     target_link_libraries(ilen-physics-broadphase-benchmark PRIVATE ilen_global_includes)
     target_compile_features(ilen-physics-broadphase-benchmark PRIVATE cxx_std_23)
+
+    add_executable(ilen-physics-swept-sat-test
+        tests/physics/swept_sat_2d_test.cpp
+        src/Common/physics/narrow_phase_2d.cpp
+        src/Common/maths/AABB.cpp
+    )
+    target_link_libraries(ilen-physics-swept-sat-test PRIVATE ilen_global_includes)
+    target_compile_features(ilen-physics-swept-sat-test PRIVATE cxx_std_23)
 endif()
 
 list(APPEND SHARED_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)

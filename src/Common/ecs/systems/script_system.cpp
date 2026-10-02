@@ -141,7 +141,11 @@ namespace ilen::ecs::systems {
             group.Wait();
 
             //Metodos para realizar serialmente tareas no thread-safe
-            ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();                
+            ilen::engine::api::TransformAPI::ExecuteAllAccumulatedTransform();
+            // TransformAPI puede redirigir el movimiento XY de un Rigidbody a
+            // PhysicsAPI. Debe publicarse antes de ejecutar PhysicsSystem2D en
+            // este mismo fixed update.
+            ilen::engine::api::PhysicsAPI::ExecuteAllAccumulatedForces();
             p_commandDispatcher->ExecuteAll();
     }
 

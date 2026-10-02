@@ -54,6 +54,68 @@ void PhysicsAPI::AddImpulse(Entity e, vec3 impulse) {
     accumulate(e, [&](components::physics::PhysicsOrder& o){ o.accumulatedImpulse += impulse; });
 }
 
+void PhysicsAPI::SetLinearVelocity(Entity e, vec2 velocity) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        order.velocityOverride = velocity;
+        order.overrideVelocityX = true;
+        order.overrideVelocityY = true;
+    });
+}
+
+void PhysicsAPI::SetLinearVelocityX(Entity e, float velocity) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        order.velocityOverride.x = velocity;
+        order.overrideVelocityX = true;
+    });
+}
+
+void PhysicsAPI::SetLinearVelocityY(Entity e, float velocity) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        order.velocityOverride.y = velocity;
+        order.overrideVelocityY = true;
+    });
+}
+
+void PhysicsAPI::Move(Entity e, vec2 translation) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        if(order.hasTeleport || order.hasMovePosition) {
+            order.targetPosition += translation;
+        } else {
+            order.accumulatedTranslation += translation;
+        }
+    });
+}
+
+void PhysicsAPI::MovePosition(Entity e, vec2 targetPosition) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        order.targetPosition = targetPosition;
+        order.accumulatedTranslation = vec2(0.0f);
+        order.hasMovePosition = true;
+        order.hasTeleport = false;
+    });
+}
+
+void PhysicsAPI::Teleport(Entity e, vec2 targetPosition) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        order.targetPosition = targetPosition;
+        order.accumulatedTranslation = vec2(0.0f);
+        order.hasMovePosition = false;
+        order.hasTeleport = true;
+    });
+}
+
 void PhysicsAPI::ChangeObjectGravity(Entity entity, bool newState, float newMultiplier) {
     ChangeObjectGravity(entity, newState);
     ChangeObjectGravity(entity, newMultiplier);
@@ -73,9 +135,17 @@ void PhysicsAPI::ChangeGlobalGravity(float newGravityValue) {
     ilen::core::options::PhysicsOptions::gravity = newGravityValue;
 }
 
-void PhysicsAPI::ChangeObjectMass(Entity entity, float newMass) {
+void PhysicsAPI::ChangeObjectMass(Entity entity, float newMass, bool additive) {
     auto* objectRigidbody = p_coordinator->getComponent<Rigidbody2D>(entity);
-    objectRigidbody->mass = newMass;
+    if(additive){
+        objectRigidbody->mass += newMass;
+        if(objectRigidbody->mass <= 0.001f)
+            objectRigidbody->mass = 0.1f;
+    }else {
+        objectRigidbody->mass = newMass;
+        if(objectRigidbody->mass <= 0.001f)
+            objectRigidbody->mass = 0.1f;
+    }
 }
 
 void PhysicsAPI::ExecuteAllAccumulatedForces() {
@@ -109,6 +179,31 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
                 auto& actualOrder = accumulatedOrders[index];
                 actualOrder.accumulatedForce += order.accumulatedForce;
                 actualOrder.accumulatedImpulse += order.accumulatedImpulse;
+
+                if(order.overrideVelocityX) {
+                    actualOrder.velocityOverride.x = order.velocityOverride.x;
+                    actualOrder.overrideVelocityX = true;
+                }
+
+                if(order.overrideVelocityY) {
+                    actualOrder.velocityOverride.y = order.velocityOverride.y;
+                    actualOrder.overrideVelocityY = true;
+                }
+
+                if(order.hasTeleport) {
+                    actualOrder.targetPosition = order.targetPosition;
+                    actualOrder.accumulatedTranslation = vec2(0.0f);
+                    actualOrder.hasMovePosition = false;
+                    actualOrder.hasTeleport = true;
+                } else if(order.hasMovePosition) {
+                    actualOrder.targetPosition = order.targetPosition;
+                    actualOrder.accumulatedTranslation = vec2(0.0f);
+                    actualOrder.hasMovePosition = true;
+                    actualOrder.hasTeleport = false;
+                } else {
+                    actualOrder.accumulatedTranslation +=
+                        order.accumulatedTranslation;
+                }
             }else {
                 //No existe.
                 registeredEntities.push_back(e);

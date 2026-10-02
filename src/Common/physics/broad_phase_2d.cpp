@@ -36,7 +36,7 @@ namespace ilen::physics {
     void BroadPhase2D::RebuildStaticGrid(std::vector<ColliderProxy2D> &staticProxies) {
         m_staticCells.clear();
 
-        //Estimando celulas, para ahorar rehashes.
+        // Es una estimación, no un límite: reduce rehashes en escenas normales.
         m_staticCells.reserve(staticProxies.size() * 2);
 
         for(ColliderProxy2D& proxy: staticProxies) {
@@ -58,8 +58,10 @@ namespace ilen::physics {
         m_candidatePairs.reserve(dynamicProxies.size() * 4);
 
         for(ColliderProxy2D& dynamicProxy: dynamicProxies) {
+            // sweptBounds cubre todo el recorrido previsto. Consultar solamente
+            // bounds permitiría que un objeto cruzara una celda entre dos pasos.
             ForEachOccupiedCell(
-                dynamicProxy.bounds,
+                dynamicProxy.sweptBounds,
                 [this, &dynamicProxy](const CellCoordinate& coordinate) {
                     if(auto iterator = m_dynamicCells.find(coordinate); iterator != m_dynamicCells.end()) {
                         for(ColliderProxy2D* other : iterator->second) {

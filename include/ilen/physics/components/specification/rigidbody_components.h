@@ -27,6 +27,11 @@ namespace ilen::ecs::components::physics {
         ILEN_PROPERTY bool isInGround = false;
         ILEN_PROPERTY bool usesGravity = true;
         ILEN_PROPERTY bool isStatic = false;
+
+        // Un cuerpo cinemático se mueve por órdenes de posición, no recibe
+        // gravedad ni fuerzas y no es desplazado por cuerpos dinámicos.
+        // isStatic tiene prioridad si ambas opciones llegan a estar activas.
+        ILEN_PROPERTY bool isKinematic = false;
     };
 
     //3D

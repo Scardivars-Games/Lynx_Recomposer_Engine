@@ -42,7 +42,13 @@ namespace ilen::physics {
     using ilen::maths::vector::vec2;
     using namespace ilen::enumerations;
 
-    //Collider proxy (usado para los calculos en el sistema)
+    /**
+     * Representación temporal de un collider dentro del pipeline de físicas.
+     *
+     * No es un componente ECS: se reconstruye para los cuerpos dinámicos y se
+     * conserva para los estáticos. De esta forma los algoritmos de colisión no
+     * necesitan consultar Transform ni los componentes de la entidad.
+     */
     struct ColliderProxy2D {
         Entity entity = ilen::ecs::NULL_ENTITY;
 
@@ -52,10 +58,30 @@ namespace ilen::physics {
             vec2{0.0f}, vec2{0.0f}
         );
 
+        // AABB que contiene tanto la posición actual como la posición prevista.
+        // El broadphase lo usa para no perder objetos rápidos entre dos frames.
+        AABB2D sweptBounds = AABB2D::fromCenterHalf(
+            vec2{0.0f}, vec2{0.0f}
+        );
+
+        // Vértices convexos en world space en la posición actual del subpaso.
         std::vector<vec2> worldVertices;
+
+        // Movimiento que se intentará realizar durante el tiempo restante del
+        // subpaso. Swept SAT compara este movimiento contra el del otro proxy.
+        vec2 stepTranslation{0.0f};
+
+        // Velocidad usada exclusivamente por el solver durante este fixed
+        // update. Incluye velocity y movimientos pedidos mediante Transform.
+        vec2 motionVelocity{0.0f};
+        vec2 commandedVelocity{0.0f};
+
+        // Centro registrado al comenzar el fixed update; queda disponible para
+        // depuración y futuras consultas de movimiento histórico.
         vec2 previousCenter{0.0f};
 
         bool isStatic = false;
+        bool isKinematic = false;
         bool isTrigger = false;
 
         uint32_t layerMask = 0;

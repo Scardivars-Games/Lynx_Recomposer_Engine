@@ -37,8 +37,28 @@ namespace ilen::physics {
                 const vec2& normal
             );
 
+            static vec2 CalculateSweptContactPoint(
+                const ColliderProxy2D& proxyA,
+                const ColliderProxy2D& proxyB,
+                const vec2& normal,
+                float timeOfImpact
+            );
+
             public:
+                /** SAT discreto para dos polígonos que ya ocupan su posición actual. */
                 static std::optional<ecs::components::physics::ContactManifold2D> Test(
+                    const ColliderProxy2D& proxyA,
+                    const ColliderProxy2D& proxyB
+                );
+
+                /**
+                 * SAT continuo para polígonos convexos con traslación lineal.
+                 *
+                 * Retorna el primer contacto en el intervalo normalizado [0, 1].
+                 * No barre rotaciones y deliberadamente retorna nullopt cuando
+                 * los polígonos ya comienzan solapados; ese caso pertenece a Test.
+                 */
+                static std::optional<ecs::components::physics::ContactManifold2D> Sweep(
                     const ColliderProxy2D& proxyA,
                     const ColliderProxy2D& proxyB
                 );

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
@@ -25,6 +26,11 @@ namespace {
         float worldHalfExtent;
     };
 
+    struct CellStatistics {
+        std::size_t uniqueCells = 0;
+        std::size_t cellInsertions = 0;
+    };
+
     volatile std::uint64_t benchmarkSink = 0;
 
     std::uint64_t makePairKey(std::uint32_t entityA, std::uint32_t entityB) {
@@ -32,6 +38,47 @@ namespace {
         const std::uint32_t maximum = std::max(entityA, entityB);
         return (static_cast<std::uint64_t>(minimum) << 32) |
             static_cast<std::uint64_t>(maximum);
+    }
+
+    std::uint64_t makeCellKey(std::int32_t x, std::int32_t y) {
+        return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(x)) << 32) |
+            static_cast<std::uint32_t>(y);
+    }
+
+    CellStatistics countOccupiedCells(
+        const std::vector<ColliderProxy2D>& proxies,
+        float cellSize
+    ) {
+        const float inverseCellSize = 1.0f / cellSize;
+        std::unordered_set<std::uint64_t> uniqueCells;
+        CellStatistics statistics;
+
+        for(const ColliderProxy2D& proxy : proxies) {
+            const auto minimum = proxy.bounds.min();
+            const auto maximum = proxy.bounds.max();
+            const auto minimumX = static_cast<std::int32_t>(
+                std::floor(minimum.x * inverseCellSize)
+            );
+            const auto minimumY = static_cast<std::int32_t>(
+                std::floor(minimum.y * inverseCellSize)
+            );
+            const auto maximumX = static_cast<std::int32_t>(
+                std::floor(maximum.x * inverseCellSize)
+            );
+            const auto maximumY = static_cast<std::int32_t>(
+                std::floor(maximum.y * inverseCellSize)
+            );
+
+            for(std::int32_t y = minimumY; y <= maximumY; ++y) {
+                for(std::int32_t x = minimumX; x <= maximumX; ++x) {
+                    uniqueCells.insert(makeCellKey(x, y));
+                    ++statistics.cellInsertions;
+                }
+            }
+        }
+
+        statistics.uniqueCells = uniqueCells.size();
+        return statistics;
     }
 
     ColliderProxy2D makeProxy(
@@ -47,6 +94,7 @@ namespace {
             ilen::maths::vector::vec2{x, y},
             ilen::maths::vector::vec2{halfExtent, halfExtent}
         );
+        proxy.sweptBounds = proxy.bounds;
         proxy.isStatic = isStatic;
         return proxy;
     }
@@ -96,6 +144,7 @@ namespace {
         for(std::size_t index = 0; index < forcedContacts; ++index) {
             if(index % 8 == 0) {
                 dynamicProxies[index].bounds.center = staticProxies[index].bounds.center;
+                dynamicProxies[index].sweptBounds = dynamicProxies[index].bounds;
             }
         }
     }
@@ -181,22 +230,16 @@ namespace {
         return contacts;
     }
 
-    std::uint64_t countBroadPhaseContacts(
-        BroadPhase2D& broadPhase,
-        std::vector<ColliderProxy2D>& dynamicProxies,
-        std::size_t& candidateCount
+    std::uint64_t countCandidateContacts(
+        const std::vector<ilen::physics::BroadPhasePair2D>& pairs
     ) {
         std::uint64_t contacts = 0;
-        const auto& pairs = broadPhase.BuildCandidatesPairs(dynamicProxies);
-        candidateCount = pairs.size();
-
         for(const auto& pair : pairs) {
             contacts += ilen::maths::aabb::overlapAABB2D(
                 pair.proxyA->bounds,
                 pair.proxyB->bounds
             );
         }
-
         return contacts;
     }
 
@@ -259,6 +302,8 @@ namespace {
                 // sustancialmente la distribucion de la escena.
                 bruteDynamicProxies.front().bounds.center.x +=
                     (iteration & 1U) == 0U ? 0.0001f : -0.0001f;
+                bruteDynamicProxies.front().sweptBounds =
+                    bruteDynamicProxies.front().bounds;
                 return countBruteForceContacts(bruteDynamicProxies, staticProxies);
             }
         );
@@ -272,17 +317,41 @@ namespace {
             std::chrono::duration<double, std::micro>(rebuildEnd - rebuildBegin).count();
 
         std::size_t candidateCount = 0;
-        const double broadMicroseconds = measureMedianMicrosecondsPerFrame(
+        const double cellQueryMicroseconds = measureMedianMicrosecondsPerFrame(
             scenario.iterations,
             [&](std::size_t iteration) {
                 broadDynamicProxies.front().bounds.center.x +=
                     (iteration & 1U) == 0U ? 0.0001f : -0.0001f;
-                return countBroadPhaseContacts(
-                    measuredBroadPhase,
-                    broadDynamicProxies,
-                    candidateCount
+                broadDynamicProxies.front().sweptBounds =
+                    broadDynamicProxies.front().bounds;
+                const auto& pairs = measuredBroadPhase.BuildCandidatesPairs(
+                    broadDynamicProxies
                 );
+                candidateCount = pairs.size();
+                return static_cast<std::uint64_t>(candidateCount);
             }
+        );
+
+        const auto& stableCandidates = measuredBroadPhase.BuildCandidatesPairs(
+            broadDynamicProxies
+        );
+        candidateCount = stableCandidates.size();
+        const double candidateAabbMicroseconds = measureMedianMicrosecondsPerFrame(
+            scenario.iterations,
+            [&](std::size_t) {
+                return countCandidateContacts(stableCandidates);
+            }
+        );
+        const double broadMicroseconds =
+            cellQueryMicroseconds + candidateAabbMicroseconds;
+
+        const CellStatistics staticCellStatistics = countOccupiedCells(
+            staticProxies,
+            measuredBroadPhase.GetCellSize()
+        );
+        const CellStatistics dynamicCellStatistics = countOccupiedCells(
+            broadDynamicProxies,
+            measuredBroadPhase.GetCellSize()
         );
 
         const std::uint64_t brutePairs =
@@ -303,9 +372,17 @@ namespace {
                   << "  candidatos=" << candidateCount
                   << " reduccion=" << std::fixed << std::setprecision(2)
                   << reduction << "% contactos=" << expectedContacts.size() << '\n'
+                  << "  celdas_estaticas=" << staticCellStatistics.uniqueCells
+                  << " inserciones_estaticas=" << staticCellStatistics.cellInsertions
+                  << '\n'
+                  << "  celdas_dinamicas=" << dynamicCellStatistics.uniqueCells
+                  << " inserciones_dinamicas=" << dynamicCellStatistics.cellInsertions
+                  << '\n'
                   << "  fuerza_bruta=" << std::setprecision(3)
                   << bruteMicroseconds << " us/frame\n"
-                  << "  broadphase=" << broadMicroseconds << " us/frame\n"
+                  << "  consulta_rejilla=" << cellQueryMicroseconds << " us/frame\n"
+                  << "  AABB_candidatos=" << candidateAabbMicroseconds << " us/frame\n"
+                  << "  broadphase_total=" << broadMicroseconds << " us/frame\n"
                   << "  aceleracion=" << std::setprecision(2) << speedup << "x\n"
                   << "  reconstruccion_estaticos=" << std::setprecision(3)
                   << rebuildMicroseconds << " us (no incluida por frame)\n"

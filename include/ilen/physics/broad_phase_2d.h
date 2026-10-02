@@ -9,11 +9,19 @@
 #include <ilen/physics/components/physics_components.h>
 
 namespace ilen::physics {
+    /** Pareja potencial. El broadphase no garantiza una colisión exacta. */
     struct BroadPhasePair2D {
         ColliderProxy2D* proxyA = nullptr;
         ColliderProxy2D* proxyB = nullptr;
     };
 
+    /**
+     * Broadphase de rejilla uniforme.
+     *
+     * Los estáticos permanecen cacheados hasta que cambia su colección. Los
+     * dinámicos se insertan en cada subpaso usando su AABB barrido. Una pareja
+     * puede coincidir en varias celdas, por eso se deduplica mediante Entity.
+     */
     class BroadPhase2D final {
         private:
             struct CellCoordinate {
@@ -51,6 +59,8 @@ namespace ilen::physics {
             std::unordered_set<uint64_t> m_pairKeys;
             std::vector<BroadPhasePair2D> m_candidatePairs;
 
+            // Ejecuta callback para todas las celdas tocadas por un AABB. floor
+            // es importante para que las coordenadas negativas sean correctas.
             template<typename Callback>
             void ForEachOccupiedCell(const ilen::maths::aabb::AABB2D& bounds, Callback&& callback) const {
                 const auto minimum = bounds.min();

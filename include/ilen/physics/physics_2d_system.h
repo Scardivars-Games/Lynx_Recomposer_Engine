@@ -58,6 +58,12 @@ namespace ilen::ecs::systems {
 
             std::array<RegistrationState, MAX_ENTITIES> m_registrationStates{};
 
+            // Órdenes transitorias consumidas en un único fixed update. Se
+            // guardan fuera del ECS porque sólo son estado interno del solver.
+            std::array<vec2, MAX_ENTITIES> m_requestedTranslations{};
+            std::array<vec2, MAX_ENTITIES> m_teleportTargets{};
+            std::array<bool, MAX_ENTITIES> m_hasTeleport{};
+
 
             //Esto se podria cambiar, pero necesito terminar ya, así que es un posible vector para optimizacion
             std::unordered_map<ilen::ecs::Entity, TransformOrder> m_accumulatedTransformOrder;
@@ -72,7 +78,14 @@ namespace ilen::ecs::systems {
             void applyGravity(float dt, ArrayOfComponentsUsed* componentsArray);
             void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
             void rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentsArray);
-            void detectAndResolve(ArrayOfComponentsUsed* componentsArray);
+            void detectAndResolve(float dt, ArrayOfComponentsUsed* componentsArray);
+
+            // Prepara el movimiento restante y su volumen barrido para CCD.
+            void prepareSweeps(float remainingTime, ArrayOfComponentsUsed* componentsArray);
+
+            // Avanza todos los cuerpos dinámicos la misma fracción temporal.
+            void advanceDynamicProxies(float timeFraction);
+
             //Construir Proxies
             std::optional<ilen::physics::ColliderProxy2D> buildProxy(Entity entity, ArrayOfComponentsUsed* componentsArray);
 
@@ -92,6 +105,11 @@ namespace ilen::ecs::systems {
 
             static void translateProxy(
                 ilen::physics::ColliderProxy2D& proxy,
+                const vec2& translation
+            );
+
+            static AABB2D calculateSweptBounds(
+                const ilen::physics::ColliderProxy2D& proxy,
                 const vec2& translation
             );
 
@@ -125,6 +143,7 @@ namespace ilen::ecs::systems {
 
                 size_t bruteForcePairs = 0;
                 size_t broadPhaseCandidates = 0;
+                size_t collisionPasses = 0;
 
                 size_t totalPairs() const {
                     return dynamicVsDynamicPairs + dynamicVsStaticPairs;

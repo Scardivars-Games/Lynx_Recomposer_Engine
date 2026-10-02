@@ -21,12 +21,27 @@ namespace ilen::engine::api {
             // Fuerza instantánea
             static void AddImpulse(Entity entity, vec3 impulse);
 
+            // Movimiento gobernado por físicas. A diferencia de modificar el
+            // Transform, esta velocidad participa en broadphase, swept SAT y
+            // resolución por masa.
+            static void SetLinearVelocity(Entity entity, vec2 velocity);
+            static void SetLinearVelocityX(Entity entity, float velocity);
+            static void SetLinearVelocityY(Entity entity, float velocity);
+
+            // Desplazamiento relativo o destino absoluto procesado por CCD.
+            static void Move(Entity entity, vec2 translation);
+            static void MovePosition(Entity entity, vec2 targetPosition);
+
+            // Cambio instantáneo: omite el recorrido pero resuelve contactos
+            // que existan en la posición de destino.
+            static void Teleport(Entity entity, vec2 targetPosition);
+
             //Modificación de propiedades físicas de las entidades
             static void ChangeObjectGravity(Entity entity, bool newState);
             static void ChangeObjectGravity(Entity entity, float newMultiplier);
             static void ChangeObjectGravity(Entity entity, bool newState, float newMultiplier);
 
-            static void ChangeObjectMass(Entity entity, float newMass);
+            static void ChangeObjectMass(Entity entity, float newMass, bool additive = false);
 
             //Modificaciónes globales
             static void ChangeGlobalGravity(float newGravityValue);

@@ -24,7 +24,13 @@ namespace ilen::ecs::components::physics {
         bool wasTrigger = false; //La posicion fue o no corregida, segun si es trigger o no.
     };*/
 
-    //NEW
+    /**
+     * Resultado común de SAT discreto y Swept SAT.
+     *
+     * La normal siempre indica hacia dónde debe desplazarse entityA para salir
+     * de entityB. En contactos discretos penetration es mayor que cero; en un
+     * impacto barrido se usa timeOfImpact y la penetración comienza en cero.
+     */
     struct ContactManifold2D {
         Entity entityA = ilen::ecs::NULL_ENTITY; //El mismo
         Entity entityB = ilen::ecs::NULL_ENTITY; //Otra entidad
@@ -33,7 +39,7 @@ namespace ilen::ecs::components::physics {
         vec2 point{0.0f}; //Punto de contacto en world space
 
         float penetration = 0.0f; //Penetracion del contacto (antes depth)
-        float timeOfImpact = 1.0; //Instance del impacto intervalo [0, 1]
+        float timeOfImpact = 1.0f; // Instante normalizado del impacto [0, 1].
         bool hasContactPoint = false; //True si el punto de contacto fue calculado por un algoritmo de forma exacta
         bool isTrigger = false;
     };

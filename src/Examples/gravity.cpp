@@ -1,4 +1,5 @@
 #include "ilen/core/time.h"
+#include "ilen/input/input_keys.h"
 #if !ILEN_ONLY_ECS
 
 #include <ilen_examples/gravity.h>
@@ -78,15 +79,24 @@ void Cube::Update() {
     }*/
 
     if(InputAPI::IsKeyDown(Key::D) || InputAPI::IsKeyDown(Key::Right)){
-        TransformAPI::Translate(entity, vec2(velocity, 0.0f) * time::Time::getDeltaTime());
+        TransformAPI::Translate(
+            entity,
+            vec2(velocity, 0.0f) * time::Time::getDeltaTime()
+        );
         RenderingAPI::FlipSpriteInX(entity, false);
     }else if(InputAPI::IsKeyDown(Key::A) || InputAPI::IsKeyDown(Key::Left)){
-        TransformAPI::Translate(entity, vec2(-velocity, 0.0f) * time::Time::getDeltaTime());
+        TransformAPI::Translate(
+            entity,
+            vec2(-velocity, 0.0f) * time::Time::getDeltaTime()
+        );
         RenderingAPI::FlipSpriteInX(entity, true);
     } else if(InputAPI::IsButtonDown(GamepadButton::LeftStick)) {
         float stickValue = InputAPI::GetGamepadValue(GamepadSpecialValues::LeftStickHorizontal);
         if(stickValue != 0){
-            TransformAPI::Translate(entity, vec2(stickValue * velocity, 0.0f) * time::Time::getDeltaTime());
+            TransformAPI::Translate(
+                entity,
+                vec2(stickValue * velocity, 0.0f) * time::Time::getDeltaTime()
+            );
             RenderingAPI::FlipSpriteInX(entity, stickValue > 0 ? false : true);
         }
 
@@ -128,12 +138,18 @@ void Cube::Update() {
             //Vemos si debe ir para la derecha o la izquierda
             if((firstXPointerPos + deathZoneMobileSize) - touchPos.x < 0) {
                 //Va para la derecha
-                TransformAPI::Translate(entity, vec2(velocity, 0.0f) * time::Time::getDeltaTime());
+                TransformAPI::Translate(
+                    entity,
+                    vec2(velocity, 0.0f) * time::Time::getDeltaTime()
+                );
                 RenderingAPI::FlipSpriteInX(entity, false);
             }
             else if ((firstXPointerPos - deathZoneMobileSize) - touchPos.x > 0){
                 //Va para la izquierda
-                TransformAPI::Translate(entity, vec2(-velocity, 0.0f) * time::Time::getDeltaTime());
+                TransformAPI::Translate(
+                    entity,
+                    vec2(-velocity, 0.0f) * time::Time::getDeltaTime()
+                );
                 RenderingAPI::FlipSpriteInX(entity, true);
             }
         }
@@ -265,8 +281,17 @@ void PlayerSpawner::Init() {
 #endif
 }
 
+using namespace ilen::engine::api;
+using namespace ilen::input;
+
 void RotateGround::Update() {
-    PhysicsAPI::ChangeObjectGravity(entity, true, 0.5f);
+    PhysicsAPI::ChangeObjectGravity(entity, true, 10.0f);
+    if(InputAPI::IsKeyPressed(Key::E)) {
+        PhysicsAPI::ChangeObjectMass(entity, 0.25, true);
+    }
+    if(InputAPI::IsKeyPressed(Key::Q)) {
+        PhysicsAPI::ChangeObjectMass(entity, -0.25, true);
+    }
     //TransformAPI::Rotate(entity, vec3(0,0,50) * ilen::time::Time::getDeltaTime());
 }
 #endif //!ILEN_ONLY_ECS

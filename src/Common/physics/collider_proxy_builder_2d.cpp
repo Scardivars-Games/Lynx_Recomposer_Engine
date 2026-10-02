@@ -75,10 +75,12 @@ namespace ilen::physics {
         proxy.worldVertices.push_back(center - right + up);
 
         proxy.bounds = CalculateBounds(proxy.worldVertices);
+        proxy.sweptBounds = proxy.bounds;
 
         proxy.previousCenter = rigidbody.prevPosition + RotatePoint(scaledOffset, rotation);
 
         proxy.isStatic = rigidbody.isStatic;
+        proxy.isKinematic = rigidbody.isKinematic && !rigidbody.isStatic;
         proxy.isTrigger = collider.isTrigger;
         proxy.layerMask = static_cast<uint32_t>(metadata.layers);
 
@@ -114,6 +116,7 @@ namespace ilen::physics {
         }
 
         proxy.bounds = CalculateBounds(proxy.worldVertices);
+        proxy.sweptBounds = proxy.bounds;
 
         const float rotation = TransformRotationToRadians(transform.rotation.z);
 
@@ -124,6 +127,7 @@ namespace ilen::physics {
 
         proxy.previousCenter = rigidbody.prevPosition + RotatePoint(scaledOffset, rotation);
         proxy.isStatic = rigidbody.isStatic;
+        proxy.isKinematic = rigidbody.isKinematic && !rigidbody.isStatic;
         proxy.isTrigger = collider.isTrigger;
         proxy.layerMask = static_cast<uint32_t>(metadata.layers);
 
