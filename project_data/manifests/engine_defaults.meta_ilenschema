@@ -270,6 +270,12 @@
                 "offset": 77,
                 "size": 1,
                 "type": "bool"
+            },
+            {
+                "name": "isKinematic",
+                "offset": 79,
+                "size": 1,
+                "type": "bool"
             }
         ],
         "namespace": "ilen::ecs::components::physics",

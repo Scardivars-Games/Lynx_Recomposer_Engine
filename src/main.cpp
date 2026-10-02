@@ -1,4 +1,5 @@
 //Este punto de entrada es válido para muchos sistemas operativos, pero no para iOS
+#include "ilen/core/runtime_options.h"
 #ifdef __APPLE__
 #include <TargetConditionals.h>
 #endif
@@ -19,7 +20,7 @@ int main() {
     metadata.startHeight = 600;
     metadata.startWidth = 800;
     metadata.windowPropertiesFlags = ILEN_WINDOW_PROPERTY_CLOSABLE | ILEN_WINDOW_PROPERTY_RESIZABLE | ILEN_WINDOW_PROPERTY_MAXIMIZABLE | ILEN_WINDOW_PROPERTY_FULLSCREEN;
-    metadata.applicationFramerate = 120;
+    metadata.applicationFramerate = ilen::core::options::GraphicsOptions::actualFPS;
 
     AppRuntime& app = AppRuntime::getInstance();
     try{

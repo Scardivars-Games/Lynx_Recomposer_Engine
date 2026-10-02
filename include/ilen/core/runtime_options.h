@@ -9,7 +9,7 @@
 namespace ilen::core::options {
     struct GraphicsOptions {
         static inline IlenGraphicsOptionsFlags graphicsOptionsFlags = 0;
-        static inline int actualFPS = 60;
+        static inline int actualFPS = 120;
         static constexpr int instanceBufferSizeInMB = 4; //4MB tamaño por defecto para los instance buffer.
         static constexpr int generalBufferSizeInMB = 64; //Los buffers de vertices, indices, etc, se crearan usando bloques de 64MB por defecto.
         //A partir de aquí es codigo viejo. Estos bools ahora son un bitflag, que se configura al crear el render (es la responsibilidad del render iniciar las flags)

@@ -5,6 +5,7 @@
 #include <ilen/headers/ilen_logs.h>
 #include <ilen/core/exceptions.h>
 #include <ilen/input/input_buffer.h>
+#include <ilen/core/runtime_options.h>
 #include <window/window_ios.h>
 
 @class SceneDelegate;
@@ -73,6 +74,7 @@
     metadata.applicationName = "ILEN Test";
     metadata.applicationDeveloper = "Scardivar's Games";
     metadata.applicationVersion = "0.0.1";
+    metadata.applicationFramerate = ilen::core::options::GraphicsOptions::actualFPS;
     metadata.mobileNativeWindow = (__bridge void*)self.window;
     
     try {
@@ -91,10 +93,10 @@
     
     //Para dar soporte a 120 HZ en ProDisplay
     if(@available(iOS 15.0, *)){
-        CAFrameRateRange countPerSecond = CAFrameRateRangeMake(10, 120, 120);
+        CAFrameRateRange countPerSecond = CAFrameRateRangeMake(10, 120, metadata.applicationFramerate);
         self.displayLink.preferredFrameRateRange = countPerSecond;
     }else{
-        self.displayLink.preferredFramesPerSecond = 120;
+        self.displayLink.preferredFramesPerSecond = metadata.applicationFramerate;
     }
     
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];

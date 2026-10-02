@@ -21,7 +21,7 @@ namespace ilen::application{
         std::string applicationName = "";
         std::string applicationDeveloper = "";
         std::string applicationVersion = "";
-        int applicationFramerate = 120;
+        int applicationFramerate = 5;
         #if ILEN_DESKTOP //Plataforma móviles no necesitan el tamaño de la ventana
         int startWidth = 0, startHeight = 0;
         IlenWindowPropertiesFlags windowPropertiesFlags = 0; //Fullscreen
