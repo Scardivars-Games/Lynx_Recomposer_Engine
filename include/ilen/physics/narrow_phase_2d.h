@@ -16,6 +16,11 @@ namespace ilen::physics {
                 float maximum = 0.0f;
             };
 
+            struct SeparationResult {
+                float distance = 0.0f;
+                vec2 normal{0.0f};
+            };
+
             static Projection Project(
                 const std::vector<vec2>& vertices, const vec2& axis
             );
@@ -44,7 +49,34 @@ namespace ilen::physics {
                 float timeOfImpact
             );
 
+            static void UpdateProxyAtTime(
+                const ColliderProxy2D& proxy,
+                float time,
+                ColliderProxy2D& pose
+            );
+
+            static SeparationResult FindMaximumSeparation(
+                const ColliderProxy2D& proxyA,
+                const ColliderProxy2D& proxyB
+            );
+
+            static std::optional<ecs::components::physics::ContactManifold2D>
+            SweepWithRotation(
+                const ColliderProxy2D& proxyA,
+                const ColliderProxy2D& proxyB
+            );
+
             public:
+                /**
+                 * Indica si dos polígonos están solapados o separados por una
+                 * distancia menor que la tolerancia indicada.
+                 */
+                static bool AreTouching(
+                    const ColliderProxy2D& proxyA,
+                    const ColliderProxy2D& proxyB,
+                    float tolerance = 0.0001f
+                );
+
                 /** SAT discreto para dos polígonos que ya ocupan su posición actual. */
                 static std::optional<ecs::components::physics::ContactManifold2D> Test(
                     const ColliderProxy2D& proxyA,

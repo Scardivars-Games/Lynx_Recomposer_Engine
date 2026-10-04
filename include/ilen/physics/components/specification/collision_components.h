@@ -42,6 +42,7 @@ namespace ilen::ecs::components::physics {
         float timeOfImpact = 1.0f; // Instante normalizado del impacto [0, 1].
         bool hasContactPoint = false; //True si el punto de contacto fue calculado por un algoritmo de forma exacta
         bool isTrigger = false;
+        bool usedAngularSweep = false; //El TOI necesitó movimiento rotacional.
     };
 
     //Este componente es el que se añade a la entidad, es la susceptibles a los sistemas.

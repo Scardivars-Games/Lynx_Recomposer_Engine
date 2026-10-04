@@ -63,6 +63,13 @@ namespace ilen::ecs::systems {
             std::array<vec2, MAX_ENTITIES> m_requestedTranslations{};
             std::array<vec2, MAX_ENTITIES> m_teleportTargets{};
             std::array<bool, MAX_ENTITIES> m_hasTeleport{};
+            std::array<float, MAX_ENTITIES> m_requestedRotations{};
+            std::array<float, MAX_ENTITIES> m_teleportRotationTargets{};
+            std::array<bool, MAX_ENTITIES> m_hasTeleportRotation{};
+
+            // Collider estático que mantiene bloqueada la rotación solicitada
+            // de cada entidad. NULL_ENTITY significa que puede volver a girar.
+            std::array<Entity, MAX_ENTITIES> m_rotationBlockingStatic{};
 
 
             //Esto se podria cambiar, pero necesito terminar ya, así que es un posible vector para optimizacion
@@ -79,6 +86,7 @@ namespace ilen::ecs::systems {
             void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
             void rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentsArray);
             void detectAndResolve(float dt, ArrayOfComponentsUsed* componentsArray);
+            void refreshRotationBlocks();
 
             // Prepara el movimiento restante y su volumen barrido para CCD.
             void prepareSweeps(float remainingTime, ArrayOfComponentsUsed* componentsArray);
@@ -106,6 +114,11 @@ namespace ilen::ecs::systems {
             static void translateProxy(
                 ilen::physics::ColliderProxy2D& proxy,
                 const vec2& translation
+            );
+
+            static void rotateProxy(
+                ilen::physics::ColliderProxy2D& proxy,
+                float radians
             );
 
             static AABB2D calculateSweptBounds(

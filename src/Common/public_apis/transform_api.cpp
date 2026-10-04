@@ -57,15 +57,45 @@ void TransformAPI::Translate(Entity e, vec3 delta) {
 }
 
 void TransformAPI::Rotate(Entity e, vec3 euler) {
-    if(e != NULL_ENTITY){
-        accumulate(e, [&](TransformOrder& o){ o.rotation += euler; });
+    if(e == NULL_ENTITY) return;
+
+    auto* rigidbodyArray =
+        p_coordinator->getComponentArray<components::physics::Rigidbody2D>();
+    auto* rigidbody = rigidbodyArray ? rigidbodyArray->getData(e) : nullptr;
+
+    if(rigidbody) {
+        if(rigidbody->isStatic) {
+#if ILEN_DEBUG
+            ILEN_ERROR_P(
+                "TRANSFORM_API",
+                "La entidad estatica %u no puede rotar mediante Rotate",
+                e
+            );
+#endif
+            return;
+        }
+
+        if(euler.z != 0.0f) {
+            PhysicsAPI::Rotate(e, euler.z);
+        }
+
+        // La física 2D solamente gobierna el eje Z.
+        if(euler.x != 0.0f || euler.y != 0.0f) {
+            accumulate(e, [&](TransformOrder& order) {
+                order.rotation.x += euler.x;
+                order.rotation.y += euler.y;
+            });
+        }
+        return;
     }
+
+    accumulate(e, [&](TransformOrder& order) {
+        order.rotation += euler;
+    });
 }
 
 void TransformAPI::Rotate(Entity e, vec3 axis, float angle) {
-    if(e != NULL_ENTITY){
-            accumulate(e, [&](TransformOrder& o){ o.rotation += axis * angle; });
-    }
+    Rotate(e, axis * angle);
 }
 
 void TransformAPI::Scale(Entity e, vec3 factor) {

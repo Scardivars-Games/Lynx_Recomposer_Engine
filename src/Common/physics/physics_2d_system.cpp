@@ -1,10 +1,14 @@
 #include <algorithm>
+#include <cmath>
 #include <ilen/physics/physics_2d_system.h>
 #include <ilen/headers/ecs.h>
 #include <ilen/headers/ecs_components.h>
 #include <ilen_public/API/physics_2d_api.h>
 #include <iterator>
+#include <limits>
 #include <optional>
+#include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include "ilen/maths/AABB.h"
 #include "ilen/physics/narrow_phase_2d.h"
@@ -14,6 +18,20 @@ using namespace ilen::ecs::systems;
 using namespace ilen::ecs::components;
 using namespace ilen::maths::vector;
 
+namespace {
+    constexpr float DegreesToRadians2D = M_PI / 180.0f;
+    constexpr float RadiansToDegrees2D = 180.0f / M_PI;
+
+    float ShortestAngleDelta(float fromDegrees, float toDegrees) {
+        float difference = std::fmod(toDegrees - fromDegrees, 360.0f);
+
+        if(difference > 180.0f) difference -= 360.0f;
+        if(difference < -180.0f) difference += 360.0f;
+        return difference;
+    }
+
+}
+
 void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
     p_coordinator = engineContext->p_coordinator.get();
     p_jobSystem = engineContext->p_jobSystem.get();
@@ -22,6 +40,7 @@ void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
     m_dynamicEntities.reserve(MAX_ENTITIES);
     m_staticProxies.reserve(MAX_ENTITIES);
     m_dynamicProxies.reserve(MAX_ENTITIES);
+    m_rotationBlockingStatic.fill(NULL_ENTITY);
     
 #if ILEN_DEBUG
     m_staticGuards.reserve(MAX_ENTITIES);
@@ -68,6 +87,7 @@ void PhysicsSystem2D::Update() {
     rebuildDynamicProxies(dt, &componentArray);
     integrate(dt, &componentArray);
     detectAndResolve(dt, &componentArray);
+    refreshRotationBlocks();
 
 #if ILEN_DEBUG
     reportCollisionDebugStats();
@@ -89,6 +109,8 @@ void PhysicsSystem2D::registerEntity(Entity e, ArrayOfComponentsUsed* components
     auto* polygonCollider = componentsArray->convexPolygonCollider->getData(e);
 
     if(!rb) return;
+
+    m_rotationBlockingStatic[e] = NULL_ENTITY;
 
     if((boxColider == nullptr) == (polygonCollider == nullptr)) {
         ILEN_ERROR_P("PHYSICS_2D", "La entidad %u debe tener al menos un collider 2D", e);
@@ -139,6 +161,7 @@ void PhysicsSystem2D::syncEntities(ArrayOfComponentsUsed* componentsArray) {
         }
 
         m_registrationStates[entity] = RegistrationState::None;
+        m_rotationBlockingStatic[entity] = NULL_ENTITY;
         m_dynamicEntities[i] = m_dynamicEntities.back();
         m_dynamicEntities.pop_back();
     } 
@@ -177,6 +200,7 @@ void PhysicsSystem2D::unregisterEntity(Entity e){
     }
 
     const RegistrationState state = m_registrationStates[e];
+    m_rotationBlockingStatic[e] = NULL_ENTITY;
 
     if(state == RegistrationState::Dynamic) {
         auto iterator = std::find(
@@ -303,6 +327,9 @@ void PhysicsSystem2D::rebuildDynamicProxies(
             continue;
         }
 
+        const bool rotationBlocked =
+            m_rotationBlockingStatic[entity] != NULL_ENTITY;
+
         // Teleport cambia el origen del proxy sin barrer el trayecto. El SAT
         // discreto del solver resolverá cualquier contacto en el destino.
         if(m_hasTeleport[entity]) {
@@ -314,12 +341,28 @@ void PhysicsSystem2D::rebuildDynamicProxies(
                 static_cast<vec3>(teleportDelta);
         }
 
+        if(m_hasTeleportRotation[entity] && !rotationBlocked) {
+            const float visualRotationDelta =
+                m_teleportRotationTargets[entity] - transform->rotation.z;
+
+            rotateProxy(
+                *proxy,
+                -visualRotationDelta * DegreesToRadians2D
+            );
+            m_accumulatedTransformOrder[entity].rotation.z +=
+                visualRotationDelta;
+        }
+
         proxy->commandedVelocity = dt > 0.0f
             ? m_requestedTranslations[entity] / dt
             : vec2(0.0f);
 
         proxy->motionVelocity =
             rigidbody->velocity + proxy->commandedVelocity;
+
+        proxy->motionAngularVelocity = dt > 0.0f && !rotationBlocked
+            ? -m_requestedRotations[entity] * DegreesToRadians2D / dt
+            : 0.0f;
 
         // El proxy comienza en la posición actual o teletransportada. La
         // integración continua lo avanzará hasta el primer impacto.
@@ -335,12 +378,59 @@ void PhysicsSystem2D::translateProxy(
     }
 
     proxy.bounds.center += translation;
+    proxy.rotationPivot += translation;
+}
+
+void PhysicsSystem2D::rotateProxy(
+    ilen::physics::ColliderProxy2D& proxy,
+    float radians
+) {
+    if(radians == 0.0f) {
+        return;
+    }
+
+    const float cosine = std::cos(radians);
+    const float sine = std::sin(radians);
+
+    vec2 minimum{
+        std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::max()
+    };
+    vec2 maximum{
+        std::numeric_limits<float>::lowest(),
+        std::numeric_limits<float>::lowest()
+    };
+
+    for(vec2& vertex : proxy.worldVertices) {
+        const vec2 local = vertex - proxy.rotationPivot;
+        vertex = proxy.rotationPivot + vec2{
+            local.x * cosine - local.y * sine,
+            local.x * sine + local.y * cosine
+        };
+
+        minimum = ilen::maths::vector::min(minimum, vertex);
+        maximum = ilen::maths::vector::max(maximum, vertex);
+    }
+
+    proxy.bounds = AABB2D::fromMinMax(minimum, maximum);
 }
 
 AABB2D PhysicsSystem2D::calculateSweptBounds(
     const ilen::physics::ColliderProxy2D& proxy,
     const vec2& translation
 ) {
+    constexpr float angularEpsilon = 0.000001f;
+
+    if(std::abs(proxy.stepRotation) > angularEpsilon) {
+        const vec2 endPivot = proxy.rotationPivot + translation;
+        const vec2 radius{proxy.maximumRadius};
+
+        return AABB2D::fromMinMax(
+            ilen::maths::vector::min(proxy.rotationPivot, endPivot) - radius,
+            ilen::maths::vector::max(proxy.rotationPivot, endPivot) + radius
+        );
+    }
+
     AABB2D endBounds = proxy.bounds;
     endBounds.center += translation;
 
@@ -358,6 +448,9 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
         m_requestedTranslations[e] = vec2(0.0f);
         m_teleportTargets[e] = vec2(0.0f);
         m_hasTeleport[e] = false;
+        m_requestedRotations[e] = 0.0f;
+        m_teleportRotationTargets[e] = 0.0f;
+        m_hasTeleportRotation[e] = false;
 
         if(rb && order && order->hasOrders){
             // Las velocidades pedidas por la API deben existir antes de
@@ -384,6 +477,18 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
 
             m_requestedTranslations[e] += order->accumulatedTranslation;
 
+            if(order->hasTeleportRotation) {
+                m_teleportRotationTargets[e] = order->targetRotation;
+                m_hasTeleportRotation[e] = true;
+            } else if(order->hasRotateTo && transform) {
+                m_requestedRotations[e] = ShortestAngleDelta(
+                    transform->rotation.z,
+                    order->targetRotation
+                );
+            }
+
+            m_requestedRotations[e] += order->accumulatedRotation;
+
             if(!rb->isKinematic) {
                 //Calculamos la aceleracion: F = m * a => a = F / m
                 vec2 acceleration = static_cast<vec2>(order->accumulatedForce) / rb->mass;
@@ -402,6 +507,10 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
             order->targetPosition = vec2(0.0f);
             order->hasMovePosition = false;
             order->hasTeleport = false;
+            order->accumulatedRotation = 0.0f;
+            order->targetRotation = 0.0f;
+            order->hasRotateTo = false;
+            order->hasTeleportRotation = false;
             order->hasOrders = false;
         }
     }
@@ -444,11 +553,13 @@ void PhysicsSystem2D::prepareSweeps(
 
         if(!rigidbody) {
             proxy.stepTranslation = vec2{0.0f};
+            proxy.stepRotation = 0.0f;
             proxy.sweptBounds = proxy.bounds;
             continue;
         }
 
         proxy.stepTranslation = proxy.motionVelocity * remainingTime;
+        proxy.stepRotation = proxy.motionAngularVelocity * remainingTime;
         proxy.sweptBounds = calculateSweptBounds(
             proxy,
             proxy.stepTranslation
@@ -459,15 +570,23 @@ void PhysicsSystem2D::prepareSweeps(
 void PhysicsSystem2D::advanceDynamicProxies(float timeFraction) {
     for(auto& proxy : m_dynamicProxies) {
         const vec2 translation = proxy.stepTranslation * timeFraction;
+        const float rotation = proxy.stepRotation * timeFraction;
 
-        if(translation.x == 0.0f && translation.y == 0.0f) {
+        if(
+            translation.x == 0.0f &&
+            translation.y == 0.0f &&
+            rotation == 0.0f
+        ) {
             proxy.sweptBounds = proxy.bounds;
             continue;
         }
 
         m_accumulatedTransformOrder[proxy.entity].translation +=
             static_cast<vec3>(translation);
+        m_accumulatedTransformOrder[proxy.entity].rotation.z +=
+            -rotation * RadiansToDegrees2D;
 
+        rotateProxy(proxy, rotation);
         translateProxy(proxy, translation);
         proxy.sweptBounds = proxy.bounds;
     }
@@ -492,6 +611,16 @@ void PhysicsSystem2D::detectAndResolve(
     }
 
     float remainingTime = dt;
+    std::unordered_set<uint64_t> stalledPenetrationPairs;
+    std::unordered_map<uint64_t, uint32_t> penetrationStallCounts;
+
+    const auto makePairKey = [](Entity entityA, Entity entityB) {
+        const uint32_t minimum = std::min(entityA, entityB);
+        const uint32_t maximum = std::max(entityA, entityB);
+        return
+            (static_cast<uint64_t>(minimum) << 32) |
+            static_cast<uint64_t>(maximum);
+    };
 
     for(
         uint32_t eventIndex = 0;
@@ -534,6 +663,12 @@ void PhysicsSystem2D::detectAndResolve(
 
             auto& proxyA = *pair.proxyA;
             auto& proxyB = *pair.proxyB;
+
+            if(stalledPenetrationPairs.contains(
+                makePairKey(proxyA.entity, proxyB.entity)
+            )) {
+                continue;
+            }
 
 #if ILEN_DEBUG
             if(proxyB.isStatic) {
@@ -579,6 +714,30 @@ void PhysicsSystem2D::detectAndResolve(
                     if(manifold->isTrigger) {
                         writeContacts(*manifold, componentsArray);
                     } else {
+                        constexpr float angularMotionEpsilon = 0.000001f;
+
+                        if(
+                            !proxyA.isStatic && proxyB.isStatic &&
+                            std::abs(proxyA.motionAngularVelocity) >
+                                angularMotionEpsilon
+                        ) {
+                            m_rotationBlockingStatic[proxyA.entity] =
+                                proxyB.entity;
+                            proxyA.motionAngularVelocity = 0.0f;
+                            proxyA.stepRotation = 0.0f;
+                        }
+
+                        if(
+                            proxyA.isStatic && !proxyB.isStatic &&
+                            std::abs(proxyB.motionAngularVelocity) >
+                                angularMotionEpsilon
+                        ) {
+                            m_rotationBlockingStatic[proxyB.entity] =
+                                proxyA.entity;
+                            proxyB.motionAngularVelocity = 0.0f;
+                            proxyB.stepRotation = 0.0f;
+                        }
+
                         penetrations.push_back({
                             .proxyA = &proxyA,
                             .proxyB = &proxyB,
@@ -640,17 +799,118 @@ void PhysicsSystem2D::detectAndResolve(
             }
         }
 
-        // Todas las penetraciones actuales pertenecen al mismo instante. Si se
-        // resolviera solamente la más profunda, una pila jugador-caja-suelo
-        // consumiría el límite de eventos alternando entre sus dos contactos.
+        // Todas las penetraciones se detectaron sobre la misma fotografía del
+        // mundo. Resolver una modifica los proxies, por lo que los manifolds
+        // restantes quedan obsoletos. Una pasada Gauss-Seidel recalcula cada
+        // pareja justo antes de corregirla. No se repite aquí: una figura
+        // encajada puede alternar entre paredes opuestas y acumular una gran
+        // traslación aunque ninguna corrección individual sea grande.
         if(!penetrations.empty()) {
+            constexpr uint32_t penetrationSolverIterations = 1;
+            constexpr uint32_t penetrationStallThreshold = 3;
+            constexpr float penetrationProgressEpsilon = 0.00001f;
+            std::unordered_map<uint64_t, float> penetrationBeforeCorrection;
+            penetrationBeforeCorrection.reserve(penetrations.size());
+
+            for(
+                uint32_t iteration = 0;
+                iteration < penetrationSolverIterations;
+                ++iteration
+            ) {
+                bool foundPenetration = false;
+
+                for(auto& contact : penetrations) {
+                    auto currentManifold = ilen::physics::NarrowPhase2D::Test(
+                        *contact.proxyA,
+                        *contact.proxyB
+                    );
+
+                    if(!currentManifold.has_value()) {
+                        continue;
+                    }
+
+                    penetrationBeforeCorrection[makePairKey(
+                        contact.proxyA->entity,
+                        contact.proxyB->entity
+                    )] = currentManifold->penetration;
+
+                    foundPenetration = true;
+                    resolveCollision(
+                        *contact.proxyA,
+                        *contact.proxyB,
+                        *currentManifold,
+                        componentsArray
+                    );
+                }
+
+                if(!foundPenetration) {
+                    break;
+                }
+            }
+
+            // Un objeto puede quedar geométricamente encajado entre varias
+            // superficies sin que exista una corrección compatible para todas.
+            // No basta una penetración residual para declararlo bloqueado: una
+            // sola pasada Gauss-Seidel deja residuos normales en pilas como
+            // jugador-caja-suelo. Solamente activamos la salida de emergencia
+            // cuando la misma pareja dinámico-estático no mejora durante tres
+            // eventos consecutivos del fixed tick. Las parejas dinámico-dinámico
+            // nunca se congelan aquí porque todavía deben intercambiar movimiento.
             for(auto& contact : penetrations) {
-                resolveCollision(
-                    *contact.proxyA,
-                    *contact.proxyB,
-                    contact.manifold,
-                    componentsArray
+                const uint64_t pairKey = makePairKey(
+                    contact.proxyA->entity,
+                    contact.proxyB->entity
                 );
+
+                auto remainingManifold = ilen::physics::NarrowPhase2D::Test(
+                    *contact.proxyA,
+                    *contact.proxyB
+                );
+
+                if(!remainingManifold.has_value()) {
+                    penetrationStallCounts.erase(pairKey);
+                    continue;
+                }
+
+                if(contact.proxyA->isStatic == contact.proxyB->isStatic) {
+                    penetrationStallCounts.erase(pairKey);
+                    continue;
+                }
+
+                const auto before = penetrationBeforeCorrection.find(pairKey);
+                if(
+                    before != penetrationBeforeCorrection.end() &&
+                    remainingManifold->penetration <
+                        before->second - penetrationProgressEpsilon
+                ) {
+                    penetrationStallCounts[pairKey] = 0;
+                    continue;
+                }
+
+                uint32_t& stallCount = penetrationStallCounts[pairKey];
+                ++stallCount;
+
+                if(stallCount < penetrationStallThreshold) {
+                    continue;
+                }
+
+                stalledPenetrationPairs.insert(pairKey);
+
+                if(!contact.proxyA->isStatic) {
+                    contact.proxyA->solverFrozen = true;
+                    contact.proxyA->motionVelocity = vec2{0.0f};
+                    contact.proxyA->motionAngularVelocity = 0.0f;
+                    contact.proxyA->stepTranslation = vec2{0.0f};
+                    contact.proxyA->stepRotation = 0.0f;
+                }
+
+                if(!contact.proxyB->isStatic) {
+                    contact.proxyB->solverFrozen = true;
+                    contact.proxyB->motionVelocity = vec2{0.0f};
+                    contact.proxyB->motionAngularVelocity = 0.0f;
+                    contact.proxyB->stepTranslation = vec2{0.0f};
+                    contact.proxyB->stepRotation = 0.0f;
+                }
             }
             continue;
         }
@@ -682,6 +942,35 @@ void PhysicsSystem2D::detectAndResolve(
         );
 
         advanceDynamicProxies(timeOfImpact);
+
+        // La fase angular actual es cinemática: no calcula torque ni momento
+        // de inercia. Cuando el TOI fue causado por rotación, se conserva el
+        // ángulo alcanzado y se descarta solamente la rotación restante de
+        // este fixed tick para impedir ciclos de impacto a tiempo cero.
+        for(const auto& contact : earliestImpacts) {
+            if(!contact.manifold.usedAngularSweep) {
+                continue;
+            }
+
+            if(!contact.proxyA->isStatic) {
+                if(contact.proxyB->isStatic) {
+                    m_rotationBlockingStatic[contact.proxyA->entity] =
+                        contact.proxyB->entity;
+                }
+                contact.proxyA->motionAngularVelocity = 0.0f;
+                contact.proxyA->stepRotation = 0.0f;
+            }
+
+            if(!contact.proxyB->isStatic) {
+                if(contact.proxyA->isStatic) {
+                    m_rotationBlockingStatic[contact.proxyB->entity] =
+                        contact.proxyA->entity;
+                }
+                contact.proxyB->motionAngularVelocity = 0.0f;
+                contact.proxyB->stepRotation = 0.0f;
+            }
+        }
+
         const float remainingTimeAfterImpact =
             remainingTime * (1.0f - timeOfImpact);
 
@@ -777,6 +1066,26 @@ void PhysicsSystem2D::detectAndResolve(
                     continue;
                 }
 
+                if(propagatedImpact->usedAngularSweep) {
+                    if(!pair.proxyA->isStatic) {
+                        if(pair.proxyB->isStatic) {
+                            m_rotationBlockingStatic[pair.proxyA->entity] =
+                                pair.proxyB->entity;
+                        }
+                        pair.proxyA->motionAngularVelocity = 0.0f;
+                        pair.proxyA->stepRotation = 0.0f;
+                    }
+
+                    if(!pair.proxyB->isStatic) {
+                        if(pair.proxyA->isStatic) {
+                            m_rotationBlockingStatic[pair.proxyB->entity] =
+                                pair.proxyA->entity;
+                        }
+                        pair.proxyB->motionAngularVelocity = 0.0f;
+                        pair.proxyB->stepRotation = 0.0f;
+                    }
+                }
+
 #if ILEN_DEBUG
                 m_collisionDebugStats.collisionDetected++;
 #endif
@@ -826,9 +1135,6 @@ void PhysicsSystem2D::detectAndResolve(
                 return true;
             };
 
-            // Las superficies estáticas son los anclajes de la isla. Su
-            // restricción se transmite por los contactos paralelos para evitar
-            // que razones de masa extremas necesiten cientos de iteraciones.
             for(const auto& contact : earliestImpacts) {
                 if(!contact.proxyA->isStatic && contact.proxyB->isStatic) {
                     addBlockedDirection(
@@ -938,6 +1244,38 @@ void PhysicsSystem2D::detectAndResolve(
     }
 }
 
+void PhysicsSystem2D::refreshRotationBlocks() {
+    constexpr float staticContactTolerance = 0.001f;
+
+    for(const auto& dynamicProxy : m_dynamicProxies) {
+        Entity& blockingStatic =
+            m_rotationBlockingStatic[dynamicProxy.entity];
+
+        if(blockingStatic == NULL_ENTITY) {
+            continue;
+        }
+
+        const auto staticIterator = std::find_if(
+            m_staticProxies.begin(),
+            m_staticProxies.end(),
+            [blockingStatic](const ilen::physics::ColliderProxy2D& proxy) {
+                return proxy.entity == blockingStatic;
+            }
+        );
+
+        if(
+            staticIterator == m_staticProxies.end() ||
+            !ilen::physics::NarrowPhase2D::AreTouching(
+                dynamicProxy,
+                *staticIterator,
+                staticContactTolerance
+            )
+        ) {
+            blockingStatic = NULL_ENTITY;
+        }
+    }
+}
+
 void PhysicsSystem2D::resolveCollision(
     ilen::physics::ColliderProxy2D& proxyA,
     ilen::physics::ColliderProxy2D& proxyB,
@@ -953,8 +1291,10 @@ void PhysicsSystem2D::resolveCollision(
     auto* rigidbodyA = componentsArray->rigidbodyComponentArray->getData(proxyA.entity);
     auto* rigidbodyB = componentsArray->rigidbodyComponentArray->getData(manifold.entityB);
 
-    const bool dynamicA = rigidbodyA && !rigidbodyA->isStatic;
-    const bool dynamicB = rigidbodyB && !rigidbodyB->isStatic;
+    const bool dynamicA =
+        rigidbodyA && !rigidbodyA->isStatic && !proxyA.solverFrozen;
+    const bool dynamicB =
+        rigidbodyB && !rigidbodyB->isStatic && !proxyB.solverFrozen;
 
     if(dynamicA && !dynamicB) {
         const vec2 separation = manifold.normal * manifold.penetration;
@@ -980,6 +1320,38 @@ void PhysicsSystem2D::resolveCollision(
             rigidbodyA->isInGround = true;
         }
 
+        return;
+    }
+
+    if(!dynamicA && dynamicB) {
+        const vec2 normalB = manifold.normal * -1.0f;
+        const vec2 separation = normalB * manifold.penetration;
+        m_accumulatedTransformOrder[proxyB.entity].translation +=
+            static_cast<vec3>(separation);
+        translateProxy(proxyB, separation);
+
+        const float normalMotion =
+            ilen::maths::vector::dot(proxyB.motionVelocity, normalB);
+
+        if(normalMotion < 0.0f) {
+            proxyB.motionVelocity -= normalB * normalMotion;
+        }
+
+        const float rigidbodyNormalVelocity =
+            ilen::maths::vector::dot(rigidbodyB->velocity, normalB);
+
+        if(rigidbodyNormalVelocity < 0.0f) {
+            rigidbodyB->velocity -= normalB * rigidbodyNormalVelocity;
+        }
+
+        if(normalB.y > 0.5f) {
+            rigidbodyB->isInGround = true;
+        }
+
+        return;
+    }
+
+    if(!dynamicA && !dynamicB) {
         return;
     }
 
@@ -1009,6 +1381,7 @@ void PhysicsSystem2D::resolveCollision(
             proxyA.motionVelocity += correction;
             proxyB.motionVelocity -= correction;
         }
+
         return;
     }
 
@@ -1253,20 +1626,6 @@ void PhysicsSystem2D::resolveCollision(
                 proxyA.motionVelocity += velocityChangeA;
                 proxyB.motionVelocity += velocityChangeB;
 
-                const float rigidbodyApproachA = std::max(
-                    0.0f,
-                    -ilen::maths::vector::dot(
-                        rigidbodyA->velocity,
-                        manifold.normal
-                    )
-                );
-                const float rigidbodyApproachB = std::max(
-                    0.0f,
-                    ilen::maths::vector::dot(
-                        rigidbodyB->velocity,
-                        manifold.normal
-                    )
-                );
                 const float commandedApproachA = std::max(
                     0.0f,
                     -ilen::maths::vector::dot(
@@ -1282,14 +1641,14 @@ void PhysicsSystem2D::resolveCollision(
                     )
                 );
 
-                // Un empuje originado principalmente por Translate/MovePosition
-                // dura sólo este paso. Las colisiones nacidas de velocity o de
-                // un impulso sí conservan el intercambio de momento.
+                // Move/MovePosition describen un desplazamiento temporal, no
+                // una velocidad física. Si cualquiera de los cuerpos produjo
+                // el contacto mediante una orden, el impulso sólo modifica el
+                // movimiento interno de este tick y nunca Rigidbody::velocity.
                 const bool transientImpulse =
-                    (driver == CollisionDriver::A &&
-                     commandedApproachA > rigidbodyApproachA) ||
-                    (driver == CollisionDriver::B &&
-                     commandedApproachB > rigidbodyApproachB);
+                    commandedApproachA > movementEpsilon ||
+                    commandedApproachB > movementEpsilon ||
+                    manifold.usedAngularSweep;
 
                 constexpr float commandEpsilon = 0.0001f;
                 if(!transientImpulse && std::abs(ilen::maths::vector::dot(
@@ -1320,7 +1679,8 @@ void PhysicsSystem2D::resolveCollision(
     }
 
     if(dynamicA && dynamicB) {
-        const vec2 separationA = manifold.normal * (manifold.penetration * 0.5f);
+        const vec2 separationA =
+            manifold.normal * (manifold.penetration * 0.5f);
         const vec2 separationB = separationA * -1.0f;
 
         m_accumulatedTransformOrder[proxyA.entity].translation += static_cast<vec3>(separationA);
@@ -1360,6 +1720,7 @@ void PhysicsSystem2D::resolveCollision(
         if (normalB.y > 0.5f) {
             rigidbodyB->isInGround = true;
         }
+
     }
 }
 

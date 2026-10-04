@@ -32,9 +32,15 @@ namespace ilen::engine::api {
             static void Move(Entity entity, vec2 translation);
             static void MovePosition(Entity entity, vec2 targetPosition);
 
+            // Rotación 2D gobernada por físicas, expresada en grados y
+            // procesada mediante CCD angular.
+            static void Rotate(Entity entity, float degrees);
+            static void RotateTo(Entity entity, float targetDegrees);
+
             // Cambio instantáneo: omite el recorrido pero resuelve contactos
             // que existan en la posición de destino.
             static void Teleport(Entity entity, vec2 targetPosition);
+            static void TeleportRotation(Entity entity, float targetDegrees);
 
             //Modificación de propiedades físicas de las entidades
             static void ChangeObjectGravity(Entity entity, bool newState);

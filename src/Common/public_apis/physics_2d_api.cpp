@@ -105,6 +105,29 @@ void PhysicsAPI::MovePosition(Entity e, vec2 targetPosition) {
     });
 }
 
+void PhysicsAPI::Rotate(Entity e, float degrees) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        if(order.hasTeleportRotation || order.hasRotateTo) {
+            order.targetRotation += degrees;
+        } else {
+            order.accumulatedRotation += degrees;
+        }
+    });
+}
+
+void PhysicsAPI::RotateTo(Entity e, float targetDegrees) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        order.targetRotation = targetDegrees;
+        order.accumulatedRotation = 0.0f;
+        order.hasRotateTo = true;
+        order.hasTeleportRotation = false;
+    });
+}
+
 void PhysicsAPI::Teleport(Entity e, vec2 targetPosition) {
     if(e == NULL_ENTITY) return;
 
@@ -113,6 +136,17 @@ void PhysicsAPI::Teleport(Entity e, vec2 targetPosition) {
         order.accumulatedTranslation = vec2(0.0f);
         order.hasMovePosition = false;
         order.hasTeleport = true;
+    });
+}
+
+void PhysicsAPI::TeleportRotation(Entity e, float targetDegrees) {
+    if(e == NULL_ENTITY) return;
+
+    accumulate(e, [&](components::physics::PhysicsOrder& order) {
+        order.targetRotation = targetDegrees;
+        order.accumulatedRotation = 0.0f;
+        order.hasRotateTo = false;
+        order.hasTeleportRotation = true;
     });
 }
 
@@ -203,6 +237,21 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
                 } else {
                     actualOrder.accumulatedTranslation +=
                         order.accumulatedTranslation;
+                }
+
+                if(order.hasTeleportRotation) {
+                    actualOrder.targetRotation = order.targetRotation;
+                    actualOrder.accumulatedRotation = 0.0f;
+                    actualOrder.hasRotateTo = false;
+                    actualOrder.hasTeleportRotation = true;
+                } else if(order.hasRotateTo) {
+                    actualOrder.targetRotation = order.targetRotation;
+                    actualOrder.accumulatedRotation = 0.0f;
+                    actualOrder.hasRotateTo = true;
+                    actualOrder.hasTeleportRotation = false;
+                } else {
+                    actualOrder.accumulatedRotation +=
+                        order.accumulatedRotation;
                 }
             }else {
                 //No existe.

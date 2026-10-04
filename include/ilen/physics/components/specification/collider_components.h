@@ -76,6 +76,13 @@ namespace ilen::physics {
         vec2 motionVelocity{0.0f};
         vec2 commandedVelocity{0.0f};
 
+        // Pivote y movimiento angular interno, expresado en radianes con la
+        // misma convención usada para construir los vértices físicos.
+        vec2 rotationPivot{0.0f};
+        float maximumRadius = 0.0f;
+        float stepRotation = 0.0f;
+        float motionAngularVelocity = 0.0f;
+
         // Centro registrado al comenzar el fixed update; queda disponible para
         // depuración y futuras consultas de movimiento histórico.
         vec2 previousCenter{0.0f};
@@ -83,6 +90,10 @@ namespace ilen::physics {
         bool isStatic = false;
         bool isKinematic = false;
         bool isTrigger = false;
+
+        // Estado transitorio del solver. Un cuerpo encajado sigue participando
+        // en colisiones, pero se comporta como inamovible durante este tick.
+        bool solverFrozen = false;
 
         uint32_t layerMask = 0;
     };

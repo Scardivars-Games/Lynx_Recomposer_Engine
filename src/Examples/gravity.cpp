@@ -266,6 +266,7 @@ void GravityCamera::LateUpdate() {
     TransformAPI::SetPosition(entity, newPos);
 }
 
+
 void PlayerSpawner::Init() {
     ILEN_LOG_P("Player Spawner", "Spwaneando al jugador");
     EntityAPI::LoadPrefab("Player_Prefab", TransformAPI::GetEntityPosition(entity));
@@ -285,13 +286,13 @@ using namespace ilen::engine::api;
 using namespace ilen::input;
 
 void RotateGround::Update() {
-    PhysicsAPI::ChangeObjectGravity(entity, true, 10.0f);
+    PhysicsAPI::ChangeObjectGravity(entity, false, 10.0f);
     if(InputAPI::IsKeyPressed(Key::E)) {
         PhysicsAPI::ChangeObjectMass(entity, 0.25, true);
     }
     if(InputAPI::IsKeyPressed(Key::Q)) {
         PhysicsAPI::ChangeObjectMass(entity, -0.25, true);
     }
-    //TransformAPI::Rotate(entity, vec3(0,0,50) * ilen::time::Time::getDeltaTime());
+    TransformAPI::Rotate(entity, vec3(0,0,50) * ilen::time::Time::getDeltaTime());
 }
 #endif //!ILEN_ONLY_ECS

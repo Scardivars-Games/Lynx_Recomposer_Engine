@@ -25,6 +25,14 @@ namespace ilen::ecs::components::physics {
         bool hasMovePosition = false;
         bool hasTeleport = false;
 
+        // Rotación 2D en grados visuales. Rotate/RotateTo atraviesan el CCD;
+        // TeleportRotation aplica el ángulo directamente y sólo comprueba el
+        // estado final, igual que Teleport para la posición.
+        float accumulatedRotation = 0.0f;
+        float targetRotation = 0.0f;
+        bool hasRotateTo = false;
+        bool hasTeleportRotation = false;
+
         bool hasOrders = false;
     };
 }

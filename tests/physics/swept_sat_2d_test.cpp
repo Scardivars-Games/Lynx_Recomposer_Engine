@@ -15,13 +15,20 @@ namespace {
         std::uint32_t entity,
         vec2 center,
         vec2 halfExtents,
-        vec2 translation = vec2{0.0f}
+        vec2 translation = vec2{0.0f},
+        float rotation = 0.0f
     ) {
         ColliderProxy2D proxy;
         proxy.entity = entity;
         proxy.bounds = AABB2D::fromCenterHalf(center, halfExtents);
         proxy.sweptBounds = proxy.bounds;
         proxy.stepTranslation = translation;
+        proxy.stepRotation = rotation;
+        proxy.rotationPivot = center;
+        proxy.maximumRadius = std::sqrt(
+            halfExtents.x * halfExtents.x +
+            halfExtents.y * halfExtents.y
+        );
         proxy.worldVertices = {
             center + vec2{-halfExtents.x, -halfExtents.y},
             center + vec2{ halfExtents.x, -halfExtents.y},
@@ -29,6 +36,30 @@ namespace {
             center + vec2{-halfExtents.x,  halfExtents.y}
         };
         return proxy;
+    }
+
+    ColliderProxy2D poseAtTime(
+        const ColliderProxy2D& source,
+        float time
+    ) {
+        ColliderProxy2D pose = source;
+        const float radians = source.stepRotation * time;
+        const float cosine = std::cos(radians);
+        const float sine = std::sin(radians);
+        const vec2 translation = source.stepTranslation * time;
+
+        for(vec2& vertex : pose.worldVertices) {
+            const vec2 local = vertex - source.rotationPivot;
+            vertex = source.rotationPivot + translation + vec2{
+                local.x * cosine - local.y * sine,
+                local.x * sine + local.y * cosine
+            };
+        }
+
+        pose.rotationPivot += translation;
+        pose.stepTranslation = vec2{0.0f};
+        pose.stepRotation = 0.0f;
+        return pose;
     }
 
     bool approximatelyEqual(float a, float b, float epsilon = 0.0001f) {
@@ -141,6 +172,202 @@ int main() {
         success &= expect(
             !NarrowPhase2D::Sweep(movingTangentially, wall).has_value(),
             "un contacto tangencial no debe congelar el movimiento libre"
+        );
+    }
+
+    {
+        auto rotatingBar = makeBox(
+            15,
+            vec2{0.0f, 0.0f},
+            vec2{2.0f, 0.1f},
+            vec2{0.0f},
+            static_cast<float>(M_PI) * 0.5f
+        );
+        auto obstacle = makeBox(
+            16,
+            vec2{0.0f, 1.5f},
+            vec2{0.15f}
+        );
+        const auto hit = NarrowPhase2D::Sweep(rotatingBar, obstacle);
+
+        success &= expect(
+            hit.has_value(),
+            "una esquina que rota debe detectar un obstaculo intermedio"
+        );
+        success &= expect(
+            hit && hit->timeOfImpact > 0.0f && hit->timeOfImpact < 1.0f,
+            "el TOI angular debe quedar dentro del paso"
+        );
+        success &= expect(
+            hit && hit->usedAngularSweep,
+            "el manifold debe identificar el barrido angular"
+        );
+        success &= expect(
+            hit && !NarrowPhase2D::Test(
+                poseAtTime(rotatingBar, hit->timeOfImpact),
+                obstacle
+            ).has_value(),
+            "el CCD angular debe dejar el cuerpo en la ultima pose libre"
+        );
+    }
+
+    {
+        auto rotatingBar = makeBox(
+            17,
+            vec2{0.0f, 0.0f},
+            vec2{2.0f, 0.1f},
+            vec2{0.0f},
+            static_cast<float>(M_PI) * 0.5f
+        );
+        auto distantObstacle = makeBox(
+            18,
+            vec2{4.0f, 4.0f},
+            vec2{0.1f}
+        );
+
+        success &= expect(
+            !NarrowPhase2D::Sweep(rotatingBar, distantObstacle).has_value(),
+            "una rotacion separada no debe generar falsos positivos"
+        );
+    }
+
+    {
+        auto movingAndRotating = makeBox(
+            19,
+            vec2{-3.0f, 0.0f},
+            vec2{1.5f, 0.1f},
+            vec2{4.0f, 0.0f},
+            static_cast<float>(M_PI) * 0.5f
+        );
+        auto obstacle = makeBox(
+            20,
+            vec2{0.0f, 1.0f},
+            vec2{0.2f}
+        );
+
+        success &= expect(
+            NarrowPhase2D::Sweep(movingAndRotating, obstacle).has_value(),
+            "traslacion y rotacion simultaneas deben compartir el mismo TOI"
+        );
+    }
+
+    {
+        auto rotatingIntoContact = makeBox(
+            21,
+            vec2{0.0f, 0.0f},
+            vec2{1.0f, 0.1f},
+            vec2{0.0f},
+            static_cast<float>(M_PI) * 0.25f
+        );
+        auto obstacle = makeBox(
+            22,
+            vec2{0.8f, 0.2f},
+            vec2{0.1f}
+        );
+        const auto hit = NarrowPhase2D::Sweep(
+            rotatingIntoContact,
+            obstacle
+        );
+
+        success &= expect(
+            hit && hit->timeOfImpact <= 0.001f,
+            "una rotacion que entra desde contacto debe impactar en TOI cero"
+        );
+    }
+
+    {
+        auto rotatingAway = makeBox(
+            23,
+            vec2{0.0f, 0.0f},
+            vec2{1.0f, 0.1f},
+            vec2{0.0f},
+            static_cast<float>(M_PI) * -0.25f
+        );
+        auto obstacle = makeBox(
+            24,
+            vec2{0.8f, 0.2f},
+            vec2{0.1f}
+        );
+
+        success &= expect(
+            !NarrowPhase2D::Sweep(rotatingAway, obstacle).has_value(),
+            "una rotacion que se aleja del contacto no debe bloquearse"
+        );
+    }
+
+    {
+        auto fullTurn = makeBox(
+            25,
+            vec2{0.0f, 0.0f},
+            vec2{2.0f, 0.05f},
+            vec2{0.0f},
+            static_cast<float>(M_PI) * 2.0f
+        );
+        auto obstacle = makeBox(
+            26,
+            vec2{0.0f, 1.5f},
+            vec2{0.05f}
+        );
+
+        success &= expect(
+            NarrowPhase2D::Sweep(fullTurn, obstacle).has_value(),
+            "un giro completo debe detectar impactos aunque termine donde inicio"
+        );
+    }
+
+    {
+        auto touchingThenTurningBack = makeBox(
+            27,
+            vec2{0.0f, 0.0f},
+            vec2{1.0f, 0.1f},
+            vec2{0.0f},
+            static_cast<float>(M_PI) * -2.0f
+        );
+        auto obstacle = makeBox(
+            28,
+            vec2{0.8f, 0.2f},
+            vec2{0.1f}
+        );
+
+        const auto hit = NarrowPhase2D::Sweep(
+            touchingThenTurningBack,
+            obstacle
+        );
+
+        success &= expect(
+            hit.has_value(),
+            "un giro completo que primero se aleja debe detectar el impacto posterior"
+        );
+        success &= expect(
+            hit && hit->timeOfImpact > 0.35f,
+            "el impacto posterior no debe confundirse con el contacto inicial"
+        );
+    }
+
+    {
+        const auto body = makeBox(
+            29,
+            vec2{0.0f, 0.0f},
+            vec2{0.5f}
+        );
+        const auto touchingWall = makeBox(
+            30,
+            vec2{1.0f, 0.0f},
+            vec2{0.5f}
+        );
+        const auto separatedWall = makeBox(
+            31,
+            vec2{1.01f, 0.0f},
+            vec2{0.5f}
+        );
+
+        success &= expect(
+            NarrowPhase2D::AreTouching(body, touchingWall, 0.001f),
+            "el contacto exacto debe mantener bloqueada la rotacion"
+        );
+        success &= expect(
+            !NarrowPhase2D::AreTouching(body, separatedWall, 0.001f),
+            "la rotacion debe liberarse al separarse de la pared"
         );
     }
 

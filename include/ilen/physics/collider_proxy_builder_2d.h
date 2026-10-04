@@ -41,5 +41,10 @@ namespace ilen::physics {
             static ilen::maths::aabb::AABB2D CalculateBounds(
                 const std::vector<vec2>& vertices
             );
+
+            static float CalculateMaximumRadius(
+                const std::vector<vec2>& vertices,
+                const vec2& pivot
+            );
     };
 }

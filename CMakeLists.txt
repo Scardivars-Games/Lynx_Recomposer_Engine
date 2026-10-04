@@ -131,6 +131,12 @@ if(ILEN_BUILD_PHYSICS_BENCHMARK)
     )
     target_link_libraries(ilen-physics-swept-sat-test PRIVATE ilen_global_includes)
     target_compile_features(ilen-physics-swept-sat-test PRIVATE cxx_std_23)
+
+    add_executable(ilen-physics-collider-proxy-test
+        tests/physics/collider_proxy_builder_2d_test.cpp
+    )
+    target_link_libraries(ilen-physics-collider-proxy-test PRIVATE ilen_global_includes)
+    target_compile_features(ilen-physics-collider-proxy-test PRIVATE cxx_std_23)
 endif()
 
 list(APPEND SHARED_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)

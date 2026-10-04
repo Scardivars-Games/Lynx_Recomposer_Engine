@@ -35,6 +35,11 @@ namespace ilen::ecs::systems {
                 float wireBrightness = 0.35f;
                 
                 bool showTriangulation = true;
+                bool showContactPoints = true;
+                bool showContactNormals = true;
+
+                float contactPointSize = 0.08f;
+                float contactNormalLength = 0.45f;
 
                 graphics::Color dynamicColor {
                     0.0f, 1.0f, 0.0f, 1.0f
@@ -50,6 +55,14 @@ namespace ilen::ecs::systems {
 
                 graphics::Color collidingColor {
                     1.0f, 0.15f, 0.1f, 1.0f
+                };
+
+                graphics::Color contactPointColor {
+                    1.0f, 0.9f, 0.0f, 1.0f
+                };
+
+                graphics::Color contactNormalColor {
+                    0.0f, 1.0f, 1.0f, 1.0f
                 };
             };
 
@@ -147,6 +160,6 @@ namespace ilen::ecs::systems {
 }
 
 REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::DebugRenderSystem2D, ilen::ecs::SystemPhase::Render, 2)
-REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::DebugRenderSystem2D, ilen::ecs::components::physics::BoxCollider2D)
+REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::DebugRenderSystem2D, ilen::ecs::components::physics::Rigidbody2D)
 
 #endif

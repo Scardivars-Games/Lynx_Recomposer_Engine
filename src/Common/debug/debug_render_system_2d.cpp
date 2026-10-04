@@ -102,7 +102,8 @@ namespace ilen::ecs::systems {
         if(setting.showColliders) {
             auto* transformArray = p_coordinator->getComponentArray<TransformComponent>();
             auto* boxColliderArray = p_coordinator->getComponentArray<BoxCollider2D>();
-            //auto* polygonColliderArray = p_coordinator->getComponentArray<ConvexPolygonCollider2D>();
+            auto* polygonColliderArray =
+                p_coordinator->getComponentArray<ConvexPolygonCollider2D>();
             auto* rbArray = p_coordinator->getComponentArray<Rigidbody2D>();
             auto* collisionArray = p_coordinator->getComponentArray<CollisionComponent2D>();
             auto* metadataArray = p_coordinator->getComponentArray<EntityMetadataComponent>();
@@ -110,20 +111,41 @@ namespace ilen::ecs::systems {
             for(Entity entity: entities) {
                 auto* transform = transformArray->getData(entity);
                 auto* boxCollider = boxColliderArray->getData(entity);
+                auto* polygonCollider = polygonColliderArray->getData(entity);
                 auto* rigidbody = rbArray->getData(entity);
                 auto* metadata = metadataArray->getData(entity);
 
-                if(!transform || !boxCollider || !rigidbody || !metadata){
+                if(
+                    !transform ||
+                    !rigidbody ||
+                    !metadata ||
+                    ((boxCollider == nullptr) == (polygonCollider == nullptr))
+                ) {
                     continue;
                 }
 
-                auto proxy = ilen::physics::ColliderProxyBuilder2D::FromBox(
-                    entity,
-                    *transform,
-                    *rigidbody,
-                    *boxCollider,
-                    *metadata
-                );
+                std::optional<ilen::physics::ColliderProxy2D> proxy;
+                bool isTrigger = false;
+
+                if(boxCollider) {
+                    proxy = ilen::physics::ColliderProxyBuilder2D::FromBox(
+                        entity,
+                        *transform,
+                        *rigidbody,
+                        *boxCollider,
+                        *metadata
+                    );
+                    isTrigger = boxCollider->isTrigger;
+                } else {
+                    proxy = ilen::physics::ColliderProxyBuilder2D::FromPolygon(
+                        entity,
+                        *transform,
+                        *rigidbody,
+                        *polygonCollider,
+                        *metadata
+                    );
+                    isTrigger = polygonCollider->isTrigger;
+                }
 
                 if(!proxy.has_value()) {
                     continue;
@@ -135,11 +157,12 @@ namespace ilen::ecs::systems {
                     color = setting.staticColor;
                 }
 
-                if(boxCollider->isTrigger) {
+                if(isTrigger) {
                     color = setting.triggerColor;
                 }
 
-                if(auto* collision = collisionArray->getData(entity); collision && !collision->contacts.empty()) {
+                auto* collision = collisionArray->getData(entity);
+                if(collision && !collision->contacts.empty()) {
                     color = setting.collidingColor;
                 }
 
@@ -157,6 +180,44 @@ namespace ilen::ecs::systems {
                         color,
                         setting.outlineThickness
                     );
+                }
+
+                if(!collision) {
+                    continue;
+                }
+
+                for(const auto& contact : collision->contacts) {
+                    // El contacto está espejado en ambas entidades. Dibujarlo
+                    // una sola vez evita duplicar punto y normal.
+                    if(entity > contact.entityB || !contact.hasContactPoint) {
+                        continue;
+                    }
+
+                    if(setting.showContactPoints) {
+                        const vec2 halfPoint{
+                            setting.contactPointSize * 0.5f
+                        };
+
+                        AppendQuad(
+                            contact.point - halfPoint,
+                            contact.point + vec2{halfPoint.x, -halfPoint.y},
+                            contact.point + halfPoint,
+                            contact.point + vec2{-halfPoint.x, halfPoint.y},
+                            transform->position.z,
+                            setting.contactPointColor
+                        );
+                    }
+
+                    if(setting.showContactNormals) {
+                        AppendLine(
+                            contact.point,
+                            contact.point +
+                                contact.normal * setting.contactNormalLength,
+                            transform->position.z,
+                            setting.contactNormalColor,
+                            setting.outlineThickness
+                        );
+                    }
                 }
             }
         }

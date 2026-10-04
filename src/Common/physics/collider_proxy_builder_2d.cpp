@@ -1,4 +1,5 @@
 #include <ilen/physics/collider_proxy_builder_2d.h>
+#include <ilen/physics/collider_validation_2d.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
@@ -39,6 +40,24 @@ namespace ilen::physics {
         const BoxCollider2D& collider,
         const EntityMetadataComponent& metadata
     ) {
+        if(
+            !std::isfinite(collider.halfExtents.x) ||
+            !std::isfinite(collider.halfExtents.y) ||
+            !std::isfinite(collider.offset.x) ||
+            !std::isfinite(collider.offset.y) ||
+            !std::isfinite(transform.position.x) ||
+            !std::isfinite(transform.position.y) ||
+            !std::isfinite(transform.rotation.z) ||
+            !std::isfinite(transform.scale.x) ||
+            !std::isfinite(transform.scale.y)
+        ) {
+            ILEN_ERROR_P(
+                "COLLIDER_PROXY_BUILDER",
+                "La caja o su Transform contiene valores no finitos"
+            );
+            return std::nullopt;
+        }
+
         const vec2 halfExtents {
             std::abs(collider.halfExtents.x * transform.scale.x),
             std::abs(collider.halfExtents.y * transform.scale.y)
@@ -76,6 +95,11 @@ namespace ilen::physics {
 
         proxy.bounds = CalculateBounds(proxy.worldVertices);
         proxy.sweptBounds = proxy.bounds;
+        proxy.rotationPivot = static_cast<vec2>(transform.position);
+        proxy.maximumRadius = CalculateMaximumRadius(
+            proxy.worldVertices,
+            proxy.rotationPivot
+        );
 
         proxy.previousCenter = rigidbody.prevPosition + RotatePoint(scaledOffset, rotation);
 
@@ -94,8 +118,37 @@ namespace ilen::physics {
         const ConvexPolygonCollider2D& collider,
         const EntityMetadataComponent& metadata
     ) {
+        constexpr float scaleEpsilon = 0.00001f;
+
         if (collider.vertices.size() < 3) {
             ILEN_ERROR_P("COLLIDER_PROXY_BUILDER", "Se recibio un poligono con menos de 3 vertices");
+            return std::nullopt;
+        }
+
+        if(
+            !std::isfinite(collider.offset.x) ||
+            !std::isfinite(collider.offset.y) ||
+            !std::isfinite(transform.position.x) ||
+            !std::isfinite(transform.position.y) ||
+            !std::isfinite(transform.rotation.z) ||
+            !std::isfinite(transform.scale.x) ||
+            !std::isfinite(transform.scale.y)
+        ) {
+            ILEN_ERROR_P(
+                "COLLIDER_PROXY_BUILDER",
+                "El poligono o su Transform contiene valores no finitos"
+            );
+            return std::nullopt;
+        }
+
+        if(
+            std::abs(transform.scale.x) <= scaleEpsilon ||
+            std::abs(transform.scale.y) <= scaleEpsilon
+        ) {
+            ILEN_ERROR_P(
+                "COLLIDER_PROXY_BUILDER",
+                "Un poligono fisico no puede tener escala cero"
+            );
             return std::nullopt;
         }
         
@@ -115,8 +168,22 @@ namespace ilen::physics {
             );
         }
 
+        // Una reflexión por escala negativa invierte el winding. Restaurarlo
+        // mantiene la convención antihoraria del narrowphase.
+        if(transform.scale.x * transform.scale.y < 0.0f) {
+            std::reverse(
+                proxy.worldVertices.begin(),
+                proxy.worldVertices.end()
+            );
+        }
+
         proxy.bounds = CalculateBounds(proxy.worldVertices);
         proxy.sweptBounds = proxy.bounds;
+        proxy.rotationPivot = static_cast<vec2>(transform.position);
+        proxy.maximumRadius = CalculateMaximumRadius(
+            proxy.worldVertices,
+            proxy.rotationPivot
+        );
 
         const float rotation = TransformRotationToRadians(transform.rotation.z);
 
@@ -171,37 +238,24 @@ namespace ilen::physics {
         return AABB2D::fromMinMax(minimum, maximum);
     }
 
+    float ColliderProxyBuilder2D::CalculateMaximumRadius(
+        const std::vector<vec2>& vertices,
+        const vec2& pivot
+    ) {
+        float maximumRadiusSquared = 0.0f;
+
+        for(const vec2& vertex : vertices) {
+            const vec2 difference = vertex - pivot;
+            maximumRadiusSquared = std::max(
+                maximumRadiusSquared,
+                ilen::maths::vector::dot(difference, difference)
+            );
+        }
+
+        return std::sqrt(maximumRadiusSquared);
+    }
+
     bool ColliderProxyBuilder2D::IsConvexCounterClockwise(const std::vector<vec2>& vertices){
-        if(vertices.size() < 3) {
-            return false;
-        }
-
-        constexpr float epsilon = 0.00001f;
-        bool foundPositiveCross = false;
-
-        for(size_t i = 0; i < vertices.size(); i++) {
-            const vec2& a = vertices[i];
-            const vec2& b = vertices[(i + 1) % vertices.size()];
-            const vec2& c = vertices[(i + 2) % vertices.size()];
-
-            const vec2 edgeAB = b - a;
-            const vec2 edgeBC = c - b;
-
-            const float cross = edgeAB.x * edgeBC.y - edgeAB.y * edgeBC.x;
-
-            /*
-             * En orden antihorario todos los giros deben ser
-             * positivos o colineales.
-             */
-            if(cross < -epsilon) {
-                return false;
-            }
-
-            if(cross > epsilon) {
-                foundPositiveCross = true;
-            }
-        }
-
-        return foundPositiveCross;
+        return IsValidConvexPolygon2D(vertices);
     }
 }
