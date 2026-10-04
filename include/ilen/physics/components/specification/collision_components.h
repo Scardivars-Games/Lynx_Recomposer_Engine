@@ -7,6 +7,12 @@
 namespace ilen::ecs::components::physics {
     using vec2 =  maths::vector::vec2;
 
+    enum class Containment2D : uint8_t {
+        None,
+        AInsideB,
+        BInsideA
+    };
+
     //Almacena datos básicos de una única colision. NO ES COMPONENTE.
 
     //OLD
@@ -43,6 +49,12 @@ namespace ilen::ecs::components::physics {
         bool hasContactPoint = false; //True si el punto de contacto fue calculado por un algoritmo de forma exacta
         bool isTrigger = false;
         bool usedAngularSweep = false; //El TOI necesitó movimiento rotacional.
+
+        // Una intersección ordinaria permite repartir la corrección entre los
+        // dos cuerpos. Si uno está completamente dentro del volumen sólido del
+        // otro, en cambio, el solver debe expulsar al contenido hasta cruzar la
+        // frontera; repartir la corrección puede conservar el encierro.
+        Containment2D containment = Containment2D::None;
     };
 
     //Este componente es el que se añade a la entidad, es la susceptibles a los sistemas.

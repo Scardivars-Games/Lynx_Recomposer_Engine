@@ -28,8 +28,14 @@ namespace ilen::physics {
             static bool TestAxes (
                 const ColliderProxy2D& axisSource,
                 const ColliderProxy2D& other,
+                bool axisSourceIsA,
                 float& minimumPenetration,
                 vec2& minimumNormal
+            );
+
+            static bool Contains(
+                const ColliderProxy2D& container,
+                const ColliderProxy2D& contained
             );
 
             static vec2 AverageSupportPoint(

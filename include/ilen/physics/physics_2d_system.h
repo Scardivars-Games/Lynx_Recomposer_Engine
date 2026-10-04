@@ -13,6 +13,7 @@
 #include <ilen/physics/narrow_phase_2d.h>
 #include <ilen/physics/broad_phase_2d.h>
 #include <optional>
+#include <unordered_set>
 
 namespace ilen::ecs::systems {
     using namespace ilen::ecs::components;
@@ -46,6 +47,48 @@ namespace ilen::ecs::systems {
             void registerEntity(Entity e, ArrayOfComponentsUsed* componentsArray);
             void unregisterEntity(Entity e);
 
+#if ILEN_DEBUG
+            struct DebugImpact2D {
+                vec2 point{0.0f};
+                vec2 direction{0.0f};
+                float force = 0.0f;
+                float z = 0.0f;
+                Entity entityA = NULL_ENTITY;
+                Entity entityB = NULL_ENTITY;
+            };
+
+            const std::vector<DebugImpact2D>& GetPersistentDebugImpacts() const {
+                return m_persistentDebugImpacts;
+            }
+
+            enum class DebugActiveVectorKind2D : uint8_t {
+                LinearVelocity,
+                AngularVelocity,
+                Force
+            };
+
+            /**
+             * Vector que estuvo activo durante el fixed update más reciente.
+             *
+             * A diferencia de DebugImpact2D, estos datos no son históricos:
+             * se reconstruyen en cada paso para que una flecha desaparezca en
+             * cuanto el cuerpo deje de tener esa velocidad o fuerza.
+             */
+            struct DebugActiveVector2D {
+                vec2 point{0.0f};
+                vec2 value{0.0f};
+                float z = 0.0f;
+                Entity entity = NULL_ENTITY;
+                DebugActiveVectorKind2D kind =
+                    DebugActiveVectorKind2D::LinearVelocity;
+            };
+
+            const std::vector<DebugActiveVector2D>&
+            GetDebugActiveVectors() const {
+                return m_debugActiveVectors;
+            }
+#endif
+
 #ifdef ILEN_DEBUG
             void checkStaticGuard(ArrayOfComponentsUsed* componentsArray);
 #endif
@@ -67,6 +110,13 @@ namespace ilen::ecs::systems {
             std::array<float, MAX_ENTITIES> m_teleportRotationTargets{};
             std::array<bool, MAX_ENTITIES> m_hasTeleportRotation{};
 
+            // Máscara transitoria de los ejes cuya velocidad está siendo
+            // alimentada durante el fixed update actual. Bit 0 representa X
+            // y bit 1 representa Y. La resistencia sólo actúa sobre los ejes
+            // que no recibieron una orden de velocidad, fuerza, impulso o
+            // aceleración continua como la gravedad.
+            std::array<uint8_t, MAX_ENTITIES> m_activeVelocityAxes{};
+
             // Collider estático que mantiene bloqueada la rotación solicitada
             // de cada entidad. NULL_ENTITY significa que puede volver a girar.
             std::array<Entity, MAX_ENTITIES> m_rotationBlockingStatic{};
@@ -83,6 +133,10 @@ namespace ilen::ecs::systems {
             void registerPrevPosition(ArrayOfComponentsUsed* ComponentArray);
             void applyForces(float dt, ArrayOfComponentsUsed* ComponentArray);
             void applyGravity(float dt, ArrayOfComponentsUsed* componentsArray);
+            void applyMovementResistance(
+                float dt,
+                ArrayOfComponentsUsed* componentsArray
+            );
             void integrate(float dt, ArrayOfComponentsUsed* componentsArray);
             void rebuildDynamicProxies(float dt, ArrayOfComponentsUsed* componentsArray);
             void detectAndResolve(float dt, ArrayOfComponentsUsed* componentsArray);
@@ -96,6 +150,16 @@ namespace ilen::ecs::systems {
 
             //Construir Proxies
             std::optional<ilen::physics::ColliderProxy2D> buildProxy(Entity entity, ArrayOfComponentsUsed* componentsArray);
+
+            // Devuelve la pose que tendrá la entidad después de consumir la
+            // TransformOrder pendiente. Es imprescindible cuando un frame de
+            // render contiene varios fixed updates: el segundo paso debe
+            // comenzar donde terminó el primero, aunque TransformSystem aún
+            // no haya escrito el resultado en TransformComponent.
+            static TransformComponent effectiveTransform(
+                const TransformComponent& transform,
+                const TransformOrder* pendingOrder
+            );
 
             //Corrige colisiones
             void resolveCollision(
@@ -141,6 +205,24 @@ namespace ilen::ecs::systems {
             };
 
             std::vector<StaticGuard> m_staticGuards;
+
+            std::vector<DebugImpact2D> m_persistentDebugImpacts;
+            std::vector<DebugActiveVector2D> m_debugActiveVectors;
+            std::array<vec2, MAX_ENTITIES> m_debugAppliedForces{};
+            std::unordered_set<uint64_t> m_debugPreviousCollisionPairs;
+            std::unordered_set<uint64_t> m_debugCurrentCollisionPairs;
+            float m_debugFixedDeltaTime = 0.0f;
+
+            void recordDebugImpact(
+                const ilen::physics::ColliderProxy2D& proxyA,
+                const ilen::physics::ColliderProxy2D& proxyB,
+                const physics::ContactManifold2D& manifold,
+                ArrayOfComponentsUsed* componentsArray
+            );
+
+            void rebuildDebugActiveVectors(
+                ArrayOfComponentsUsed* componentsArray
+            );
 
             struct CollisionDebugStats {
                 size_t dynamicVsDynamicPairs = 0;

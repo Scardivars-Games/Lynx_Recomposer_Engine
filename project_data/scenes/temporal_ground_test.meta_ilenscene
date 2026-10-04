@@ -3184,7 +3184,8 @@
                 },
                 "Rigidbody2D": {
                     "gravityScale": 25.0,
-                    "isStatic": false
+                    "isStatic": false,
+                    "usesGravity": false
                 },
                 "ScriptingBridgeComponent": {
                     "scriptName": "ilen::game::RotateGround"

@@ -23,6 +23,16 @@ namespace ilen::core::options {
         static constexpr double PhysicsUpdateTime = 60.0; //Se actualizan las físicas 60 veces por segundo. 
         static inline float gravity = -9.81f; //Velocidad de la gravedad
 
+        // Amortiguación lineal global expresada en 1/segundo. Se aplica de
+        // forma exponencial para que el resultado no dependa de la frecuencia
+        // del fixed update. Un valor de cero desactiva la resistencia.
+        static inline float linearMovementResistance = 4.0f;
+
+        // Cada componente de velocidad cuya magnitud quede por debajo de este
+        // valor se fuerza exactamente a cero. Evita residuos infinitesimales y
+        // permite que los cuerpos alcancen reposo real.
+        static inline float velocityZeroThreshold = 0.1f;
+
         // Activa reparto por masa, impulso inelástico y la regla direccional que
         // permite empujar cuerpos de hasta el doble de la masa del impulsor.
         static inline bool solveRealisticCollision = true;

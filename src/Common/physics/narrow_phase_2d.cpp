@@ -9,6 +9,7 @@
 
 namespace ilen::physics {
     using ilen::ecs::components::physics::ContactManifold2D;
+    using ilen::ecs::components::physics::Containment2D;
     using ilen::maths::vector::vec2;
 
     NarrowPhase2D::Projection NarrowPhase2D::Project (
@@ -32,6 +33,7 @@ namespace ilen::physics {
     bool NarrowPhase2D::TestAxes(
         const ColliderProxy2D& axisSource,
         const ColliderProxy2D& other,
+        bool axisSourceIsA,
         float& minimumPenetration,
         vec2& minimumNormal
     ) {
@@ -81,9 +83,64 @@ namespace ilen::physics {
                 normal = axis * -1.0f;
             }
 
+            // TestAxes obtiene primero el MTV del dueño de los ejes respecto
+            // al otro polígono. El contrato del manifold, sin embargo, exige
+            // siempre la dirección en la que entityA debe salir de entityB.
+            // Cuando los ejes provienen de B hay que espejar la normal. Sin
+            // esto, una cara de B elegida como eje mínimo empujaba A hacia el
+            // interior del sólido y generaba cascadas de depenetración.
+            if(!axisSourceIsA) {
+                normal *= -1.0f;
+            }
+
             if(penetration < minimumPenetration) {
                 minimumPenetration = penetration;
                 minimumNormal = normal;
+            }
+        }
+
+        return true;
+    }
+
+    bool NarrowPhase2D::Contains(
+        const ColliderProxy2D& container,
+        const ColliderProxy2D& contained
+    ) {
+        constexpr float containmentEpsilon = 0.00001f;
+        constexpr float edgeEpsilonSquared = 0.0000000001f;
+        const auto& vertices = container.worldVertices;
+
+        // Para un polígono convexo, un segundo polígono está contenido si su
+        // proyección queda dentro de la del contenedor sobre todas las normales
+        // de las caras del contenedor. No depende del sentido de sus vértices.
+        for(size_t index = 0; index < vertices.size(); ++index) {
+            const vec2 edge =
+                vertices[(index + 1) % vertices.size()] - vertices[index];
+            const float lengthSquared =
+                ilen::maths::vector::dot(edge, edge);
+
+            if(lengthSquared <= edgeEpsilonSquared) {
+                continue;
+            }
+
+            const float inverseLength = 1.0f / std::sqrt(lengthSquared);
+            const vec2 axis{
+                -edge.y * inverseLength,
+                 edge.x * inverseLength
+            };
+
+            const Projection containerProjection =
+                Project(container.worldVertices, axis);
+            const Projection containedProjection =
+                Project(contained.worldVertices, axis);
+
+            if(
+                containedProjection.minimum <
+                    containerProjection.minimum - containmentEpsilon ||
+                containedProjection.maximum >
+                    containerProjection.maximum + containmentEpsilon
+            ) {
+                return false;
             }
         }
 
@@ -542,11 +599,23 @@ namespace ilen::physics {
         float minimumPenetration = std::numeric_limits<float>::max();
         vec2 minimumNormal{0.0f};
 
-        if(!TestAxes(proxyA, proxyB, minimumPenetration, minimumNormal)) {
+        if(!TestAxes(
+            proxyA,
+            proxyB,
+            true,
+            minimumPenetration,
+            minimumNormal
+        )) {
             return std::nullopt;
         }
 
-        if(!TestAxes(proxyB, proxyA, minimumPenetration, minimumNormal)) {
+        if(!TestAxes(
+            proxyB,
+            proxyA,
+            false,
+            minimumPenetration,
+            minimumNormal
+        )) {
             return std::nullopt;
         }
 
@@ -561,6 +630,18 @@ namespace ilen::physics {
 
         manifoild.timeOfImpact = 1.0f;
         manifoild.isTrigger = proxyA.isTrigger || proxyB.isTrigger;
+
+        const bool aInsideB = Contains(proxyB, proxyA);
+        const bool bInsideA = Contains(proxyA, proxyB);
+
+        // Polígonos coincidentes se contienen mutuamente, pero ninguno posee
+        // un interior inequívoco respecto al otro. Se resuelven como un
+        // solapamiento ordinario para conservar la simetría.
+        if(aInsideB != bInsideA) {
+            manifoild.containment = aInsideB
+                ? Containment2D::AInsideB
+                : Containment2D::BInsideA;
+        }
 
         return manifoild;
     }

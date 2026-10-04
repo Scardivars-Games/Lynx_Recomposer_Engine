@@ -44,6 +44,8 @@ void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
     
 #if ILEN_DEBUG
     m_staticGuards.reserve(MAX_ENTITIES);
+    m_persistentDebugImpacts.reserve(4096);
+    m_debugActiveVectors.reserve(MAX_ENTITIES * 3);
 #endif
 
     p_coordinator->registerComponent<physics::Rigidbody2D>();
@@ -71,6 +73,13 @@ void PhysicsSystem2D::Update() {
     componentArray.convexPolygonCollider = p_coordinator->getComponentArray<physics::ConvexPolygonCollider2D>();
 
     m_accumulatedTransformOrder.clear();
+    m_activeVelocityAxes.fill(0);
+
+#if ILEN_DEBUG
+    // Los vectores verdes describen únicamente el fixed update actual.
+    m_debugActiveVectors.clear();
+    m_debugAppliedForces.fill(vec2(0.0f));
+#endif
 
 
     syncEntities(&componentArray);
@@ -84,18 +93,37 @@ void PhysicsSystem2D::Update() {
     registerPrevPosition(&componentArray);
     applyForces(dt, &componentArray);
     applyGravity(dt, &componentArray);
+    applyMovementResistance(dt, &componentArray);
     rebuildDynamicProxies(dt, &componentArray);
     integrate(dt, &componentArray);
     detectAndResolve(dt, &componentArray);
     refreshRotationBlocks();
 
 #if ILEN_DEBUG
+    rebuildDebugActiveVectors(&componentArray);
     reportCollisionDebugStats();
 #endif
 
     for(auto& [id, order] : m_accumulatedTransformOrder) {
-        order.hasOrders = true;
-        componentArray.transformOrderArray->updateData(id, std::move(order));
+        auto* pendingOrder = componentArray.transformOrderArray->getData(id);
+
+        if(pendingOrder && pendingOrder->hasOrders) {
+            // Puede haber más de un fixed update dentro del mismo frame de
+            // render. TransformSystem todavía no consumió el resultado del
+            // paso anterior, por lo que hay que acumularlo en vez de
+            // reemplazarlo. Sumar funciona tanto para órdenes relativas como
+            // para un destino absoluto pendiente: en el segundo caso desplaza
+            // directamente dicho destino.
+            pendingOrder->translation += order.translation;
+            pendingOrder->rotation += order.rotation;
+            pendingOrder->hasOrders = true;
+        } else {
+            order.hasOrders = true;
+            componentArray.transformOrderArray->updateData(
+                id,
+                std::move(order)
+            );
+        }
     }
 
 #if ILEN_DEBUG
@@ -252,6 +280,7 @@ std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
     Entity entity, ArrayOfComponentsUsed* componentsArray
 ) {
     auto* transform = componentsArray->transformComponentArray->getData(entity);
+    auto* pendingOrder = componentsArray->transformOrderArray->getData(entity);
     auto* rb = componentsArray->rigidbodyComponentArray->getData(entity);
     auto* metadata = componentsArray->entityMetadataArray->getData(entity);
 
@@ -259,10 +288,15 @@ std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
         return std::nullopt;
     }
 
+    const TransformComponent simulatedTransform = effectiveTransform(
+        *transform,
+        pendingOrder
+    );
+
     if(auto* box = componentsArray->boxColliderArray->getData(entity)) {
         return ilen::physics::ColliderProxyBuilder2D::FromBox(
             entity, 
-            *transform ,
+            simulatedTransform,
             *rb,
             *box,
             *metadata
@@ -272,7 +306,7 @@ std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
     if(auto* polygon = componentsArray->convexPolygonCollider->getData(entity)) {
         return ilen::physics::ColliderProxyBuilder2D::FromPolygon(
             entity,
-            *transform,
+            simulatedTransform,
             *rb,
             *polygon,
             *metadata
@@ -282,13 +316,57 @@ std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
     return std::nullopt;
 }
 
+TransformComponent PhysicsSystem2D::effectiveTransform(
+    const TransformComponent& transform,
+    const TransformOrder* pendingOrder
+) {
+    // Sólo se copian los datos que necesita ColliderProxyBuilder2D. Evitamos
+    // copiar childrens y el resto del estado jerárquico del componente.
+    TransformComponent result{};
+    result.position = transform.position;
+    result.rotation = transform.rotation;
+    result.scale = transform.scale;
+
+    if(!pendingOrder || !pendingOrder->hasOrders) {
+        return result;
+    }
+
+    result.position = pendingOrder->isNewPos
+        ? pendingOrder->translation
+        : result.position + pendingOrder->translation;
+
+    result.rotation = pendingOrder->isNewRot
+        ? pendingOrder->rotation
+        : result.rotation + pendingOrder->rotation;
+
+    if(pendingOrder->isNewScale) {
+        result.scale = pendingOrder->scaleMultiplier;
+    } else {
+        result.scale.x *= pendingOrder->scaleMultiplier.x;
+        result.scale.y *= pendingOrder->scaleMultiplier.y;
+        result.scale.z *= pendingOrder->scaleMultiplier.z;
+    }
+
+    return result;
+}
+
 void PhysicsSystem2D::registerPrevPosition(ArrayOfComponentsUsed* componentsArray){
     for(Entity e: m_dynamicEntities){
         auto* transform = componentsArray->transformComponentArray->getData(e);
+        auto* pendingOrder = componentsArray->transformOrderArray->getData(e);
         auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
-    
+
+        if(!transform || !rb) {
+            continue;
+        }
+
+        const TransformComponent simulatedTransform = effectiveTransform(
+            *transform,
+            pendingOrder
+        );
+
         // Guardamos la memoria del frame anterior
-        rb->prevPosition = vec2(transform->position.x, transform->position.y);
+        rb->prevPosition = static_cast<vec2>(simulatedTransform.position);
     }
 }
 
@@ -322,10 +400,17 @@ void PhysicsSystem2D::rebuildDynamicProxies(
             componentArray->rigidbodyComponentArray->getData(entity);
         auto* transform =
             componentArray->transformComponentArray->getData(entity);
+        auto* pendingOrder =
+            componentArray->transformOrderArray->getData(entity);
 
         if(!rigidbody || !transform) {
             continue;
         }
+
+        const TransformComponent simulatedTransform = effectiveTransform(
+            *transform,
+            pendingOrder
+        );
 
         const bool rotationBlocked =
             m_rotationBlockingStatic[entity] != NULL_ENTITY;
@@ -334,7 +419,8 @@ void PhysicsSystem2D::rebuildDynamicProxies(
         // discreto del solver resolverá cualquier contacto en el destino.
         if(m_hasTeleport[entity]) {
             const vec2 teleportDelta =
-                m_teleportTargets[entity] - static_cast<vec2>(transform->position);
+                m_teleportTargets[entity] -
+                static_cast<vec2>(simulatedTransform.position);
 
             translateProxy(*proxy, teleportDelta);
             m_accumulatedTransformOrder[entity].translation +=
@@ -343,7 +429,8 @@ void PhysicsSystem2D::rebuildDynamicProxies(
 
         if(m_hasTeleportRotation[entity] && !rotationBlocked) {
             const float visualRotationDelta =
-                m_teleportRotationTargets[entity] - transform->rotation.z;
+                m_teleportRotationTargets[entity] -
+                simulatedTransform.rotation.z;
 
             rotateProxy(
                 *proxy,
@@ -441,6 +528,9 @@ AABB2D PhysicsSystem2D::calculateSweptBounds(
 }
 
 void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArray){
+    constexpr uint8_t xAxis = 1u << 0u;
+    constexpr uint8_t yAxis = 1u << 1u;
+
     for(Entity e : m_dynamicEntities){
         auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
         auto* order = componentsArray->physicsOrderArray->getData(e);
@@ -458,10 +548,12 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
             // el movimiento que ejecutará este fixed update.
             if(order->overrideVelocityX) {
                 rb->velocity.x = order->velocityOverride.x;
+                m_activeVelocityAxes[e] |= xAxis;
             }
 
             if(order->overrideVelocityY) {
                 rb->velocity.y = order->velocityOverride.y;
+                m_activeVelocityAxes[e] |= yAxis;
             }
 
             auto* transform =
@@ -490,12 +582,38 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
             m_requestedRotations[e] += order->accumulatedRotation;
 
             if(!rb->isKinematic) {
+                const vec2 force = static_cast<vec2>(order->accumulatedForce);
+                const vec2 impulse = static_cast<vec2>(order->accumulatedImpulse);
+
+                // La resistencia se decide por eje. Una fuerza vertical no
+                // debe impedir que se elimine una velocidad fantasma en X, ni
+                // una entrada horizontal debe alterar la caída en Y.
+                if(force.x != 0.0f || impulse.x != 0.0f) {
+                    m_activeVelocityAxes[e] |= xAxis;
+                }
+
+                if(force.y != 0.0f || impulse.y != 0.0f) {
+                    m_activeVelocityAxes[e] |= yAxis;
+                }
+
                 //Calculamos la aceleracion: F = m * a => a = F / m
-                vec2 acceleration = static_cast<vec2>(order->accumulatedForce) / rb->mass;
+                vec2 acceleration = force / rb->mass;
                 rb->velocity += acceleration * dt;
 
                 //Añadimos los impulsos. Estos no dependen de dt.
-                rb->velocity += static_cast<vec2>(order->accumulatedImpulse) / rb->mass;
+                rb->velocity += impulse / rb->mass;
+
+#if ILEN_DEBUG
+                // Un impulso es instantáneo. Para poder compararlo visualmente
+                // con una fuerza se representa como su fuerza media en este
+                // fixed update: F = J / dt.
+                m_debugAppliedForces[e] +=
+                    static_cast<vec2>(order->accumulatedForce);
+                if(dt > 0.0f) {
+                    m_debugAppliedForces[e] +=
+                        static_cast<vec2>(order->accumulatedImpulse) / dt;
+                }
+#endif
             }
 
             order->accumulatedForce = vec3(0);
@@ -517,17 +635,89 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
 }
 
 void PhysicsSystem2D::applyGravity(float dt, ArrayOfComponentsUsed* componentsArray){
+    constexpr uint8_t yAxis = 1u << 1u;
+
     for(Entity e: m_dynamicEntities) {
         auto* rb = componentsArray->rigidbodyComponentArray->getData(e);
         if(!rb || rb->isKinematic || !rb->usesGravity /*|| rb->isInGround*/) continue; //Es increible que desactivar el calculo de la gravedad si se toca el cielo hace colapsar todo, XD.
 
+        // La gravedad es una aceleración continua sobre Y; ese eje no debe
+        // amortiguarse mientras esté habilitada.
+        m_activeVelocityAxes[e] |= yAxis;
         rb->velocity.y += ilen::core::options::PhysicsOptions::gravity * rb->gravityScale * dt;
+
+#if ILEN_DEBUG
+        // F = m * a. Guardarla antes del solver permite ver que la gravedad
+        // sigue solicitándose aunque el contacto con el suelo la rechace.
+        m_debugAppliedForces[e].y +=
+            rb->mass * ilen::core::options::PhysicsOptions::gravity *
+            rb->gravityScale;
+#endif
 
         //Clamp a la velocidad máxima vertical del motor (tanto si va para arriba como abajo)
         if(std::abs(rb->velocity.y) > rb->terminalVelocity) {
             rb->velocity.y = (rb->velocity.y > 0) ? rb->terminalVelocity : -rb->terminalVelocity;
         }
     }//Entidades estáticas por concepto no pueden ser afectadas por la gravedad
+}
+
+void PhysicsSystem2D::applyMovementResistance(
+    float dt,
+    ArrayOfComponentsUsed* componentsArray
+) {
+    constexpr uint8_t xAxis = 1u << 0u;
+    constexpr uint8_t yAxis = 1u << 1u;
+
+    const float resistance = std::max(
+        0.0f,
+        ilen::core::options::PhysicsOptions::linearMovementResistance
+    );
+    const float zeroThreshold = std::max(
+        0.0f,
+        ilen::core::options::PhysicsOptions::velocityZeroThreshold
+    );
+
+    // v(t + dt) = v(t) * e^(-resistance * dt). Esta forma produce el mismo
+    // decaimiento por segundo con 30, 60 o 120 pasos físicos, a diferencia de
+    // multiplicar por un porcentaje fijo en cada frame.
+    const float dampingFactor = std::exp(-resistance * dt);
+
+    for(Entity entity : m_dynamicEntities) {
+        auto* rigidbody =
+            componentsArray->rigidbodyComponentArray->getData(entity);
+
+        // Los cinemáticos obedecen órdenes de movimiento y no deben perder
+        // velocidad por una simulación física que deliberadamente no los rige.
+        if(!rigidbody || rigidbody->isStatic || rigidbody->isKinematic) {
+            continue;
+        }
+
+        const uint8_t activeAxes = m_activeVelocityAxes[entity];
+
+        if((activeAxes & xAxis) == 0u) {
+            rigidbody->velocity.x *= dampingFactor;
+        }
+
+        if((activeAxes & yAxis) == 0u) {
+            rigidbody->velocity.y *= dampingFactor;
+        }
+
+        // El clamp también respeta los ejes activos: una velocidad pequeña
+        // solicitada intencionalmente no debe convertirse en cero.
+        if(
+            (activeAxes & xAxis) == 0u &&
+            std::abs(rigidbody->velocity.x) < zeroThreshold
+        ) {
+            rigidbody->velocity.x = 0.0f;
+        }
+
+        if(
+            (activeAxes & yAxis) == 0u &&
+            std::abs(rigidbody->velocity.y) < zeroThreshold
+        ) {
+            rigidbody->velocity.y = 0.0f;
+        }
+    }
 }
 
 void PhysicsSystem2D::integrate(float dt, ArrayOfComponentsUsed* componentsArray){
@@ -603,6 +793,8 @@ void PhysicsSystem2D::detectAndResolve(
 
 #if ILEN_DEBUG
     m_collisionDebugStats.reset();
+    m_debugCurrentCollisionPairs.clear();
+    m_debugFixedDeltaTime = dt;
 #endif
 
     if(m_staticBroadPhaseDirty) {
@@ -1242,6 +1434,10 @@ void PhysicsSystem2D::detectAndResolve(
 
         remainingTime = remainingTimeAfterImpact;
     }
+
+#if ILEN_DEBUG
+    m_debugPreviousCollisionPairs = m_debugCurrentCollisionPairs;
+#endif
 }
 
 void PhysicsSystem2D::refreshRotationBlocks() {
@@ -1288,6 +1484,15 @@ void PhysicsSystem2D::resolveCollision(
         return;
     }
 
+#if ILEN_DEBUG
+    recordDebugImpact(
+        proxyA,
+        proxyB,
+        manifold,
+        componentsArray
+    );
+#endif
+
     auto* rigidbodyA = componentsArray->rigidbodyComponentArray->getData(proxyA.entity);
     auto* rigidbodyB = componentsArray->rigidbodyComponentArray->getData(manifold.entityB);
 
@@ -1295,6 +1500,77 @@ void PhysicsSystem2D::resolveCollision(
         rigidbodyA && !rigidbodyA->isStatic && !proxyA.solverFrozen;
     const bool dynamicB =
         rigidbodyB && !rigidbodyB->isStatic && !proxyB.solverFrozen;
+
+    if(manifold.containment != physics::Containment2D::None) {
+        // La contención es una violación más fuerte que una penetración común:
+        // repartir el MTV por masas mueve también el volumen contenedor y puede
+        // dejar al cuerpo pequeño todavía dentro. La salida pertenece completa
+        // al cuerpo contenido. Sólo si éste es estático se mueve el contenedor.
+        const bool movableA = rigidbodyA && !rigidbodyA->isStatic;
+        const bool movableB = rigidbodyB && !rigidbodyB->isStatic;
+
+        ilen::physics::ColliderProxy2D* escapingProxy = nullptr;
+        physics::Rigidbody2D* escapingRigidbody = nullptr;
+        vec2 escapeNormal{0.0f};
+
+        if(manifold.containment == physics::Containment2D::AInsideB) {
+            if(movableA) {
+                escapingProxy = &proxyA;
+                escapingRigidbody = rigidbodyA;
+                escapeNormal = manifold.normal;
+            } else if(movableB) {
+                escapingProxy = &proxyB;
+                escapingRigidbody = rigidbodyB;
+                escapeNormal = manifold.normal * -1.0f;
+            }
+        } else {
+            if(movableB) {
+                escapingProxy = &proxyB;
+                escapingRigidbody = rigidbodyB;
+                escapeNormal = manifold.normal * -1.0f;
+            } else if(movableA) {
+                escapingProxy = &proxyA;
+                escapingRigidbody = rigidbodyA;
+                escapeNormal = manifold.normal;
+            }
+        }
+
+        if(!escapingProxy || !escapingRigidbody) {
+            return;
+        }
+
+        const vec2 separation = escapeNormal * manifold.penetration;
+        m_accumulatedTransformOrder[escapingProxy->entity].translation +=
+            static_cast<vec3>(separation);
+        translateProxy(*escapingProxy, separation);
+
+        // Se elimina únicamente la componente que vuelve a introducir el
+        // cuerpo en el sólido. El movimiento tangencial y el movimiento hacia
+        // la salida permanecen intactos.
+        const float motionIntoSolid = ilen::maths::vector::dot(
+            escapingProxy->motionVelocity,
+            escapeNormal
+        );
+        if(motionIntoSolid < 0.0f) {
+            escapingProxy->motionVelocity -=
+                escapeNormal * motionIntoSolid;
+        }
+
+        const float rigidbodyMotionIntoSolid = ilen::maths::vector::dot(
+            escapingRigidbody->velocity,
+            escapeNormal
+        );
+        if(rigidbodyMotionIntoSolid < 0.0f) {
+            escapingRigidbody->velocity -=
+                escapeNormal * rigidbodyMotionIntoSolid;
+        }
+
+        escapingProxy->solverFrozen = false;
+        if(escapeNormal.y > 0.5f) {
+            escapingRigidbody->isInGround = true;
+        }
+        return;
+    }
 
     if(dynamicA && !dynamicB) {
         const vec2 separation = manifold.normal * manifold.penetration;
@@ -1749,6 +2025,11 @@ void PhysicsSystem2D::writeContacts(const physics::ContactManifold2D& manifold, 
         mirrored.entityA = manifold.entityB;
         mirrored.entityB = manifold.entityA;
         mirrored.normal = manifold.normal * -1.0f;
+        if(manifold.containment == physics::Containment2D::AInsideB) {
+            mirrored.containment = physics::Containment2D::BInsideA;
+        } else if(manifold.containment == physics::Containment2D::BInsideA) {
+            mirrored.containment = physics::Containment2D::AInsideB;
+        }
 
         auto iterator = std::find_if(
             collisionB->contacts.begin(),
@@ -1767,6 +2048,189 @@ void PhysicsSystem2D::writeContacts(const physics::ContactManifold2D& manifold, 
 }
 
 #if ILEN_DEBUG
+void PhysicsSystem2D::rebuildDebugActiveVectors(
+    ArrayOfComponentsUsed* componentsArray
+) {
+    constexpr float vectorEpsilonSquared = 0.000001f;
+
+    for(const auto& proxy : m_dynamicProxies) {
+        const auto* transform =
+            componentsArray->transformComponentArray->getData(proxy.entity);
+        const float z = transform ? transform->position.z + 0.02f : 0.02f;
+
+        const float linearLengthSquared =
+            ilen::maths::vector::dot(
+                proxy.motionVelocity,
+                proxy.motionVelocity
+            );
+
+        if(linearLengthSquared > vectorEpsilonSquared) {
+            m_debugActiveVectors.push_back({
+                .point = proxy.rotationPivot,
+                .value = proxy.motionVelocity,
+                .z = z,
+                .entity = proxy.entity,
+                .kind = DebugActiveVectorKind2D::LinearVelocity
+            });
+        }
+
+        // La velocidad angular no posee una dirección lineal propia. Para
+        // hacerla visible se dibuja la velocidad tangencial del vértice más
+        // alejado del pivote: v = omega x r.
+        if(std::abs(proxy.motionAngularVelocity) > 0.0001f) {
+            vec2 outerPoint = proxy.rotationPivot;
+            vec2 outerRadius{0.0f};
+            float maximumDistanceSquared = 0.0f;
+
+            for(const vec2& vertex : proxy.worldVertices) {
+                const vec2 radius = vertex - proxy.rotationPivot;
+                const float distanceSquared =
+                    ilen::maths::vector::dot(radius, radius);
+
+                if(distanceSquared > maximumDistanceSquared) {
+                    maximumDistanceSquared = distanceSquared;
+                    outerPoint = vertex;
+                    outerRadius = radius;
+                }
+            }
+
+            const vec2 tangentialVelocity{
+                -outerRadius.y * proxy.motionAngularVelocity,
+                 outerRadius.x * proxy.motionAngularVelocity
+            };
+
+            if(
+                ilen::maths::vector::dot(
+                    tangentialVelocity,
+                    tangentialVelocity
+                ) > vectorEpsilonSquared
+            ) {
+                m_debugActiveVectors.push_back({
+                    .point = outerPoint,
+                    .value = tangentialVelocity,
+                    .z = z,
+                    .entity = proxy.entity,
+                    .kind = DebugActiveVectorKind2D::AngularVelocity
+                });
+            }
+        }
+
+        const vec2 force = m_debugAppliedForces[proxy.entity];
+        if(
+            ilen::maths::vector::dot(force, force) >
+            vectorEpsilonSquared
+        ) {
+            m_debugActiveVectors.push_back({
+                .point = proxy.rotationPivot,
+                .value = force,
+                .z = z + 0.01f,
+                .entity = proxy.entity,
+                .kind = DebugActiveVectorKind2D::Force
+            });
+        }
+    }
+}
+
+void PhysicsSystem2D::recordDebugImpact(
+    const ilen::physics::ColliderProxy2D& proxyA,
+    const ilen::physics::ColliderProxy2D& proxyB,
+    const physics::ContactManifold2D& manifold,
+    ArrayOfComponentsUsed* componentsArray
+) {
+    if(!manifold.hasContactPoint || m_debugFixedDeltaTime <= 0.0f) {
+        return;
+    }
+
+    const uint32_t minimumEntity = std::min(proxyA.entity, proxyB.entity);
+    const uint32_t maximumEntity = std::max(proxyA.entity, proxyB.entity);
+    const uint64_t pairKey =
+        (static_cast<uint64_t>(minimumEntity) << 32) |
+        static_cast<uint64_t>(maximumEntity);
+
+    const bool firstImpactThisTick =
+        m_debugCurrentCollisionPairs.insert(pairKey).second;
+
+    if(
+        !firstImpactThisTick ||
+        m_debugPreviousCollisionPairs.contains(pairKey)
+    ) {
+        return;
+    }
+
+    const auto velocityAtContact = [&manifold](
+        const ilen::physics::ColliderProxy2D& proxy
+    ) {
+        const vec2 radius = manifold.point - proxy.rotationPivot;
+        const vec2 angularVelocity{
+            -radius.y * proxy.motionAngularVelocity,
+             radius.x * proxy.motionAngularVelocity
+        };
+
+        return proxy.motionVelocity + angularVelocity;
+    };
+
+    const vec2 relativeVelocity =
+        velocityAtContact(proxyA) - velocityAtContact(proxyB);
+
+    const float closingSpeed = std::max(
+        0.0f,
+        -ilen::maths::vector::dot(relativeVelocity, manifold.normal)
+    );
+
+    // Si el contacto ya nació penetrado, su corrección posicional también es
+    // una señal importante: se expresa como la velocidad necesaria para sacar
+    // el cuerpo en un único fixed tick.
+    const float correctionSpeed = std::max(
+        0.0f,
+        manifold.penetration / m_debugFixedDeltaTime
+    );
+
+    const float impactSpeed = std::max(closingSpeed, correctionSpeed);
+    if(impactSpeed <= 0.0001f) {
+        return;
+    }
+
+    const auto* rigidbodyA =
+        componentsArray->rigidbodyComponentArray->getData(proxyA.entity);
+    const auto* rigidbodyB =
+        componentsArray->rigidbodyComponentArray->getData(proxyB.entity);
+
+    constexpr float minimumMass = 0.0001f;
+    const float inverseMassA = proxyA.isStatic || !rigidbodyA
+        ? 0.0f
+        : 1.0f / std::max(rigidbodyA->mass, minimumMass);
+    const float inverseMassB = proxyB.isStatic || !rigidbodyB
+        ? 0.0f
+        : 1.0f / std::max(rigidbodyB->mass, minimumMass);
+    const float totalInverseMass = inverseMassA + inverseMassB;
+
+    if(totalInverseMass <= 0.0f) {
+        return;
+    }
+
+    // Impulso inelástico equivalente dividido por dt: fuerza media aplicada
+    // durante el fixed tick. Se guarda sin clamp para hacer visibles explosiones
+    // numéricas del solver mediante líneas deliberadamente enormes.
+    const float impulse = impactSpeed / totalInverseMass;
+    const float force = impulse / m_debugFixedDeltaTime;
+
+    float z = 0.0f;
+    if(const auto* transform =
+        componentsArray->transformComponentArray->getData(proxyA.entity)
+    ) {
+        z = transform->position.z + 0.01f;
+    }
+
+    m_persistentDebugImpacts.push_back({
+        .point = manifold.point,
+        .direction = manifold.normal,
+        .force = force,
+        .z = z,
+        .entityA = proxyA.entity,
+        .entityB = proxyB.entity
+    });
+}
+
 void PhysicsSystem2D::checkStaticGuard(ArrayOfComponentsUsed* componentsArray) {
     for(StaticGuard& guard : m_staticGuards) {
         guard.frameCounter--;

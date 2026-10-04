@@ -15,6 +15,7 @@
 #include <ilen/core/time.h>
 #include <ilen/ecs/ecs.h>
 #include <ilen/physics/components/physics_components.h>
+#include <ilen/physics/physics_2d_system.h>
 #include <ilen/render/render_constants.h>
 #include <ilen/resources/materials_manager.h>
 #include <ilen/resources/texture_manager.h>
@@ -36,6 +37,7 @@ namespace ilen::ecs::systems {
         p_coordinator = context->p_coordinator.get();
         m_renderer = context->p_gameRenderer.get();
         m_cameraSystem = p_coordinator->getSystem<CameraSystem>().get();
+        m_physicsSystem = p_coordinator->getSystem<PhysicsSystem2D>().get();
         m_textureManager = context->p_textureManager.get();
 
         m_vertices.reserve(MaxVertices);
@@ -219,6 +221,124 @@ namespace ilen::ecs::systems {
                         );
                     }
                 }
+            }
+        }
+
+        if(setting.showImpactForces && m_physicsSystem) {
+            for(const auto& impact :
+                m_physicsSystem->GetPersistentDebugImpacts()
+            ) {
+                const float directionLength = std::sqrt(
+                    impact.direction.x * impact.direction.x +
+                    impact.direction.y * impact.direction.y
+                );
+
+                if(directionLength <= 0.00001f || impact.force <= 0.0f) {
+                    continue;
+                }
+
+                const vec2 direction =
+                    impact.direction / directionLength;
+                const float lineLength =
+                    impact.force * setting.impactForceScale;
+                const vec2 end = impact.point + direction * lineLength;
+
+                AppendLine(
+                    impact.point,
+                    end,
+                    impact.z,
+                    setting.impactForceColor,
+                    setting.impactLineThickness
+                );
+
+                const float arrowLength = std::min(
+                    setting.impactArrowLength,
+                    lineLength * 0.35f
+                );
+                const vec2 perpendicular{-direction.y, direction.x};
+                const vec2 arrowBase = end - direction * arrowLength;
+                const vec2 arrowOffset =
+                    perpendicular * (arrowLength * 0.5f);
+
+                AppendLine(
+                    end,
+                    arrowBase + arrowOffset,
+                    impact.z,
+                    setting.impactForceColor,
+                    setting.impactLineThickness
+                );
+                AppendLine(
+                    end,
+                    arrowBase - arrowOffset,
+                    impact.z,
+                    setting.impactForceColor,
+                    setting.impactLineThickness
+                );
+            }
+        }
+
+        if(setting.showActiveVectors && m_physicsSystem) {
+            for(const auto& activeVector :
+                m_physicsSystem->GetDebugActiveVectors()
+            ) {
+                const float valueLength = std::sqrt(
+                    activeVector.value.x * activeVector.value.x +
+                    activeVector.value.y * activeVector.value.y
+                );
+
+                if(valueLength <= 0.00001f) {
+                    continue;
+                }
+
+                const bool isForce = activeVector.kind ==
+                    PhysicsSystem2D::DebugActiveVectorKind2D::Force;
+                const float scale = isForce
+                    ? setting.activeForceScale
+                    : setting.activeVelocityScale;
+                const graphics::Color& color = isForce
+                    ? setting.activeForceColor
+                    : setting.activeVelocityColor;
+                const float lineLength = valueLength * scale;
+
+                if(lineLength <= 0.00001f) {
+                    continue;
+                }
+
+                const vec2 direction = activeVector.value / valueLength;
+                const vec2 end =
+                    activeVector.point + direction * lineLength;
+
+                AppendLine(
+                    activeVector.point,
+                    end,
+                    activeVector.z,
+                    color,
+                    setting.activeVectorThickness
+                );
+
+                const float arrowLength = std::min(
+                    setting.activeVectorArrowLength,
+                    lineLength * 0.35f
+                );
+                const vec2 perpendicular{-direction.y, direction.x};
+                const vec2 arrowBase = end - direction * arrowLength;
+                const vec2 arrowOffset =
+                    perpendicular * (arrowLength * 0.5f);
+
+                AppendLine(
+                    end,
+                    arrowBase + arrowOffset,
+                    activeVector.z,
+                    color,
+                    setting.activeVectorThickness
+                );
+                AppendLine(
+                    end,
+                    arrowBase - arrowOffset,
+                    activeVector.z,
+                    color,
+                    setting.activeVectorThickness
+                );
             }
         }
 

@@ -18,6 +18,7 @@ namespace ilen::resources::texture {
 namespace ilen::ecs::systems {
     using namespace ilen::debug;
     class CameraSystem;
+    class PhysicsSystem2D;
 
     class DebugRenderSystem2D final : public ISystem {
         public:
@@ -37,9 +38,18 @@ namespace ilen::ecs::systems {
                 bool showTriangulation = true;
                 bool showContactPoints = true;
                 bool showContactNormals = true;
+                bool showImpactForces = true;
+                bool showActiveVectors = true;
 
                 float contactPointSize = 0.08f;
                 float contactNormalLength = 0.45f;
+                float impactForceScale = 0.001f;
+                float impactLineThickness = 0.035f;
+                float impactArrowLength = 0.16f;
+                float activeVelocityScale = 0.15f;
+                float activeForceScale = 0.001f;
+                float activeVectorThickness = 0.035f;
+                float activeVectorArrowLength = 0.16f;
 
                 graphics::Color dynamicColor {
                     0.0f, 1.0f, 0.0f, 1.0f
@@ -63,6 +73,18 @@ namespace ilen::ecs::systems {
 
                 graphics::Color contactNormalColor {
                     0.0f, 1.0f, 1.0f, 1.0f
+                };
+
+                graphics::Color impactForceColor {
+                    1.0f, 0.9f, 0.0f, 1.0f
+                };
+
+                graphics::Color activeVelocityColor {
+                    0.1f, 1.0f, 0.15f, 1.0f
+                };
+
+                graphics::Color activeForceColor {
+                    0.35f, 1.0f, 0.0f, 1.0f
                 };
             };
 
@@ -147,6 +169,7 @@ namespace ilen::ecs::systems {
 
                 render::IRenderer* m_renderer = nullptr;
                 CameraSystem* m_cameraSystem = nullptr;
+                PhysicsSystem2D* m_physicsSystem = nullptr;
                 ilen::resources::texture::TextureManager* m_textureManager = nullptr;
 
                 std::shared_ptr<render::IGPURenderPipeline> m_pipeline;

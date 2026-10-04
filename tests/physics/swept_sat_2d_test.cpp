@@ -10,6 +10,7 @@ namespace {
     using ilen::maths::vector::vec2;
     using ilen::physics::ColliderProxy2D;
     using ilen::physics::NarrowPhase2D;
+    using ilen::ecs::components::physics::Containment2D;
 
     ColliderProxy2D makeBox(
         std::uint32_t entity,
@@ -369,6 +370,125 @@ int main() {
             !NarrowPhase2D::AreTouching(body, separatedWall, 0.001f),
             "la rotacion debe liberarse al separarse de la pared"
         );
+    }
+
+    {
+        auto inner = makeBox(
+            32,
+            vec2{0.25f, 0.0f},
+            vec2{0.5f}
+        );
+        auto solid = makeBox(
+            33,
+            vec2{0.0f, 0.0f},
+            vec2{2.0f}
+        );
+        const auto contact = NarrowPhase2D::Test(inner, solid);
+
+        success &= expect(
+            contact && contact->containment == Containment2D::AInsideB,
+            "SAT debe reconocer que A esta dentro del volumen solido de B"
+        );
+
+        if(contact) {
+            for(vec2& vertex : inner.worldVertices) {
+                vertex += contact->normal * contact->penetration;
+            }
+
+            success &= expect(
+                !NarrowPhase2D::Test(inner, solid).has_value(),
+                "el MTV de contencion debe expulsar A completamente del solido"
+            );
+        }
+    }
+
+    {
+        auto solid = makeBox(
+            34,
+            vec2{0.0f, 0.0f},
+            vec2{2.0f}
+        );
+        auto inner = makeBox(
+            35,
+            vec2{-0.25f, 0.0f},
+            vec2{0.5f}
+        );
+        const auto contact = NarrowPhase2D::Test(solid, inner);
+
+        success &= expect(
+            contact && contact->containment == Containment2D::BInsideA,
+            "SAT debe reconocer que B esta dentro del volumen solido de A"
+        );
+
+        if(contact) {
+            for(vec2& vertex : inner.worldVertices) {
+                vertex -= contact->normal * contact->penetration;
+            }
+
+            success &= expect(
+                !NarrowPhase2D::Test(solid, inner).has_value(),
+                "el MTV espejado debe expulsar B completamente del solido"
+            );
+        }
+    }
+
+    {
+        const auto a = makeBox(
+            36,
+            vec2{0.0f, 0.0f},
+            vec2{1.0f}
+        );
+        const auto b = makeBox(
+            37,
+            vec2{1.5f, 0.0f},
+            vec2{1.0f}
+        );
+        const auto contact = NarrowPhase2D::Test(a, b);
+
+        success &= expect(
+            contact && contact->containment == Containment2D::None,
+            "un solapamiento parcial no debe marcarse como contencion"
+        );
+    }
+
+    {
+        auto rotatedBody = makeBox(
+            38,
+            vec2{0.8f, 0.0f},
+            vec2{1.0f},
+            vec2{0.0f},
+            static_cast<float>(M_PI) * 0.25f
+        );
+        rotatedBody = poseAtTime(rotatedBody, 1.0f);
+
+        const auto wall = makeBox(
+            39,
+            vec2{2.0f, 0.0f},
+            vec2{0.5f, 3.0f}
+        );
+        const auto contact = NarrowPhase2D::Test(rotatedBody, wall);
+
+        success &= expect(
+            contact && contact->normal.x < -0.99f,
+            "un eje minimo de B debe expulsar A fuera de la pared, no hacia dentro"
+        );
+
+        const auto mirroredContact = NarrowPhase2D::Test(wall, rotatedBody);
+        success &= expect(
+            mirroredContact && mirroredContact->normal.x > 0.99f,
+            "el manifold espejado debe invertir la normal del cuerpo rotado"
+        );
+
+        if(contact) {
+            for(vec2& vertex : rotatedBody.worldVertices) {
+                vertex += contact->normal * contact->penetration;
+            }
+
+            success &= expect(
+                !NarrowPhase2D::Test(rotatedBody, wall).has_value(),
+                "el MTV de un cuerpo rotado debe eliminar la penetracion"
+            );
+        }
     }
 
     if(success) {
