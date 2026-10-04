@@ -188,6 +188,57 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
     auto* orderArray = p_coordinator->getComponentArray<components::physics::PhysicsOrder>();
     if(!orderArray) return;
 
+    const auto mergeOrder = [](
+        PhysicsOrder& destination,
+        const PhysicsOrder& source
+    ) {
+        destination.accumulatedForce += source.accumulatedForce;
+        destination.accumulatedImpulse += source.accumulatedImpulse;
+
+        // Una asignación de velocidad es un override, no una suma. La orden
+        // más reciente de cada eje tiene prioridad.
+        if(source.overrideVelocityX) {
+            destination.velocityOverride.x = source.velocityOverride.x;
+            destination.overrideVelocityX = true;
+        }
+
+        if(source.overrideVelocityY) {
+            destination.velocityOverride.y = source.velocityOverride.y;
+            destination.overrideVelocityY = true;
+        }
+
+        if(source.hasTeleport) {
+            destination.targetPosition = source.targetPosition;
+            destination.accumulatedTranslation = vec2(0.0f);
+            destination.hasMovePosition = false;
+            destination.hasTeleport = true;
+        } else if(source.hasMovePosition) {
+            destination.targetPosition = source.targetPosition;
+            destination.accumulatedTranslation = vec2(0.0f);
+            destination.hasMovePosition = true;
+            destination.hasTeleport = false;
+        } else {
+            destination.accumulatedTranslation +=
+                source.accumulatedTranslation;
+        }
+
+        if(source.hasTeleportRotation) {
+            destination.targetRotation = source.targetRotation;
+            destination.accumulatedRotation = 0.0f;
+            destination.hasRotateTo = false;
+            destination.hasTeleportRotation = true;
+        } else if(source.hasRotateTo) {
+            destination.targetRotation = source.targetRotation;
+            destination.accumulatedRotation = 0.0f;
+            destination.hasRotateTo = true;
+            destination.hasTeleportRotation = false;
+        } else {
+            destination.accumulatedRotation += source.accumulatedRotation;
+        }
+
+        destination.hasOrders = true;
+    };
+
     std::vector<Entity> registeredEntities;
     std::vector<PhysicsOrder> accumulatedOrders;
     registeredEntities.reserve(ilen::ecs::MAX_ENTITIES);
@@ -211,48 +262,7 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
                 //Existe, vamos a obtener el indice.
                 size_t index = std::distance(registeredEntities.begin(), it);
                 auto& actualOrder = accumulatedOrders[index];
-                actualOrder.accumulatedForce += order.accumulatedForce;
-                actualOrder.accumulatedImpulse += order.accumulatedImpulse;
-
-                if(order.overrideVelocityX) {
-                    actualOrder.velocityOverride.x = order.velocityOverride.x;
-                    actualOrder.overrideVelocityX = true;
-                }
-
-                if(order.overrideVelocityY) {
-                    actualOrder.velocityOverride.y = order.velocityOverride.y;
-                    actualOrder.overrideVelocityY = true;
-                }
-
-                if(order.hasTeleport) {
-                    actualOrder.targetPosition = order.targetPosition;
-                    actualOrder.accumulatedTranslation = vec2(0.0f);
-                    actualOrder.hasMovePosition = false;
-                    actualOrder.hasTeleport = true;
-                } else if(order.hasMovePosition) {
-                    actualOrder.targetPosition = order.targetPosition;
-                    actualOrder.accumulatedTranslation = vec2(0.0f);
-                    actualOrder.hasMovePosition = true;
-                    actualOrder.hasTeleport = false;
-                } else {
-                    actualOrder.accumulatedTranslation +=
-                        order.accumulatedTranslation;
-                }
-
-                if(order.hasTeleportRotation) {
-                    actualOrder.targetRotation = order.targetRotation;
-                    actualOrder.accumulatedRotation = 0.0f;
-                    actualOrder.hasRotateTo = false;
-                    actualOrder.hasTeleportRotation = true;
-                } else if(order.hasRotateTo) {
-                    actualOrder.targetRotation = order.targetRotation;
-                    actualOrder.accumulatedRotation = 0.0f;
-                    actualOrder.hasRotateTo = true;
-                    actualOrder.hasTeleportRotation = false;
-                } else {
-                    actualOrder.accumulatedRotation +=
-                        order.accumulatedRotation;
-                }
+                mergeOrder(actualOrder, order);
             }else {
                 //No existe.
                 registeredEntities.push_back(e);
@@ -265,6 +275,21 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
     }
 
     for(size_t i = 0; i < registeredEntities.size(); i++){
-        orderArray->updateData(registeredEntities[i], std::move(accumulatedOrders[i]));
+        const Entity entity = registeredEntities[i];
+        auto* pendingOrder = orderArray->getData(entity);
+
+        // A una frecuencia de render mayor que PhysicsUpdateTime pueden pasar
+        // varios Update antes del siguiente FixedUpdate. La orden publicada
+        // anteriormente todavía no fue consumida y debe combinarse con la
+        // nueva; reemplazarla hacía que a 120 FPS se perdiera una de cada dos
+        // traslaciones y rotaciones calculadas con deltaTime.
+        if(pendingOrder && pendingOrder->hasOrders) {
+            mergeOrder(*pendingOrder, accumulatedOrders[i]);
+        } else {
+            orderArray->updateData(
+                entity,
+                std::move(accumulatedOrders[i])
+            );
+        }
     }
 }
