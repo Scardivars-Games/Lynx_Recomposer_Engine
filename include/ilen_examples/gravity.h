@@ -1,7 +1,4 @@
 #pragma once
-
-#include "ilen/game_logic/game_object.h"
-#include "ilen/game_logic/script_registry.h"
 #if !ILEN_ONLY_ECS
 
 #include <ilen/headers/gameobject.h>
@@ -13,8 +10,13 @@ namespace ilen::game{
         public:
             void Init() override;
             void Update() override;
+            void OnCollisionStay(const ContactManifold2D& contact) override;
+            void OnCollisionExit(const ContactManifold2D& contact) override;
         private:
             float firstXPointerPos = 0;
+            bool canJump = false;
+            float coyoteTime = 0.0f;
+            float defaultCoyoteTime = 0.3f;
     };
 
     class PointerPos final: public GameObject {

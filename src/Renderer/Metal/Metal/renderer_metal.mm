@@ -518,12 +518,16 @@ void MetalRender::defineSupportedGPUCompression() {
         compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
     }
 //#if ILEN_MACOS
-    else if([_device supportsBCTextureCompression]){
-        compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
-    }
-//#endif
-    else {
-        compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
+    else if (@available(iOS 16.4, *)) {
+        if([_device supportsBCTextureCompression]){
+            compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
+        }
+        //#endif
+        else {
+            compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
+        }
+    } else {
+        // Fallback on earlier versions
     }
 }
 

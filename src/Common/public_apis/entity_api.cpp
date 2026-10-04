@@ -1,5 +1,7 @@
 #include <ilen_public/API/entity_api.h>
 #include <ilen/resources/scene_manager.h>
+#include <string>
+#include "ilen/ecs/types.h"
 
 using namespace ilen::engine::api;
 
@@ -16,6 +18,16 @@ bool EntityAPI::isActive(Entity entity){
 
 Entity EntityAPI::GetEntityByName(std::string entityName){
     return p_coordinator->getEntityByName(entityName);
+}
+
+bool EntityAPI::entityHasTag(Entity entity, TagSystem tag) {
+    GetMetadataPointer();
+    return metadataPtr->getData(entity)->hasTag(tag);
+}
+
+std::string EntityAPI::GetEntityName(Entity entity) {
+    GetMetadataPointer();
+    return metadataPtr->getData(entity)->getName();
 }
 
 void EntityAPI::Init(const ilen::EngineContext* context){

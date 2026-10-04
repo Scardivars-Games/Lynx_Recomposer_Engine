@@ -45,6 +45,7 @@
     metadata.applicationName = "ILEN Test";
     metadata.applicationDeveloper = "Scardivar's Games";
     metadata.applicationVersion = "0.0.1";
+    metadata.applicationFramerate = ilen::core::options::GraphicsOptions::actualFPS;
     
     // IMPORTANTE: Cambiamos el nombre de la propiedad si tu motor distingue entre plataformas, 
     // o puedes seguir usando el puntero genérico de la ventana.
@@ -61,27 +62,33 @@
     if (_engineFailed) {
         return;
     }
+
+    NSInteger maximumFPS = UIScreen.mainScreen.maximumFramesPerSecond;
+    NSInteger requestedFPS = MIN(
+        metadata.applicationFramerate,
+        maximumFPS
+    );
     
-    self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop)];
+    self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop:)];
     
     // AJUSTE PARA tvOS: 
     // Aunque algunas TVs soportan 120Hz, la API preferredFrameRateRange está disponible 
     // en tvOS 15.0 igual que en iOS.
     if (@available(tvOS 15.0, *)) {
         // En TV es más común fijar a 60 o usar el rango nativo.
-        CAFrameRateRange countPerSecond = CAFrameRateRangeMake(30, 60, 60); 
+        CAFrameRateRange countPerSecond = CAFrameRateRangeMake(requestedFPS, requestedFPS, requestedFPS); 
         self.displayLink.preferredFrameRateRange = countPerSecond;
     } else {
-        self.displayLink.preferredFramesPerSecond = 60;
+        self.displayLink.preferredFramesPerSecond = requestedFPS;
     }
     
-    [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+    [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
     
     // En tvOS es vital hacer visible la ventana para que el sistema tome el foco
     [self.window makeKeyAndVisible];
 }
 
-- (void)renderLoop {
+- (void)renderLoop:(CADisplayLink *)displayLink {
     if (_engineFailed || !self.app) {
         return;
     }

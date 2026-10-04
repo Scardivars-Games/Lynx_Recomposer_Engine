@@ -52,8 +52,14 @@ namespace ilen::ecs::systems {
         descriptor.pipelineName = "Debug Draw 2D";
         descriptor.renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OVERLAY;
 
+        // El debug se codifica dentro del render pass principal. Si ese pass
+        // contiene un attachment de profundidad, Metal exige que el pipeline
+        // declare el mismo pixelFormat aunque no quiera comprobar ni escribir
+        // depth. CompareAlways conserva el comportamiento de overlay.
+        descriptor.depthCompareFunction =
+            ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_ALWAYS;
+
         descriptor.renderPipelineOptionFlags = 
-            ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER |
             ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER |
             ILEN_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER |
             ILEN_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED;
@@ -164,7 +170,15 @@ namespace ilen::ecs::systems {
                 }
 
                 auto* collision = collisionArray->getData(entity);
-                if(collision && !collision->contacts.empty()) {
+                const bool hasActiveContact = collision && std::any_of(
+                    collision->contacts.begin(),
+                    collision->contacts.end(),
+                    [](const ContactManifold2D& contact) {
+                        return contact.phase != CollisionPhase2D::Exit;
+                    }
+                );
+
+                if(hasActiveContact) {
                     color = setting.collidingColor;
                 }
 
@@ -189,6 +203,10 @@ namespace ilen::ecs::systems {
                 }
 
                 for(const auto& contact : collision->contacts) {
+                    if(contact.phase == CollisionPhase2D::Exit) {
+                        continue;
+                    }
+
                     // El contacto está espejado en ambas entidades. Dibujarlo
                     // una sola vez evita duplicar punto y normal.
                     if(entity > contact.entityB || !contact.hasContactPoint) {
@@ -224,7 +242,11 @@ namespace ilen::ecs::systems {
             }
         }
 
-        if(setting.showImpactForces && m_physicsSystem) {
+        if(
+            PhysicsOptions::showDebugArrows &&
+            setting.showImpactForces &&
+            m_physicsSystem
+        ) {
             for(const auto& impact :
                 m_physicsSystem->GetPersistentDebugImpacts()
             ) {
@@ -277,7 +299,11 @@ namespace ilen::ecs::systems {
             }
         }
 
-        if(setting.showActiveVectors && m_physicsSystem) {
+        if(
+            PhysicsOptions::showDebugArrows &&
+            setting.showActiveVectors &&
+            m_physicsSystem
+        ) {
             for(const auto& activeVector :
                 m_physicsSystem->GetDebugActiveVectors()
             ) {

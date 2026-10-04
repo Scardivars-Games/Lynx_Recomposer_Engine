@@ -37,6 +37,12 @@ namespace ilen::core::options {
         // permite empujar cuerpos de hasta el doble de la masa del impulsor.
         static inline bool solveRealisticCollision = true;
 
+        // Activa la captura y representación de las flechas de depuración de
+        // físicas: impactos persistentes en amarillo y vectores activos en
+        // verde. Se mantiene desactivada por defecto para no pagar su coste
+        // cuando solamente se quieren visualizar colliders y contactos.
+        static inline bool showDebugArrows = false;
+
         // Matriz de colisiones: 32 capas inicializadas con todos los bits en 1 (Todo choca con todo)
         static inline uint32_t collisionMatrix[32] = {
             0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF,

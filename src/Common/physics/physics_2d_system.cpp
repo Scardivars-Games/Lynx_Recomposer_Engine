@@ -89,7 +89,7 @@ void PhysicsSystem2D::Update() {
 
     constexpr float dt = 1.0f / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
 
-    clearCollisionData(&componentArray);
+    prepareCollisionData(&componentArray);
     registerPrevPosition(&componentArray);
     applyForces(dt, &componentArray);
     applyGravity(dt, &componentArray);
@@ -100,7 +100,9 @@ void PhysicsSystem2D::Update() {
     refreshRotationBlocks();
 
 #if ILEN_DEBUG
-    rebuildDebugActiveVectors(&componentArray);
+    if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+        rebuildDebugActiveVectors(&componentArray);
+    }
     reportCollisionDebugStats();
 #endif
 
@@ -154,6 +156,18 @@ void PhysicsSystem2D::registerEntity(Entity e, ArrayOfComponentsUsed* components
 
     if(!proxy.has_value()) {
         return;
+    }
+
+    // Toda entidad que participa válidamente en las físicas 2D conserva un
+    // CollisionComponent2D durante toda su vida física. El manifold cambia en
+    // cada fixed update, pero la presencia del componente es estructural: sirve
+    // como punto de comunicación para sistemas ECS y como firma estable para el
+    // puente de eventos hacia GameObject.
+    if(!componentsArray->collisionComponentArray->getData(e)) {
+        p_coordinator->setComponent(
+            e,
+            physics::CollisionComponent2D{}
+        );
     }
 
     if(rb->isStatic) {
@@ -370,16 +384,40 @@ void PhysicsSystem2D::registerPrevPosition(ArrayOfComponentsUsed* componentsArra
     }
 }
 
-void PhysicsSystem2D::clearCollisionData(ArrayOfComponentsUsed* componentsArray){
-    for(Entity e: m_dynamicEntities){
-        if(auto* col = componentsArray->collisionComponentArray->getData(e)){
-            col->contacts.clear();
+void PhysicsSystem2D::prepareCollisionData(
+    ArrayOfComponentsUsed* componentsArray
+) {
+    const auto prepareContacts = [](physics::CollisionComponent2D* collision) {
+        if(!collision) {
+            return;
         }
+
+        // Un Exit publicado en el paso anterior ya cumplió su ciclo de vida.
+        // Los contactos restantes se marcan provisionalmente como Exit: si el
+        // narrowphase vuelve a encontrarlos, writeContacts los convierte en
+        // Stay. Un contacto nuevo se insertará directamente como Enter.
+        std::erase_if(
+            collision->contacts,
+            [](const physics::ContactManifold2D& contact) {
+                return contact.phase == physics::CollisionPhase2D::Exit;
+            }
+        );
+
+        for(auto& contact : collision->contacts) {
+            contact.phase = physics::CollisionPhase2D::Exit;
+        }
+    };
+
+    for(Entity entity : m_dynamicEntities) {
+        prepareContacts(
+            componentsArray->collisionComponentArray->getData(entity)
+        );
     }
-    for(const auto& proxy : m_staticProxies){
-        if(auto* col = componentsArray->collisionComponentArray->getData(proxy.entity)){
-            col->contacts.clear();
-        }
+
+    for(const auto& proxy : m_staticProxies) {
+        prepareContacts(
+            componentsArray->collisionComponentArray->getData(proxy.entity)
+        );
     }
 }
 
@@ -607,11 +645,13 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
                 // Un impulso es instantáneo. Para poder compararlo visualmente
                 // con una fuerza se representa como su fuerza media en este
                 // fixed update: F = J / dt.
-                m_debugAppliedForces[e] +=
-                    static_cast<vec2>(order->accumulatedForce);
-                if(dt > 0.0f) {
+                if(ilen::core::options::PhysicsOptions::showDebugArrows) {
                     m_debugAppliedForces[e] +=
-                        static_cast<vec2>(order->accumulatedImpulse) / dt;
+                        static_cast<vec2>(order->accumulatedForce);
+                    if(dt > 0.0f) {
+                        m_debugAppliedForces[e] +=
+                            static_cast<vec2>(order->accumulatedImpulse) / dt;
+                    }
                 }
 #endif
             }
@@ -649,9 +689,11 @@ void PhysicsSystem2D::applyGravity(float dt, ArrayOfComponentsUsed* componentsAr
 #if ILEN_DEBUG
         // F = m * a. Guardarla antes del solver permite ver que la gravedad
         // sigue solicitándose aunque el contacto con el suelo la rechace.
-        m_debugAppliedForces[e].y +=
-            rb->mass * ilen::core::options::PhysicsOptions::gravity *
-            rb->gravityScale;
+        if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+            m_debugAppliedForces[e].y +=
+                rb->mass * ilen::core::options::PhysicsOptions::gravity *
+                rb->gravityScale;
+        }
 #endif
 
         //Clamp a la velocidad máxima vertical del motor (tanto si va para arriba como abajo)
@@ -794,7 +836,8 @@ void PhysicsSystem2D::detectAndResolve(
 #if ILEN_DEBUG
     m_collisionDebugStats.reset();
     m_debugCurrentCollisionPairs.clear();
-    m_debugFixedDeltaTime = dt;
+    m_debugFixedDeltaTime =
+        ilen::core::options::PhysicsOptions::showDebugArrows ? dt : 0.0f;
 #endif
 
     if(m_staticBroadPhaseDirty) {
@@ -1436,7 +1479,11 @@ void PhysicsSystem2D::detectAndResolve(
     }
 
 #if ILEN_DEBUG
-    m_debugPreviousCollisionPairs = m_debugCurrentCollisionPairs;
+    if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+        m_debugPreviousCollisionPairs = m_debugCurrentCollisionPairs;
+    } else {
+        m_debugPreviousCollisionPairs.clear();
+    }
 #endif
 }
 
@@ -1485,12 +1532,14 @@ void PhysicsSystem2D::resolveCollision(
     }
 
 #if ILEN_DEBUG
-    recordDebugImpact(
-        proxyA,
-        proxyB,
-        manifold,
-        componentsArray
-    );
+    if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+        recordDebugImpact(
+            proxyA,
+            proxyB,
+            manifold,
+            componentsArray
+        );
+    }
 #endif
 
     auto* rigidbodyA = componentsArray->rigidbodyComponentArray->getData(proxyA.entity);
@@ -2014,9 +2063,16 @@ void PhysicsSystem2D::writeContacts(const physics::ContactManifold2D& manifold, 
         );
 
         if(iterator == collisionA->contacts.end()) {
-            collisionA->contacts.push_back(manifold);
+            physics::ContactManifold2D entered = manifold;
+            entered.phase = physics::CollisionPhase2D::Enter;
+            collisionA->contacts.push_back(std::move(entered));
         } else {
+            const physics::CollisionPhase2D phase =
+                iterator->phase == physics::CollisionPhase2D::Exit
+                    ? physics::CollisionPhase2D::Stay
+                    : iterator->phase;
             *iterator = manifold;
+            iterator->phase = phase;
         }
     }
 
@@ -2040,9 +2096,15 @@ void PhysicsSystem2D::writeContacts(const physics::ContactManifold2D& manifold, 
         );
 
         if(iterator == collisionB->contacts.end()) {
+            mirrored.phase = physics::CollisionPhase2D::Enter;
             collisionB->contacts.push_back(std::move(mirrored));
         } else {
+            const physics::CollisionPhase2D phase =
+                iterator->phase == physics::CollisionPhase2D::Exit
+                    ? physics::CollisionPhase2D::Stay
+                    : iterator->phase;
             *iterator = std::move(mirrored);
+            iterator->phase = phase;
         }
     }
 }

@@ -1,4 +1,6 @@
 #include "ilen/core/time.h"
+#include "ilen/ecs/types.h"
+#include "ilen/headers/ilen_logs.h"
 #include "ilen/input/input_keys.h"
 #if !ILEN_ONLY_ECS
 
@@ -102,8 +104,9 @@ void Cube::Update() {
 
     }
 
-    if(InputAPI::IsKeyPressed(Key::Space) || InputAPI::IsButtonPressed(GamepadButton::South)) {
-        PhysicsAPI::AddImpulse(entity, vec2(0, 50));
+    if((InputAPI::IsKeyPressed(Key::Space) || InputAPI::IsButtonPressed(GamepadButton::South)) && canJump) {
+        canJump = false;
+        PhysicsAPI::AddImpulse(entity, vec2(0, 80));
     }
 
     auto touches = InputAPI::GetTotalTouches();
@@ -111,8 +114,9 @@ void Cube::Update() {
     if(touches > 1) {
         //Hay touches!!!
         for(int i = 0; i < touches; i++) {
-            if(InputAPI::IsTouchNew(i)){
-                PhysicsAPI::AddImpulse(entity, vec2(0, 50));
+            if(InputAPI::IsTouchNew(i) && canJump){
+                canJump = false;
+                PhysicsAPI::AddImpulse(entity, vec2(0, 80));
                 break;
             }
         }
@@ -155,6 +159,12 @@ void Cube::Update() {
         }
     }
 
+    if(coyoteTime >= 0.0f) {
+        coyoteTime -= time::Time::getDeltaTime();
+    } else {
+        canJump = false;
+    }
+
         //Debug, activar
 #if ILEN_DEBUG
     using DebugSystem = ilen::ecs::systems::DebugRenderSystem2D;
@@ -167,6 +177,19 @@ void Cube::Update() {
 #endif
 }
 
+void Cube::OnCollisionStay(const ContactManifold2D &contact) {
+    //ILEN_LOG_P("PRUEBA DE COLISION", "Colisionando con %s", EntityAPI::GetEntityName(contact.entityB).c_str());
+    if(EntityAPI::entityHasTag(contact.entityB, TagSystem::Ground)) {
+        //ILEN_LOG_P("PRUEBA DE COLISION", "Estoy colisionando con el suelo.");
+        canJump = true;
+    }
+}
+
+void Cube::OnCollisionExit(const ContactManifold2D &contact) {
+    //canJump = false;
+    coyoteTime = defaultCoyoteTime;
+    //ILEN_LOG_P("PRUEBA DE COLISION", "Deje de colisionar con %s", EntityAPI::GetEntityName(contact.entityB).c_str());
+}
 
 void PointerPos::Init() {
     /*TransformComponent transform{};

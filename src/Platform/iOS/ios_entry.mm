@@ -89,7 +89,7 @@
         return;
     }
     
-    self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop)];
+    self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop:)];
     
     //Para dar soporte a 120 HZ en ProDisplay
     if(@available(iOS 15.0, *)){
@@ -99,13 +99,28 @@
         self.displayLink.preferredFramesPerSecond = metadata.applicationFramerate;
     }
     
-    [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSDefaultRunLoopMode];
+    [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
 }
 
-- (void)renderLoop {
+- (void)renderLoop:(CADisplayLink *)displayLink {
     if(_engineFailed || !self.app){
         return;
     }
+
+    /*const double displayDelta =
+        displayLink.targetTimestamp - displayLink.timestamp;
+
+    const double scheduledFPS =
+        displayDelta > 0.0 ? 1.0 / displayDelta : 0.0;
+
+    const double availableTime =
+        displayLink.targetTimestamp - CACurrentMediaTime();
+
+    NSLog(
+        @"Display FPS: %.2f | Tiempo disponible: %.3f ms",
+        scheduledFPS,
+        availableTime * 1000.0
+    );*/
     
     try{
         if(self.app->isRunning()) {

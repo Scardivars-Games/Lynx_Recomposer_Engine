@@ -17,6 +17,7 @@
 //FOR NO-EDITOR GAME
 #include <ilen_examples/gravity.h>
 #include <ilen_examples/triangle.h>
+#include "ilen/headers/ilen_logs.h"
 // END
 
 using namespace ilen::core;
@@ -314,7 +315,8 @@ namespace ilen{
 
         //Preparamos el input para los eventos en el proximo frame (se coloca aquí porque hay eventos que llegan cuando quieren como en iOS, lo cual dificultaria la logica de numerosas funciones del sistema para comprobar si es nuevo o no):
         ilen::input::InputBuffer::Get().NewFrame();
-#if !ILEN_IOS || !ILEN_TVOS //Si estamos en iOS, no es necesario esto, creo?
+#if !ILEN_IOS && !ILEN_TVOS //Si estamos en iOS, no es necesario esto, creo?
+        //ILEN_LOG_P("TEST", "En iOS esto no debe aparecer");
         application::Application::stopUntilNextFrame();
 #endif
 

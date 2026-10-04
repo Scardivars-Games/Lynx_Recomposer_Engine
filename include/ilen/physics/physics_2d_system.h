@@ -129,7 +129,7 @@ namespace ilen::ecs::systems {
             //partes del proceso en funciones especializadas, de esa forma es más facil entender el flujo
             //del sistema.
             void syncEntities(ArrayOfComponentsUsed* componentsArray);
-            void clearCollisionData(ArrayOfComponentsUsed* componentsArray);
+            void prepareCollisionData(ArrayOfComponentsUsed* componentsArray);
             void registerPrevPosition(ArrayOfComponentsUsed* ComponentArray);
             void applyForces(float dt, ArrayOfComponentsUsed* ComponentArray);
             void applyGravity(float dt, ArrayOfComponentsUsed* componentsArray);

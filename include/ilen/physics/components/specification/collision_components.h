@@ -13,6 +13,13 @@ namespace ilen::ecs::components::physics {
         BInsideA
     };
 
+    /** Etapa del contacto respecto al fixed update anterior. */
+    enum class CollisionPhase2D : uint8_t {
+        Enter,
+        Stay,
+        Exit
+    };
+
     //Almacena datos básicos de una única colision. NO ES COMPONENTE.
 
     //OLD
@@ -49,6 +56,11 @@ namespace ilen::ecs::components::physics {
         bool hasContactPoint = false; //True si el punto de contacto fue calculado por un algoritmo de forma exacta
         bool isTrigger = false;
         bool usedAngularSweep = false; //El TOI necesitó movimiento rotacional.
+
+        // Permite emitir OnCollision/OnTrigger Enter, Stay y Exit sin otro
+        // componente ECS ni colecciones paralelas por entidad. En Exit se
+        // conserva el último manifold válido durante un fixed update.
+        CollisionPhase2D phase = CollisionPhase2D::Enter;
 
         // Una intersección ordinaria permite repartir la corrección entre los
         // dos cuerpos. Si uno está completamente dentro del volumen sólido del

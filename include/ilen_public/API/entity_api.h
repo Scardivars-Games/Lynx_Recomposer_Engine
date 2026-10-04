@@ -3,6 +3,7 @@
 #include <ilen/headers/ecs.h>
 #include <ilen/game_logic/script_system.h>
 #include <ilen/core/engine_context.h>
+#include "ilen/ecs/types.h"
 
 using namespace ilen::ecs;
 
@@ -12,9 +13,14 @@ namespace ilen::engine::api {
         friend class systems::ScriptingSystem;
 
         public:
+            //Propiedades en los metadatos de la entidad
             static void SetActive(Entity entity, bool newState);
             static bool isActive(Entity entity);
             static Entity GetEntityByName(std::string entityName);
+            static bool entityHasTag(Entity entity, TagSystem tag);
+            static std::string GetEntityName(Entity entity);
+
+            //Prefabs
             static void LoadPrefab(std::string prefabName);
             static void LoadPrefab(std::string prefabName, vec3 prefabPosition);
         private:
