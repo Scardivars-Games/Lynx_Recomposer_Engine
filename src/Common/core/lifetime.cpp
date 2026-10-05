@@ -190,15 +190,18 @@ namespace ilen{
         ilen::engine::api::InputAPI::Init(engineContext.get());
         ilen::engine::api::ScenesAPI::Init(engineContext.get());
 
+#if !ILEN_ONLY_ECS
         //El init de los script generar actualmente componentes, por eso es necesario que sea primero.
         scriptingSystemPtr->Init(engineContext.get());
-
+#endif
         //Cargar escena de indice 1 (0 siempre significa prefab)
         engineContext->p_sceneManager->LoadScene(1);
 
         ILEN_LOG_P(DEBUG_PREFIX, "INICIALIZANDO SYSTEMAS NATIVOS DEL MOTOR");
         for(auto& system: engineContext->p_coordinator->getAllSystems()){
+#if !ILEN_ONLY_ECS
                 if(system.get() == scriptingSystemPtr.get()) continue;
+#endif
                 system->Init(engineContext.get());
         }
 

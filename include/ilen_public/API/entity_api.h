@@ -3,9 +3,11 @@
 #include <ilen/headers/ecs.h>
 #include <ilen/game_logic/script_system.h>
 #include <ilen/core/engine_context.h>
-#include "ilen/ecs/types.h"
+#include <ilen/ecs/types.h>
+#include <ilen/maths/vector.h>
 
 using namespace ilen::ecs;
+using vec3 = ilen::maths::vector::vec3;
 
 namespace ilen::engine::api {
     //API diseñada para interactuar con las entidades del ECS. Esto lo conseguira mediante el MetadataComponent, por lo que lo modificara, lo analizara, y retornara entidades.

@@ -1,8 +1,8 @@
 #pragma once
+#include <ilen/ecs/system.h>
 
 #if !ILEN_ONLY_ECS
 
-#include <ilen/ecs/system.h>
 #include <ilen/game_logic/ecs_bridge.h>
 #include <ilen/core/lifetime.h>
 
@@ -23,5 +23,11 @@ namespace ilen::ecs::systems {
 
 REGISTER_NATIVE_SYSTEM(ilen::ecs::systems::ScriptingSystem, ilen::ecs::SystemPhase::VariableUpdate, 0);
 REQUIRED_COMPONENTS_FOR_SYSTEM(ilen::ecs::systems::ScriptingSystem, ilen::ecs::components::ScriptingBridgeComponent);
+#else
+//Esto es por compatibilidad
+namespace ilen::ecs::systems {
+    class ScriptingSystem final: public ISystem {
 
+    };
+}
 #endif //!ILEN_ONLY_ECS

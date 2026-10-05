@@ -30,4 +30,13 @@ namespace ilen::ecs::components {
     };
 }
 
+#else
+
+#include <string>
+//Compatibilidad
+namespace ilen::ecs::components {
+    struct ScriptingBridgeComponent {
+        std::string scriptName = "";
+    };
+}
 #endif //!ILEN_ONLY_ECS
