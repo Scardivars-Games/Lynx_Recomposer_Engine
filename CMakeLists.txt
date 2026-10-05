@@ -1,189 +1,178 @@
-cmake_minimum_required(VERSION 3.20)
-project(ilen-engine LANGUAGES CXX VERSION 0.0.1)
+cmake_minimum_required(VERSION 4.0)
+
+project(IlusionsWorkspace VERSION 0.1.0 LANGUAGES C CXX)
 
 if(APPLE)
-enable_language(OBJCXX)
+    enable_language(OBJCXX)
 endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+if(APPLE)
+    set(CMAKE_OBJCXX_STANDARD 23)
+    set(CMAKE_OBJCXX_STANDARD_REQUIRED ON)
+    set(CMAKE_OBJCXX_EXTENSIONS OFF)
+endif()
 
 include(ExternalProject)
 
-set(ILEN_MODULES_BUILD_DIR ${CMAKE_BINARY_DIR}/ILEN_MODULES)
-set(ILEN_MODULES_EXECUTABLE_FOLDER ${ILEN_MODULES_BUILD_DIR}/executable)
+# =============================================================================
+# Rutas principales del workspace
+# =============================================================================
 
-set(NATIVE_TOOL_BYPRODUCT ${ILEN_MODULES_EXECUTABLE_FOLDER})
+set(ILEN_WORKSPACE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}")
+set(ILEN_ENGINE_ROOT "${ILEN_WORKSPACE_ROOT}/engine")
+set(ILEN_ENGINE_DATA_DIR "${ILEN_ENGINE_ROOT}/project_data")
+set(ILEN_PROJECT_ROOT "${ILEN_WORKSPACE_ROOT}/project")
+set(ILEN_PROJECT_DATA_DIR "${ILEN_PROJECT_ROOT}/project_data")
+set(ILEN_GENERATED_ROOT "${CMAKE_BINARY_DIR}/ilen_generated")
+set(ILEN_GENERATED_REFLECTION_ROOT "${ILEN_GENERATED_ROOT}/reflection")
+set(ILEN_GENERATED_SERIALIZERS "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/manifests/generated_serializers.inl")
+set(ILEN_GENERATED_ENGINE_SCHEMA "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/manifests/engine_defaults.meta_ilenschema")
+set(ILEN_GENERATED_COMPONENT_SCHEMA "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/manifests/components.meta_ilenschema")
 
-set(APP_IDENTIFIER "com.scardivargames.ilen-test")
-set(APP_NAME "ILEN Test")
-set(APP_VERSION "0.0.1")
-set(APP_BUILD_NUMBER "1")
-set(APP_COPYRIGHT "Copyright (c) 2025 Scardivar's Games. All rights reserved.")
+# =============================================================================
+# Opciones globales
+# =============================================================================
 
-option(ILEN_METAL_HUD "Muestra el HUD de Metal para debuggear")
-option(ILEN_OPTIMIZED_BUILD_FLAGS "Activa flags de optimización agresivas. No recomendado para debuggear, o usar para apps que no sean juegos" OFF)
+option(ILEN_ONLY_ECS "Use the engine exclusively through ECS" OFF)
+option(ILEN_BUILD_TESTS "Build the engine tests" OFF)
+option(ILEN_BUILD_PHYSICS_BENCHMARK "Build isolated physics tests and benchmarks" OFF)
+option(ILEN_ENABLE_PHYSICS_DEBUG "Enable physics debug draw" ON)
+option(ILEN_ENABLE_PHYSICS_STATS "Enable physics statistics" ON)
+option(ILEN_METAL_HUD "Enable the Metal debug HUD" OFF)
+option(ILEN_OPTIMIZED_BUILD "Enable aggressive optimization in builds" OFF)
+option(ILEN_IGNORE_RENDERING "Disable rendering to test other features" OFF)
+option(ILEN_TEST_ERROR_WINDOW_AT_START "Test the error window at startup" OFF)
+option(ILEN_SINGLECORE_TEST "Force the job system to only use a single thread" OFF)
+option(ILEN_DISABLE_BASIC_LOGGING "Disable the basic engine logging" OFF)
+option(ILEN_DISABLE_TIME_LOGGING "Disable automatic loggin in time evaluations" ON)
 
-if(CMAKE_SYSTEM_NAME MATCHES "iOS|tvOS")
-    set(ARCH_FLAGS -arch arm64 -mcpu=apple-a13)
+# =============================================================================
+# Plataforma de compilación
+# =============================================================================
 
-elseif(ANDROID)
-    if(CMAKE_ANDROID_ARCH_ABI STREQUAL "arm64-v8a")
-        set(ARCH_FLAGS -march=armv8-a)
-    elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "armeabi-v7a")
-        set(ARCH_FLAGS -march=armv7-a -mfpu=neon)
-    elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "x86_64")
-        set(ARCH_FLAGS -march=x86-64-v3)
-    elseif(CMAKE_ANDROID_ARCH_ABI STREQUAL "x86")
-        set(ARCH_FLAGS -march=i686)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(ILEN_TARGET_NAME "iOS")
+    set(ILEN_METAL_SDK "iphoneos")
+
+    if(PLATFORM STREQUAL "SIMULATOR")
+        set(ILEN_METAL_SDK "iphonesimulator")
     endif()
+elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    set(ILEN_TARGET_NAME "tvOS")
+    set(ILEN_METAL_SDK "appletvos")
 
+    if(PLATFORM STREQUAL "SIMULATOR")
+        set(ILEN_METAL_SDK "appletvsimulator")
+    endif()
 elseif(APPLE)
-    if("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES AND
-       "x86_64" IN_LIST CMAKE_OSX_ARCHITECTURES)
-        set(ARCH_FLAGS "")
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
-        set(ARCH_FLAGS -mcpu=apple-m1)
-    else()
-        set(ARCH_FLAGS -march=x86-64-v3)
-    endif()
-
+    set(ILEN_TARGET_NAME "macOS")
+    set(ILEN_METAL_SDK "macosx")
+elseif(LINUX)
+    set(ILEN_TARGET_NAME "linux")
+elseif(WIN32)
+    set(ILEN_TARGET_NAME "windows")
 else()
-    # Windows, Linux, BSD, etc.
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$")
-        if(MSVC)
-            set(ARCH_FLAGS /arch:arm64)
-        else()
-            set(ARCH_FLAGS -march=armv8-a)
-        endif()
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(armv7|armhf|arm)$")
-        set(ARCH_FLAGS -march=armv7-a -mfpu=neon)
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
-        if(MSVC)
-            set(ARCH_FLAGS /arch:AVX2)
-        else()
-            set(ARCH_FLAGS -march=x86-64-v3)
-        endif()
-    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(i[3-6]86|x86)$")
-        set(ARCH_FLAGS -march=i686)
-    else()
-        message(WARNING "Arquitectura desconocida: ${CMAKE_SYSTEM_PROCESSOR}, sin ARCH_FLAGS")
-        set(ARCH_FLAGS "")
-    endif()
+    message(FATAL_ERROR
+        "Ilusions Engine does not currently configure this platform: "
+        "${CMAKE_SYSTEM_NAME}"
+    )   
 endif()
 
-file(GLOB_RECURSE PROJECT_SOURCES src/main.cpp src/Common/*.cpp src/Examples/*.cpp)
+# =============================================================================
+# Configuración común compartida por motor y proyecto
+# =============================================================================
 
-if(NOT APPLE)
-    add_executable(${PROJECT_NAME} ${PROJECT_SOURCES})
-else()
-    add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${PROJECT_SOURCES})
-endif()
+add_library(ilen_build_config INTERFACE)
+add_library(ilen::build_config ALIAS ilen_build_config)
 
-if(ILEN_OPTIMIZED_BUILD_FLAGS)
-    if(CMAKE_BUILD_TYPE MATCHES "Release|RelWithDebInfo")
-        message("Activando flags de optimización agresivas para build optimizada")
-        target_compile_options(${PROJECT_NAME} PRIVATE
-            -O3
-            ${ARCH_FLAGS}
-            -ffast-math
-            $<$<CXX_COMPILER_ID:Clang>:-flto=thin>
-            $<$<CXX_COMPILER_ID:GNU>:-flto=auto>            
-            -funroll-loops
-            -fomit-frame-pointer
-            -DNDEBUG
-        )
+target_compile_features(ilen_build_config INTERFACE cxx_std_23)
+target_compile_definitions(
+    ilen_build_config
+    INTERFACE
+        ILEN_ONLY_ECS=$<BOOL:${ILEN_ONLY_ECS}>
+        ILEN_ENABLE_PHYSICS_DEBUG=$<BOOL:${ILEN_ENABLE_PHYSICS_DEBUG}>
+        ILEN_ENABLE_PHYSICS_STATS=$<BOOL:${ILEN_ENABLE_PHYSICS_STATS}>
 
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(${PROJECT_NAME} PRIVATE -fstrict-vtable-pointers)
-endif()
+        IGNORE_RENDERING=$<BOOL:${ILEN_IGNORE_RENDERING}>
+        TEST_ERROR_WINDOW_AT_START=$<BOOL:${ILEN_TEST_ERROR_WINDOW_AT_START}>
+        ILEN_SINGLECORE_TEST=$<BOOL:${ILEN_SINGLECORE_TEST}>
+        ILEN_DISABLE_BASIC_LOGGIN=$<BOOL:${ILEN_DISABLE_BASIC_LOGGING}>
+        ILEN_DISABLE_TIME_LOGGING=$<BOOL:${ILEN_DISABLE_TIME_LOGGING}>
 
+        ILEN_SOURCES_FOLDER="${ILEN_PROJECT_ROOT}"
 
-        set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
-    else()
-        message(WARNING "ILEN_OPTIMIZED_BUILD_FLAGS está activado, pero la configuración actual no es Release o RelWithDebInfo. Las flags de optimización agresivas solo se aplicarán a builds optimizadas.")
-    endif()
-endif()
-
-#target_include_directories(${PROJECT_NAME} PRIVATE include)
-add_library(ilen_global_includes INTERFACE)
-target_include_directories(ilen_global_includes INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE ilen_global_includes)
-
-option(ILEN_BUILD_PHYSICS_BENCHMARK "Compila el benchmark aislado del broadphase 2D" OFF)
-
-if(ILEN_BUILD_PHYSICS_BENCHMARK)
-    add_executable(ilen-physics-broadphase-benchmark
-        tests/physics/broad_phase_2d_benchmark.cpp
-        src/Common/physics/broad_phase_2d.cpp
-        src/Common/maths/AABB.cpp
-    )
-    target_link_libraries(ilen-physics-broadphase-benchmark PRIVATE ilen_global_includes)
-    target_compile_features(ilen-physics-broadphase-benchmark PRIVATE cxx_std_23)
-
-    add_executable(ilen-physics-swept-sat-test
-        tests/physics/swept_sat_2d_test.cpp
-        src/Common/physics/narrow_phase_2d.cpp
-        src/Common/maths/AABB.cpp
-    )
-    target_link_libraries(ilen-physics-swept-sat-test PRIVATE ilen_global_includes)
-    target_compile_features(ilen-physics-swept-sat-test PRIVATE cxx_std_23)
-
-    add_executable(ilen-physics-collider-proxy-test
-        tests/physics/collider_proxy_builder_2d_test.cpp
-    )
-    target_link_libraries(ilen-physics-collider-proxy-test PRIVATE ilen_global_includes)
-    target_compile_features(ilen-physics-collider-proxy-test PRIVATE cxx_std_23)
-endif()
-
-list(APPEND SHARED_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-#Threads support
-find_package(Threads REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads)
-
-if(APPLE)
-    list(APPEND EXTERNAL_SYSTEM_SPECIFIC_COMMANDS
-        -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_SOURCE_DIR}/toolchains/macos.toolchain.cmake
-        -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=12.0
-        #-DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-        -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_STYLE:STRING=Automatic
-    )
-elseif(WIN32)   
-    list(APPEND EXTERNAL_SYSTEM_SPECIFIC_COMMANDS
-        -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_SOURCE_DIR}/toolchains/windows.toolchain.cmake
-    )
-elseif(LINUX)    
-    list(APPEND EXTERNAL_SYSTEM_SPECIFIC_COMMANDS
-        -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_SOURCE_DIR}/toolchains/linux.toolchain.cmake
-    )
-endif()
-
-
-ExternalProject_Add(
-    ilen-modules
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/ilen-modules
-    BINARY_DIR ${ILEN_MODULES_BUILD_DIR}/build
-
-    CMAKE_CACHE_ARGS
-        -DPARENT_INCLUDE_DIR:STRING=${SHARED_INCLUDE_DIR}
-        -DCMAKE_RUNTIME_OUTPUT_DIRECTORY:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}
-        -DCMAKE_INSTALL_PREFIX:PATH=${ILEN_MODULES_BUILD_DIR}
-        -DBUILD_SHARED_LIBS:BOOL=OFF
-        ${EXTERNAL_SYSTEM_SPECIFIC_COMMANDS}
-
-    BUILD_BYPRODUCTS ${NATIVE_TOOL_BYPRODUCT}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config $<CONFIG>
-
-    LOG_CONFIGURE 1
-    LOG_BUILD 1
-    LOG_INSTALL 1
+        $<$<CONFIG:Debug>:ILEN_DEBUG=1>
 )
 
-set(ILEN_NATIVE_TOOL_NAMES
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    target_compile_definitions(
+        ilen_build_config INTERFACE ILEN_MOBILE=1 ILEN_IOS=1
+    )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    target_compile_definitions(
+        ilen_build_config INTERFACE ILEN_MOBILE=1 ILEN_TVOS=1
+    )
+elseif(APPLE)
+    target_compile_definitions(
+        ilen_build_config INTERFACE ILEN_DESKTOP=1 ILEN_MACOS=1
+    )
+elseif(LINUX)
+    target_compile_definitions(
+        ilen_build_config INTERFACE ILEN_DESKTOP=1 ILEN_LINUX=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+    )
+elseif(WIN32)
+    target_compile_definitions(
+        ilen_build_config INTERFACE ILEN_DESKTOP=1 ILEN_WINDOWS=1
+    )
+endif()
+
+# =============================================================================
+# Optimizaciones opcionales
+# =============================================================================
+
+if(ILEN_OPTIMIZED_BUILD)
+    if(MSVC)
+        set(ILEN_OPTIMIZED_FLAGS /O2)
+    else()
+        set(ILEN_OPTIMIZED_FLAGS -O3 -ffast-math -funroll-loops -fomit-frame-pointer)
+        if(CMAKE_SYSTEM_NAME MATCHES "iOS|tvOS")
+            list(APPEND ILEN_OPTIMIZED_FLAGS -mcpu=apple-a13)
+        elseif(APPLE AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64")
+            list(APPEND ILEN_OPTIMIZED_FLAGS -mcpu=apple-m1)
+        elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
+            list(APPEND ILEN_OPTIMIZED_FLAGS -march=x86-64-v3)
+        endif()
+    endif()
+
+    foreach(_flag IN LISTS ILEN_OPTIMIZED_FLAGS)
+        target_compile_options(
+            ilen_build_config INTERFACE
+            "$<$<OR:$<CONFIG:RELEASE>,$<CONFIG:RelWithDebInfo>>:${_flag}>"
+        )
+    endforeach()
+    
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
+endif()
+
+# =============================================================================
+# Herramientas nativas de Ilusions Engine
+#
+# Estas herramientas siempre deben compilarse para el host.
+# Al compilar para iOS/tvOS, el host continúa siendo macOS.
+# =============================================================================
+
+set(ILEN_MODULES_BUILD_DIR "${CMAKE_BINARY_DIR}/ILEN_MODULES")
+set(ILEN_MODULES_EXECUTABLE_FOLDER "${ILEN_MODULES_BUILD_DIR}/executable")
+
+set(
+    ILEN_NATIVE_TOOL_NAMES
     ILEN_TEMPORAL_SCENE_EDITOR
     ILEN_METAL_COMPILER
     ILEN_FILE_BINARIZATION
@@ -192,16 +181,60 @@ set(ILEN_NATIVE_TOOL_NAMES
 )
 
 set(ILEN_NATIVE_TOOL_BYPRODUCTS)
+
 foreach(_tool IN LISTS ILEN_NATIVE_TOOL_NAMES)
     list(APPEND ILEN_NATIVE_TOOL_BYPRODUCTS
         "${ILEN_MODULES_EXECUTABLE_FOLDER}/${_tool}"
     )
 endforeach()
 
-set(NATIVE_TOOL_BYPRODUCT ${ILEN_NATIVE_TOOL_BYPRODUCTS})
+set(ILEN_NATIVE_TOOLCHAIN_ARGUMENTS)
 
-function(add_ilen_native_tool TOOL_NAME)
-    set(_tool_path "${ILEN_MODULES_EXECUTABLE_FOLDER}/${TOOL_NAME}")
+if(APPLE)
+    list(APPEND ILEN_NATIVE_TOOLCHAIN_ARGUMENTS
+        "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=${ILEN_WORKSPACE_ROOT}/toolchains/macos.toolchain.cmake"
+        "-DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=12.0"
+    )
+elseif(WIN32)
+    list(APPEND ILEN_NATIVE_TOOLCHAIN_ARGUMENTS
+        "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=${ILEN_WORKSPACE_ROOT}/toolchains/windows.toolchain.cmake"
+    )
+elseif(LINUX)
+    list(APPEND ILEN_NATIVE_TOOLCHAIN_ARGUMENTS
+        "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=${ILEN_WORKSPACE_ROOT}/toolchains/linux.toolchain.cmake"
+    )
+endif()
+
+ExternalProject_Add(
+    ilen_modules
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/ilen_modules
+    BINARY_DIR ${ILEN_MODULES_BUILD_DIR}/build
+
+    CMAKE_CACHE_ARGS
+        "-DPARENT_INCLUDE_DIR:PATH=${ILEN_ENGINE_ROOT}/include"
+
+        "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}"
+        "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}"
+        "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}"
+        "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}"
+        "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL:PATH=${ILEN_MODULES_EXECUTABLE_FOLDER}"
+
+        "-DCMAKE_INSTALL_PREFIX:PATH=${ILEN_MODULES_BUILD_DIR}"
+        "-DBUILD_SHARED_LIBS:BOOL=OFF"
+
+        ${ILEN_NATIVE_TOOLCHAIN_ARGUMENTS}
+
+    BUILD_BYPRODUCTS ${ILEN_NATIVE_TOOL_BYPRODUCTS}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --config $<CONFIG>
+    INSTALL_COMMAND ""
+
+    LOG_CONFIGURE 1
+    LOG_BUILD 1
+    LOG_INSTALL 1
+)
+
+function(ilen_add_native_tool TOOL_NAME)
+    set(_tool_path "${ILEN_MODULES_EXECUTABLE_FOLDER}/${TOOL_NAME}${CMAKE_EXECUTABLE_SUFFIX}")
 
     add_executable(${TOOL_NAME} IMPORTED GLOBAL)
     set_target_properties(${TOOL_NAME} PROPERTIES
@@ -212,291 +245,97 @@ function(add_ilen_native_tool TOOL_NAME)
         IMPORTED_LOCATION_RELWITHDEBINFO "${_tool_path}"
         IMPORTED_LOCATION_MINSIZEREL "${_tool_path}"
     )
-    add_dependencies(${TOOL_NAME} ilen-modules)
+    add_dependencies(${TOOL_NAME} ilen_modules)
 endfunction()
 
-add_ilen_native_tool(ILEN_METAL_COMPILER)
-add_ilen_native_tool(ILEN_TEMPORAL_SCENE_EDITOR)
-add_ilen_native_tool(ILEN_FILE_BINARIZATION)
-add_ilen_native_tool(ILEN_SCENE_BINARIZER)
-add_ilen_native_tool(ILEN_COMPONENTS_REFLECTION_TOOLS)
+foreach(_tool IN LISTS ILEN_NATIVE_TOOL_NAMES)
+    ilen_add_native_tool(${_tool})
+endforeach()
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_23)
+# =============================================================================
+# Generación temporal de serializers
+#
+# scene_manager.cpp todavía incluye:
+#
+#   <manifests/generated_serializers.inl>
+#
+# Por eso se genera antes de compilar ilen_engine.
+#
+# La herramienta espera:
+#
+#   <root>/include/ilen
+#   <root>/project_data/src
+#   <root>/project_data/manifests
+#
+# Se construye ese layout dentro de build/.
+# =============================================================================
 
+file(GLOB_RECURSE ILEN_REFLECTION_INPUTS CONFIGURE_DEPENDS
+    "${ILEN_ENGINE_ROOT}/include/*.h"
+    "${ILEN_ENGINE_ROOT}/include/*.hpp"
+    "${ILEN_PROJECT_ROOT}/include/*.h"
+    "${ILEN_PROJECT_ROOT}/include/*.hpp"
+    "${ILEN_PROJECT_ROOT}/src/*.h"
+    "${ILEN_PROJECT_ROOT}/src/*.hpp"
+)
 
-#Commands for the Apple Ecosystem
-if(APPLE)
-    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-        message("Configuration for iOS")
-        set(ILEN_TARGET_NAME "iOS")
-        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/iOS/*.mm src/Platform/apple/*.mm src/Platform/apple/*.cpp src/Renderer/Metal/*.mm)
-        set(NATIVE_HEADERS src/Platform/iOS src/Platform/apple src/Renderer/Metal)
-
-        target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
-        set(ASSET_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/icon/Assets.xcassets")
-        set(APPLE_LIQUID_GLASS_APPICON "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/icon/AppIcon.icon")
-
-        set_source_files_properties(${ASSET_FOLDER} PROPERTIES
-            MACOSX_PACKAGE_LOCATION Resources
-            XCODE_EXPLICIT_FILE_TYPE "folder.assetcatalog"
-        )
-        set_source_files_properties(${APPLE_LIQUID_GLASS_APPICON} PROPERTIES
-            MACOSX_PACKAGE_LOCATION Resources
-            XCODE_EXPLICIT_FILE_TYPE "folder.iconcomposer.icon"
-        )
-
-        target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES} ${ASSET_FOLDER} ${APPLE_LIQUID_GLASS_APPICON})
-        target_link_libraries(${PROJECT_NAME} PRIVATE 
-            "-framework Foundation" 
-            "-framework UIKit"
-        )
-        set_target_properties(${PROJECT_NAME} PROPERTIES        
-            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
-            XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
-            MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/iOS/Info.plist"
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.scardivargames.ilen-test"
-            MACOSX_BUNDLE_IDENTIFIER ${APP_IDENTIFIER}
-            MACOSX_BUNDLE_NAME ${APP_NAME}
-            MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
-            MACOSX_BUNDLE_VERSION ${APP_BUILD_NUMBER}
-            MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
-            XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
-            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "3QYB6BMV6T"
-            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
-            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_ASSET_PATHS "${ASSET_FOLDER}"
-            XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
-            )
-
-            target_compile_options(${PROJECT_NAME} PRIVATE "-fno-objc-arc")
-
-    if(PLATFORM STREQUAL "SIMULATOR")
-        set(ILEN_METAL_SDK "iphonesimulator")
-    else()
-        set(ILEN_METAL_SDK "iphoneos")
-    endif()
-
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
-            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk ${ILEN_METAL_SDK} $<$<CONFIG:Debug>:--add-debug>
-            COMMENT "Compilando shader de metal para ser usados en iOS"
-            VERBATIM
-        )
-    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
-        message("Configuration for tvOS")
-        set(ILEN_TARGET_NAME "tvOS")
-        # Asumiendo una estructura de carpetas similar a iOS pero para tvOS
-        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/tvOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm src/Platform/apple/*.cpp)
-        set(NATIVE_HEADERS src/Platform/tvOS src/Platform/apple src/Renderer/Metal)
-
-        target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
-        
-        # Ajusta estas rutas a tus carpetas de iconos de tvOS (suelen ser capas LCR en lugar de imágenes planas)
-        set(ASSET_FOLDER "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS/icon/Assets.xcassets")
-        
-        set_source_files_properties(${ASSET_FOLDER} PROPERTIES RESOURCE TRUE)
-
-        target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES} ${ASSET_FOLDER})
-        
-        target_link_libraries(${PROJECT_NAME} PRIVATE 
-            "-framework Foundation" 
-            "-framework UIKit"
-            "-framework TVUIKit"
-        )
-
-        set_target_properties(${PROJECT_NAME} PROPERTIES        
-            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
-            XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
-            MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/tvOS/Info.plist"
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.scardivargames.ilen-test"
-            MACOSX_BUNDLE_IDENTIFIER ${APP_IDENTIFIER}
-            MACOSX_BUNDLE_NAME ${APP_NAME}
-            MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
-            MACOSX_BUNDLE_VERSION ${APP_BUILD_NUMBER}
-            MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
-            XCODE_ATTRIBUTE_CODE_SIGN_STYLE "Automatic"
-            XCODE_ATTRIBUTE_DEVELOPMENT_TEAM "3QYB6BMV6T"
-            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
-            XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_ASSET_PATHS "${ASSET_FOLDER}"
-            # "3" es el identificador para Apple TV
-            XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "3"
-        )
-
-
-        target_compile_options(${PROJECT_NAME} PRIVATE "-fno-objc-arc")
-
-        if(PLATFORM STREQUAL "SIMULATOR")
-            set(ILEN_METAL_SDK "appletvsimulator")
-        else()
-            set(ILEN_METAL_SDK "appletvos")
-        endif()
-
-        # Comando para shaders de Metal ajustado al SDK de tvOS
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
-            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk ${ILEN_METAL_SDK} $<$<CONFIG:Debug>:--add-debug>
-            COMMENT "Compilando shader de metal para ser usados en tvOS"
-            VERBATIM
-        )
-    else()
-        message("Configuration for macOS")  
-        set(ILEN_TARGET_NAME "macOS")
-
-        file(GLOB_RECURSE NATIVE_SOURCES src/Platform/macOS/*.mm src/Platform/apple/*.mm src/Renderer/Metal/*.mm src/Platform/apple/*.cpp)
-        set(NATIVE_HEADERS src/Platform/macOS src/Platform/apple src/Renderer/Metal)
-
-        target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
-        target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
-
-        target_link_libraries(${PROJECT_NAME} PRIVATE
-            "-framework Cocoa"
-            )
-
-        set_target_properties(${PROJECT_NAME} PROPERTIES      
-            BUNDLE TRUE  
-            XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
-            XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
-            MACOSX_BUNDLE TRUE
-            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/src/platform/macOS/Info.plist"
-            XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.scardivargames.ilen-test"
-            MACOSX_BUNDLE_GUI_IDENTIFIER "com.scardivargames.ilen-test"
-            MACOSX_BUNDLE_IDENTIFIER ${APP_IDENTIFIER}
-            MACOSX_BUNDLE_NAME ${APP_NAME}
-            MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
-            MACOSX_BUNDLE_VERSION ${APP_BUILD_NUMBER}
-            MACOSX_BUNDLE_COPYRIGHT ${APP_COPYRIGHT}
-            MACOSX_BUNDLE_BUNDLE_NAME ${APP_NAME}
-            )
-
-        if(NOT EXISTS ${CMAKE_SOURCE_DIR}/.ilen-bin-data)
-            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data"
-            )
-        endif()
-
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND $<TARGET_FILE:ILEN_METAL_COMPILER>
-            ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --sdk macosx $<$<CONFIG:Debug>:--add-debug>
-            COMMENT "Compilando shader de metal para ser usados en MacOS"
-            VERBATIM
-        )
-    endif()
-    #common libs in Apple
-    target_link_libraries(${PROJECT_NAME} PRIVATE
-        "-framework MetalKit" 
-        "-framework Metal"
-        "-framework QuartzCore"
-        "-framework GameController"
-    )
-
-    #HUD de Metal para debuggear
-    if(ILEN_METAL_HUD)
-        add_custom_target(run COMMAND ${CMAKE_COMMAND} -E env MTL_HUD_ENABLED=1
-        $<TARGET_FILE:${PROJECT_NAME}> DEPENDS ${PROJECT_NAME} WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}>)
-    endif()
-elseif(LINUX)
-    message("Configuring for Linux")
-    set(ILEN_TARGET_NAME "linux")
+add_custom_command(OUTPUT 
+    "${ILEN_GENERATED_SERIALIZERS}" 
+    "${ILEN_GENERATED_ENGINE_SCHEMA}" 
+    "${ILEN_GENERATED_COMPONENT_SCHEMA}"
     
-    file(GLOB_RECURSE NATIVE_SOURCES src/Platform/linux/*.cpp src/Renderer/Vulkan/*.cpp)
-    set(NATIVE_HEADERS src/Platform/linux src/Renderer/Vulkan)
-    target_include_directories(${PROJECT_NAME} PRIVATE ${NATIVE_HEADERS})
-    target_sources(${PROJECT_NAME} PRIVATE ${NATIVE_SOURCES})
+    COMMAND
+        "${CMAKE_COMMAND}" -E rm -rf
+        "${ILEN_GENERATED_REFLECTION_ROOT}"
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_GENERATED_REFLECTION_ROOT}/include"
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/src/include"
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/src/source"
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/manifests"
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_ENGINE_ROOT}/include"
+        "${ILEN_GENERATED_REFLECTION_ROOT}/include"
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_PROJECT_ROOT}/include"
+        "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/src/include"
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_PROJECT_ROOT}/src"
+        "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/src/source"
+    COMMAND
+        $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS>
+        --ilen-folder "${ILEN_GENERATED_REFLECTION_ROOT}"
+        --engine-mode
+    COMMAND
+        $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS>
+        --ilen-folder "${ILEN_GENERATED_REFLECTION_ROOT}"
 
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(XCB REQUIRED xcb)
-    pkg_check_modules(XCB_WM REQUIRED xcb-ewmh xcb-icccm)
-
-    target_include_directories(${PROJECT_NAME} PRIVATE ${XCB_INCLUDE_DIRS} ${XCB_EWMH_INCLUDE_DIRS} ${XCB_ICCCM_INCLUDE_DIRS})
-    target_link_directories(${PROJECT_NAME} PRIVATE ${XCB_LIBRARY_DIRS} ${XCB_EWMH_LIBRARY_DIRS} ${XCB_ICCCM_LIBRARY_DIRS})
-    #target_link_libraries(${PROJECT_NAME} PRIVATE ${XCB_LIBRARIES} ${XCB_EWMH_LIBRARIES} ${XCB_ICCCM_LIBRARIES})
-    target_link_libraries(${PROJECT_NAME} PRIVATE xcb xcb-ewmh xcb-icccm)
-    target_compile_options(${PROJECT_NAME} PRIVATE ${XCB_CFLAGS_OTHER})
-
-    set(OUTPUT_DIR ${CMAKE_BINARY_DIR}/${PROJECT_NAME})
-
-    # Ejecutable y DLLs/.so siempre dentro de build/IlusionsEngine/
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIR} CACHE PATH " " FORCE)
-
-    find_package(Vulkan REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PUBLIC Vulkan::Vulkan)
-
-    #iOS need also assets folder in the bundle
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets/"
-    )
-endif()
-
-add_dependencies(${PROJECT_NAME} ILEN_METAL_COMPILER)
-add_dependencies(${PROJECT_NAME} ILEN_FILE_BINARIZATION)
-add_dependencies(${PROJECT_NAME} ILEN_SCENE_BINARIZER)
-add_dependencies(${PROJECT_NAME} ILEN_COMPONENTS_REFLECTION_TOOLS)
-
-set(GENERATED_INL "${CMAKE_SOURCE_DIR}/project_data/manifests/generated_serializers.inl")
-
-add_custom_command(
-    OUTPUT ${GENERATED_INL}
-    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS> --ilen-folder ${CMAKE_SOURCE_DIR} --engine-mode
-    COMMAND $<TARGET_FILE:ILEN_COMPONENTS_REFLECTION_TOOLS> --ilen-folder ${CMAKE_SOURCE_DIR}
-    DEPENDS ilen-modules ILEN_COMPONENTS_REFLECTION_TOOLS
-    COMMENT "Generating component serializers with reflection tools"
+    DEPENDS
+        ILEN_COMPONENTS_REFLECTION_TOOLS
+        ${ILEN_REFLECTION_INPUTS}
+    COMMENT
+        "Generating engine and project components serializers"
     VERBATIM
 )
 
-target_sources(${PROJECT_NAME} PRIVATE ${GENERATED_INL})
-target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_SOURCE_DIR}/project_data")
-
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND $<TARGET_FILE:ILEN_SCENE_BINARIZER>
-    ARGS --ilen-folder ${CMAKE_SOURCE_DIR}
-    COMMENT "Scene binarization started."
-    VERBATIM
+add_custom_target(ilen_reflection_codegen DEPENDS
+    "${ILEN_GENERATED_SERIALIZERS}"
+    "${ILEN_GENERATED_ENGINE_SCHEMA}"
+    "${ILEN_GENERATED_COMPONENT_SCHEMA}"
 )
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND $<TARGET_FILE:ILEN_FILE_BINARIZATION>
-    ARGS --ilen-folder ${CMAKE_SOURCE_DIR} --compile-target ${ILEN_TARGET_NAME}
-    COMMENT "Organizing and binarizing all asset of the engine"
-    VERBATIM
-)
+# =============================================================================
+# Proyectos principales
+# =============================================================================
 
-#Copia de recursos según OS:
-if(APPLE)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-            add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/src/Platform/macOS/icon" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Resources/"
-        )
-    else()
-        # Copia de assets al bundle
-        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/.ilen-bin-data" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets/"
-        )
-    endif()
-endif()
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<CONFIG:Debug>:ILEN_DEBUG>)
-
-if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_MOBILE=1;ILEN_IOS=1")
-elseif(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "tvOS")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_MOBILE=1;ILEN_TVOS=1")
-elseif(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_MACOS=1;ILEN_SOURCES_FOLDER=\"${CMAKE_SOURCE_DIR}\"")
-elseif(LINUX)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_LINUX=1;VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1")
-elseif(WIN32)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DESKTOP=1;ILEN_WINDOWS=1")
-endif()
-
-
-#DEFINITIONS PARA PRUEBAS EN EL MOTOR
-target_compile_definitions(${PROJECT_NAME} PRIVATE "IGNORE_RENDERING=0") #Ignora el sistema de renderizado. Util para probar las ventanas sin nada más de por medio
-target_compile_definitions(${PROJECT_NAME} PRIVATE "TEST_ERROR_WINDOW_AT_START=0") #Lanza una error window al empezar para revisar que se vea correctamente
-target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_ONLY_ECS=1") #Desactiva el sistema de scripting del motor, forzando a ser solamente ECS.
-target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_SINGLECORE_TEST=0") #Fuerza al sistema de Jobs tener 1 solo hilo disponible
-target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_BASIC_LOGGIN=0") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)
-target_compile_definitions(${PROJECT_NAME} PRIVATE "ILEN_DISABLE_TIME_LOGGING=1") #Desactiva las llamadas de logging de la build (las llamadas de Warning y Error sigan funcionando.)
+add_subdirectory(engine)
+add_subdirectory(project)

@@ -1,7 +1,3 @@
-#include "ilen/core/time.h"
-#include "ilen/ecs/types.h"
-#include "ilen/headers/ilen_logs.h"
-#include "ilen/input/input_keys.h"
 #if !ILEN_ONLY_ECS
 
 #include <ilen_examples/gravity.h>
