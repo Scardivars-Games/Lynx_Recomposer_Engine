@@ -1,12 +1,11 @@
-[submodule "external/assimp"]
-	path = external/assimp
-	url = https://github.com/assimp/assimp.git
 [submodule "external/ilen-modules/external/assimp"]
-	path = external/ilen-modules/external/assimp
+	path = external/ilen_modules/external/assimp
 	url = https://github.com/assimp/assimp.git
+
 [submodule "external/ilen-modules/external/astc-encoder"]
-	path = external/ilen-modules/external/astc-encoder
+	path = external/ilen_modules/external/astc-encoder
 	url = https://github.com/ARM-software/astc-encoder.git
+
 [submodule "external/ilen-modules/external/bc7enc"]
-	path = external/ilen-modules/external/bc7enc
+	path = external/ilen_modules/external/bc7enc
 	url = https://github.com/richgel999/bc7enc_rdo.git
