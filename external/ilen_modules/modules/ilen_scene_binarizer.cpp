@@ -408,11 +408,11 @@ void dataBinarization(std::filesystem::path archivePath, std::filesystem::path s
 void binarizeScene(std::filesystem::path projectDataFolder) {
     // Definición de las rutas para Escenas
     fs::path sourceScenesFolder = projectDataFolder / "scenes";
-    fs::path binaryScenesFolder = projectDataFolder.parent_path() / ".ilen-bin-data" / "scenes";
+    fs::path binaryScenesFolder = projectDataFolder.parent_path() / ".ilen_bin_data" / "scenes";
     
     // Definición de las rutas para Prefabs
     fs::path sourcePrefabsFolder = projectDataFolder / "assets/prefabs";
-    fs::path binaryPrefabsFolder = projectDataFolder.parent_path() / ".ilen-bin-data" / "prefabs";
+    fs::path binaryPrefabsFolder = projectDataFolder.parent_path() / ".ilen_bin_data" / "prefabs";
     
     // Rutas del manifiesto compartido
     fs::path manifestJsonPath = sourceScenesFolder.parent_path() / "manifests" / "scenes.meta_ilenmanifest";

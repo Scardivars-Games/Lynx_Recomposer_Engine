@@ -3,7 +3,7 @@
 
 namespace ilen::internal{
     std::mutex Debug::logMutex;
-    uint32_t messageBufferSize = 200000;
+    const uint32_t messageBufferSize = 200000;
 
     std::string preparatePrefix(std::string prefijo){
         if(prefijo != ""){

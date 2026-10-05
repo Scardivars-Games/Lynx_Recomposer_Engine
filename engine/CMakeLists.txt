@@ -233,3 +233,100 @@ if(ILEN_BUILD_TESTS)
             "${CMAKE_CURRENT_SOURCE_DIR}/include"
     )
 endif()
+
+# =============================================================================
+# Assets binarios predefinidos
+# =============================================================================
+
+file(GLOB_RECURSE ILEN_ENGINE_ASSET_INPUTS CONFIGURE_DEPENDS
+    LIST_DIRECTORIES false
+    "${ILEN_ENGINE_DATA_DIR}/assets/*"
+    "${ILEN_ENGINE_DATA_DIR}/manifests/assets_defaults.meta_ilenmanifest"
+)
+
+list(FILTER ILEN_ENGINE_ASSET_INPUTS EXCLUDE REGEX "/\\.DS_Store$")
+set(ILEN_ENGINE_ASSET_WORK_ROOT "${ILEN_GENERATED_ROOT}/engine_asset_compiler")
+set(
+    ILEN_ENGINE_DEFAULT_MANIFEST
+    "${ILEN_ENGINE_DATA_DIR}/manifests/assets_defaults.meta_ilenmanifest"
+)
+
+set(
+    ILEN_ENGINE_ASSET_COMMANDS
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E rm -rf
+        "${ILEN_ENGINE_ASSET_WORK_ROOT}"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_ENGINE_ASSET_WORK_ROOT}/project_data/assets"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_ENGINE_ASSET_WORK_ROOT}/include/ilen/render"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_ENGINE_DATA_DIR}/assets"
+        "${ILEN_ENGINE_ASSET_WORK_ROOT}/project_data/assets"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_if_different
+        "${ILEN_ENGINE_ROOT}/include/ilen/render/render_constants.h"
+        "${ILEN_ENGINE_ASSET_WORK_ROOT}/include/ilen/render/render_constants.h"
+
+    COMMAND
+        $<TARGET_FILE:ILEN_FILE_BINARIZATION>
+        --mode engine
+        --source-assets "${ILEN_ENGINE_DATA_DIR}/assets"
+        --source-manifest "${ILEN_ENGINE_DEFAULT_MANIFEST}"
+        --output "${ILEN_ENGINE_BINARY_ASSET_DIR}"
+        --compile-target "${ILEN_TARGET_NAME}"
+)
+
+if(APPLE)
+    list(
+        APPEND
+        ILEN_ENGINE_ASSET_COMMANDS
+
+        COMMAND
+            $<TARGET_FILE:ILEN_METAL_COMPILER>
+            --ilen-folder "${ILEN_ENGINE_ASSET_WORK_ROOT}"
+            --sdk "${ILEN_METAL_SDK}"
+            $<$<CONFIG:Debug>:--add-debug>
+
+        COMMAND
+            "${CMAKE_COMMAND}" -E copy_directory
+            "${ILEN_ENGINE_ASSET_WORK_ROOT}/.ilen_bin_data/shader-code"
+            "${ILEN_ENGINE_BINARY_ASSET_DIR}/shader-code"
+    )
+endif()
+
+add_custom_command(
+    OUTPUT
+        "${ILEN_ENGINE_ASSET_STAMP}"
+
+    ${ILEN_ENGINE_ASSET_COMMANDS}
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E touch
+        "${ILEN_ENGINE_ASSET_STAMP}"
+
+    DEPENDS
+        ${ILEN_ENGINE_ASSET_INPUTS}
+        ILEN_FILE_BINARIZATION
+        $<$<BOOL:${APPLE}>:ILEN_METAL_COMPILER>
+
+    COMMENT
+        "Compiling Ilusions Engine predefined assets"
+
+    COMMAND_EXPAND_LISTS
+    VERBATIM
+)
+
+add_custom_target(
+    ilen_engine_assets
+    DEPENDS
+        "${ILEN_ENGINE_ASSET_STAMP}"
+)

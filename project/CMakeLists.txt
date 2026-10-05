@@ -379,55 +379,18 @@ elseif(LINUX)
                 "${CMAKE_BINARY_DIR}/${ILEN_GAME_TARGET}"
     )
 endif()
-
 # =============================================================================
-# Paquete fusionado de assets
-#
-# FileManager actualmente solo reconoce un directorio de recursos.
-#
-# Por ello se crea este staging:
-#
-#   build/ilen-generated/game-assets/
-#
-# Orden:
-#
-#   1. Assets del motor.
-#   2. Assets del proyecto.
-#   3. Schemas generados.
-#   4. Escenas.
-#   5. Shaders.
-#   6. Binarización general.
-#
-# El proyecto se copia después para permitir overrides intencionales.
+# Assets finales del videojuego
 # =============================================================================
 
 set(
-    ILEN_GAME_ASSET_STAGING_ROOT
-    "${ILEN_GENERATED_ROOT}/game_assets"
+    ILEN_PROJECT_ASSET_MANIFEST
+    "${ILEN_PROJECT_DATA_DIR}/manifests/assets.meta_ilenmanifest"
 )
 
 set(
-    ILEN_GAME_BINARY_DATA_DIR
-    "${ILEN_GAME_ASSET_STAGING_ROOT}/.ilen-bin-data"
-)
-
-set(
-    ILEN_GAME_ASSET_STAMP
-    "${ILEN_GAME_BINARY_DATA_DIR}/.build_complete"
-)
-
-# =============================================================================
-# Entradas que pueden invalidar el paquete de assets
-# =============================================================================
-
-file(
-    GLOB_RECURSE
-    ILEN_ENGINE_ASSET_INPUTS
-    CONFIGURE_DEPENDS
-    LIST_DIRECTORIES false
-
-    "${ILEN_ENGINE_DATA_DIR}/assets/*"
-    "${ILEN_ENGINE_DATA_DIR}/manifests/*"
+    ILEN_ENGINE_DEFAULT_ASSET_MANIFEST
+    "${ILEN_ENGINE_DATA_DIR}/manifests/assets_defaults.meta_ilenmanifest"
 )
 
 file(
@@ -435,275 +398,172 @@ file(
     ILEN_PROJECT_ASSET_INPUTS
     CONFIGURE_DEPENDS
     LIST_DIRECTORIES false
-
     "${ILEN_PROJECT_DATA_DIR}/assets/*"
-    "${ILEN_PROJECT_DATA_DIR}/scenes/*"
-    "${ILEN_PROJECT_DATA_DIR}/manifests/*"
 )
 
-# Los shaders Metal actuales solo incluyen este header.
-set(
-    ILEN_SHADER_HEADER_INPUTS
-    "${ILEN_ENGINE_ROOT}/include/ilen/render/render_constants.h"
-)
-
-set(
-    ILEN_ALL_ASSET_INPUTS
-    ${ILEN_ENGINE_ASSET_INPUTS}
-    ${ILEN_PROJECT_ASSET_INPUTS}
-    ${ILEN_SHADER_HEADER_INPUTS}
-)
-
-# Evitar que modificaciones de Finder invaliden los assets.
 list(
     FILTER
-    ILEN_ALL_ASSET_INPUTS
+    ILEN_PROJECT_ASSET_INPUTS
     EXCLUDE
     REGEX "/\\.DS_Store$"
 )
 
-list(SORT ILEN_ALL_ASSET_INPUTS)
-
-# Este inventario permite detectar assets añadidos o eliminados.
-# file(GENERATE) no cambia el timestamp si el contenido sigue igual.
 string(
     JOIN
     "\n"
-    ILEN_ASSET_INVENTORY_CONTENT
-    ${ILEN_ALL_ASSET_INPUTS}
+    ILEN_PROJECT_ASSET_INVENTORY_CONTENT
+    ${ILEN_PROJECT_ASSET_INPUTS}
 )
 
 set(
-    ILEN_ASSET_INVENTORY_FILE
-    "${CMAKE_CURRENT_BINARY_DIR}/ilen_asset_inventory.txt"
+    ILEN_PROJECT_ASSET_INVENTORY_FILE
+    "${CMAKE_CURRENT_BINARY_DIR}/ilen_project_asset_inventory.txt"
 )
 
 file(
     GENERATE
     OUTPUT
-        "${ILEN_ASSET_INVENTORY_FILE}"
+        "${ILEN_PROJECT_ASSET_INVENTORY_FILE}"
     CONTENT
-        "${ILEN_ASSET_INVENTORY_CONTENT}\n"
+        "${ILEN_PROJECT_ASSET_INVENTORY_CONTENT}\n"
 )
 
-# =============================================================================
-# Generación incremental
-#
-# Se elimina solamente la copia de las fuentes del staging.
-# No se elimina .ilen-bin-data.
-# =============================================================================
+set(
+    ILEN_PROJECT_ASSET_DEPENDENCIES
+    ${ILEN_PROJECT_ASSET_INPUTS}
+    "${ILEN_PROJECT_ASSET_INVENTORY_FILE}"
+    "${ILEN_ENGINE_ASSET_STAMP}"
+    "${ILEN_ENGINE_DEFAULT_ASSET_MANIFEST}"
+    ILEN_FILE_BINARIZATION
+)
 
-if(APPLE)
-    add_custom_command(
-        OUTPUT
-            "${ILEN_GAME_ASSET_STAMP}"
-
-        # Limpiar únicamente las entradas copiadas.
-        # Los binarios pesados permanecen en .ilen-bin-data.
-        COMMAND
-            "${CMAKE_COMMAND}" -E rm -rf
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/include"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E rm -rf
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/include/ilen/render"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/assets"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/scenes"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_BINARY_DATA_DIR}"
-
-        # El compilador Metal actual busca:
-        # <ilen-folder>/include/ilen/render/render_constants.h
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${ILEN_ENGINE_ROOT}/include/ilen/render/render_constants.h"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/include/ilen/render/render_constants.h"
-
-        # Assets predeterminados del motor.
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_ENGINE_DATA_DIR}/assets"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/assets"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_ENGINE_DATA_DIR}/manifests"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests"
-
-        # Assets y datos propios del proyecto.
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_PROJECT_DATA_DIR}/assets"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/assets"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_PROJECT_DATA_DIR}/scenes"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/scenes"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_PROJECT_DATA_DIR}/manifests"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests"
-
-        # Schemas generados en esta build.
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${ILEN_GENERATED_ENGINE_SCHEMA}"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests/engine_defaults.meta_ilenschema"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${ILEN_GENERATED_COMPONENT_SCHEMA}"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests/components.meta_ilenschema"
-
-        # Generación de escenas y prefabs.
-        COMMAND
-            $<TARGET_FILE:ILEN_SCENE_BINARIZER>
-            --ilen-folder "${ILEN_GAME_ASSET_STAGING_ROOT}"
-
-        # Compilación de Metal.
-        COMMAND
-            $<TARGET_FILE:ILEN_METAL_COMPILER>
-            --ilen-folder "${ILEN_GAME_ASSET_STAGING_ROOT}"
-            --sdk "${ILEN_METAL_SDK}"
-            $<$<CONFIG:Debug>:--add-debug>
-
-        # Binarización general.
-        COMMAND
-            $<TARGET_FILE:ILEN_FILE_BINARIZATION>
-            --ilen-folder "${ILEN_GAME_ASSET_STAGING_ROOT}"
-            --compile-target "${ILEN_TARGET_NAME}"
-
-        # Solo se crea si todas las operaciones anteriores terminaron bien.
-        COMMAND
-            "${CMAKE_COMMAND}" -E touch
-            "${ILEN_GAME_ASSET_STAMP}"
-
-        DEPENDS
-            ${ILEN_ALL_ASSET_INPUTS}
-            "${ILEN_ASSET_INVENTORY_FILE}"
-            "${ILEN_GENERATED_ENGINE_SCHEMA}"
-            "${ILEN_GENERATED_COMPONENT_SCHEMA}"
-
-            ILEN_SCENE_BINARIZER
-            ILEN_METAL_COMPILER
-            ILEN_FILE_BINARIZATION
-
-        COMMENT
-            "Updating merged engine and project asset package"
-
-        COMMAND_EXPAND_LISTS
-        VERBATIM
-    )
-
-else()
-    add_custom_command(
-        OUTPUT
-            "${ILEN_GAME_ASSET_STAMP}"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E rm -rf
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/assets"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/scenes"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E make_directory
-            "${ILEN_GAME_BINARY_DATA_DIR}"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_ENGINE_DATA_DIR}/assets"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/assets"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_ENGINE_DATA_DIR}/manifests"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_PROJECT_DATA_DIR}/assets"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/assets"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_PROJECT_DATA_DIR}/scenes"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/scenes"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_PROJECT_DATA_DIR}/manifests"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${ILEN_GENERATED_ENGINE_SCHEMA}"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests/engine_defaults.meta_ilenschema"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E copy_if_different
-            "${ILEN_GENERATED_COMPONENT_SCHEMA}"
-            "${ILEN_GAME_ASSET_STAGING_ROOT}/project_data/manifests/components.meta_ilenschema"
-
-        COMMAND
-            $<TARGET_FILE:ILEN_SCENE_BINARIZER>
-            --ilen-folder "${ILEN_GAME_ASSET_STAGING_ROOT}"
-
-        COMMAND
-            $<TARGET_FILE:ILEN_FILE_BINARIZATION>
-            --ilen-folder "${ILEN_GAME_ASSET_STAGING_ROOT}"
-            --compile-target "${ILEN_TARGET_NAME}"
-
-        COMMAND
-            "${CMAKE_COMMAND}" -E touch
-            "${ILEN_GAME_ASSET_STAMP}"
-
-        DEPENDS
-            ${ILEN_ALL_ASSET_INPUTS}
-            "${ILEN_ASSET_INVENTORY_FILE}"
-            "${ILEN_GENERATED_ENGINE_SCHEMA}"
-            "${ILEN_GENERATED_COMPONENT_SCHEMA}"
-
-            ILEN_SCENE_BINARIZER
-            ILEN_FILE_BINARIZATION
-
-        COMMENT
-            "Updating merged engine and project asset package"
-
-        VERBATIM
+if(EXISTS "${ILEN_PROJECT_ASSET_MANIFEST}")
+    list(
+        APPEND
+        ILEN_PROJECT_ASSET_DEPENDENCIES
+        "${ILEN_PROJECT_ASSET_MANIFEST}"
     )
 endif()
 
-# Este target pertenece a ALL, pero no tiene comandos propios.
-# Solo solicita el sello. Si está actualizado, no hace absolutamente nada.
+set(
+    ILEN_PROJECT_SCENE_WORK_ROOT
+    "${ILEN_GENERATED_ROOT}/project_scene_compiler"
+)
+
+file(
+    GLOB_RECURSE
+    ILEN_PROJECT_SCENE_INPUTS
+    CONFIGURE_DEPENDS
+    LIST_DIRECTORIES false
+    "${ILEN_PROJECT_DATA_DIR}/scenes/*"
+    "${ILEN_PROJECT_DATA_DIR}/assets/prefabs/*"
+)
+
+list(
+    FILTER
+    ILEN_PROJECT_SCENE_INPUTS
+    EXCLUDE
+    REGEX "/\\.DS_Store$"
+)
+
+list(
+    APPEND
+    ILEN_PROJECT_ASSET_DEPENDENCIES
+    ${ILEN_PROJECT_SCENE_INPUTS}
+    "${ILEN_GENERATED_COMPONENT_SCHEMA}"
+    ILEN_SCENE_BINARIZER
+)
+add_custom_command(
+    OUTPUT
+        "${ILEN_GAME_ASSET_STAMP}"
+
+    # -------------------------------------------------------------------------
+    # Preparar únicamente el layout temporal requerido por la tool de escenas.
+    # -------------------------------------------------------------------------
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E rm -rf
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/assets/prefabs"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/scenes"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E make_directory
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/manifests"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_PROJECT_DATA_DIR}/scenes"
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/scenes"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_PROJECT_DATA_DIR}/assets/prefabs"
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/assets/prefabs"
+
+    # Copia cualquier scenes.meta_ilenmanifest anterior para conservar IDs.
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_PROJECT_DATA_DIR}/manifests"
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/manifests"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_if_different
+        "${ILEN_GENERATED_COMPONENT_SCHEMA}"
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/manifests/components.meta_ilenschema"
+
+    # -------------------------------------------------------------------------
+    # Generar assets finales: predefinidos + proyecto + manifiesto único.
+    # -------------------------------------------------------------------------
+
+    COMMAND
+        $<TARGET_FILE:ILEN_FILE_BINARIZATION>
+        --mode project
+        --source-assets "${ILEN_PROJECT_DATA_DIR}/assets"
+        --source-manifest "${ILEN_PROJECT_ASSET_MANIFEST}"
+        --predefined-assets "${ILEN_ENGINE_BINARY_ASSET_DIR}"
+        --predefined-manifest "${ILEN_ENGINE_DEFAULT_ASSET_MANIFEST}"
+        --output "${ILEN_GAME_BINARY_DATA_DIR}"
+        --compile-target "${ILEN_TARGET_NAME}"
+
+    # -------------------------------------------------------------------------
+    # Generar escenas y prefabs.
+    # -------------------------------------------------------------------------
+
+    COMMAND
+        $<TARGET_FILE:ILEN_SCENE_BINARIZER>
+        --ilen-folder "${ILEN_PROJECT_SCENE_WORK_ROOT}"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_directory
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/.ilen_bin_data"
+        "${ILEN_GAME_BINARY_DATA_DIR}"
+
+    # Persistir el manifiesto editable de escenas en project_data real.
+    COMMAND
+        "${CMAKE_COMMAND}" -E copy_if_different
+        "${ILEN_PROJECT_SCENE_WORK_ROOT}/project_data/manifests/scenes.meta_ilenmanifest"
+        "${ILEN_PROJECT_DATA_DIR}/manifests/scenes.meta_ilenmanifest"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E touch
+        "${ILEN_GAME_ASSET_STAMP}"
+
+    DEPENDS
+        ${ILEN_PROJECT_ASSET_DEPENDENCIES}
+
+    COMMENT
+        "Compiling project assets, scenes and predefined engine assets"
+
+    VERBATIM
+)
+
 add_custom_target(
     ilen_game_assets
     ALL
@@ -712,28 +572,30 @@ add_custom_target(
 )
 
 add_dependencies(
-    ${ILEN_GAME_TARGET}
     ilen_game_assets
-)
-
-# Limpieza explícita de la caché.
-# Nunca se ejecuta automáticamente.
-add_custom_target(
-    ilen_clean_asset_cache
-
-    COMMAND
-        "${CMAKE_COMMAND}" -E rm -rf
-        "${ILEN_GAME_ASSET_STAGING_ROOT}"
-
-    COMMENT
-        "Removing the complete generated asset cache"
-
-    VERBATIM
+    ilen_engine_assets
 )
 
 add_dependencies(
     ${ILEN_GAME_TARGET}
     ilen_game_assets
+)
+
+add_custom_target(
+    ilen_clean_asset_cache
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E rm -rf
+        "${ILEN_ENGINE_BINARY_ASSET_DIR}"
+
+    COMMAND
+        "${CMAKE_COMMAND}" -E rm -rf
+        "${ILEN_GAME_BINARY_DATA_DIR}"
+
+    COMMENT
+        "Removing generated engine and game assets"
+
+    VERBATIM
 )
 
 # =============================================================================

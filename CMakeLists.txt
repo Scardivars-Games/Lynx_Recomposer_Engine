@@ -35,6 +35,7 @@ set(ILEN_GENERATED_SERIALIZERS "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/m
 set(ILEN_GENERATED_ENGINE_SCHEMA "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/manifests/engine_defaults.meta_ilenschema")
 set(ILEN_GENERATED_COMPONENT_SCHEMA "${ILEN_GENERATED_REFLECTION_ROOT}/project_data/manifests/components.meta_ilenschema")
 
+
 # =============================================================================
 # Opciones globales
 # =============================================================================
@@ -83,6 +84,11 @@ else()
         "${CMAKE_SYSTEM_NAME}"
     )   
 endif()
+
+set(ILEN_ENGINE_BINARY_ASSET_DIR "${ILEN_GENERATED_ROOT}/engine_assets/${ILEN_TARGET_NAME}")
+set(ILEN_ENGINE_ASSET_STAMP "${ILEN_ENGINE_BINARY_ASSET_DIR}/.build_complete")
+set(ILEN_GAME_BINARY_DATA_DIR "${ILEN_GENERATED_ROOT}/game_assets")
+set(ILEN_GAME_ASSET_STAMP "${ILEN_GAME_BINARY_DATA_DIR}/.build_complete")
 
 # =============================================================================
 # Configuración común compartida por motor y proyecto

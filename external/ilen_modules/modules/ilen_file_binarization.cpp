@@ -1,8 +1,16 @@
+#include <array>
+#include <cstdint>
+#include <exception>
 #include <iostream>
-#include <sstream>
+//#include <sstream>
 #include <filesystem>
 #include <fstream>
 #include <json/json.hpp>
+#include <algorithm>
+#include <stdexcept>
+#include <string>
+#include <system_error>
+#include <unordered_map>
 #define STB_IMAGE_IMPLEMENTATION //Esto es para el STB
 #include <images/stb_image.h>
 #include <ilen/headers/ilen_logs.h>
@@ -18,11 +26,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <ilen/job_system/job_system.h>
-#include <set>
-#include <future>
-#include <mutex>
 #include <astcenc.h>
 #include <bc7enc.h>
+#include <set>
 
 namespace ilen::core::threading {
     std::thread::id g_MainThreadId;
@@ -31,7 +37,7 @@ namespace ilen::core::threading {
 }
 
 using namespace ilen::enumerations;
-const char* DEBUG_PREFIX = "FILE_BINARIZATION";
+constexpr const char* DEBUG_PREFIX = "FILE_BINARIZATION";
 
 //CONSTANTE TIPOS TO AVOID TYPING ERRORS
 const std::string ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS = "totalOfElements";
@@ -134,14 +140,43 @@ enum class CompileTargetOptions {
     Undefined,
 };
 
-CompileTargetOptions actualCompileOption = CompileTargetOptions::Undefined;
+enum class AssetBuildMode {
+    Engine,
+    Project
+};
+
+struct AssetBuildOptions {
+    AssetBuildMode mode = AssetBuildMode::Project;
+    std::filesystem::path sourceAssets;
+    std::filesystem::path sourceManifest;
+    std::filesystem::path output;
+
+    //Para cuando se compile el proyecto, sepa donde esta los assets predefinidos
+    std::filesystem::path predefinedAssets;
+    std::filesystem::path predefinedManifest;
+};
+
+AssetBuildOptions parseBuildOptions(int argc, char* argv[]);
+
+void buildEngineAssets(const AssetBuildOptions& options);
+void buildProjectAssets(const AssetBuildOptions& options);
 
 using json = nlohmann::json;
+using file_route = std::filesystem::path;
+
+CompileTargetOptions actualCompileOption = CompileTargetOptions::Undefined;
 
 void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder);
 void binarizeFiles(std::filesystem::path ilenEngineFolder);
 std::string generateFriendlyName(const std::string& filename);
 ilen::graphics::MeshData loadModelData(std::filesystem::path modelPath);
+
+json readJsonFile(const file_route& path);
+void writeJsonFile(const file_route& path, const json& data);
+void copyDirectoryContents(const file_route& source, const file_route& destination);
+json mergeProjectManifest(const json& predefinedManifest, const json& currentProjectManifest);
+json createProjectOnlyManifest(const json& completeManifest, const json& predefinedManifest);
+void writeRuntimeAssetManifest(const json& completeManifest, const file_route& binaryAssetsFolder);
 
 ilen::job_system::JobSystem jobSystem;
 //std::mutex fileWrite;
@@ -198,64 +233,531 @@ std::vector<uint8_t> CompressToASTC(const uint8_t* pixels, int width, int height
 void ApplyEdgeBleeding(uint8_t* pixels, int width, int height);
 
 int main(int argc, char* argv[]){
-    std::filesystem::path folderPath;
+    try {
+        const AssetBuildOptions options = parseBuildOptions(argc, argv);
 
-    jobSystem.Initializate();
-    ilen::time::Time::Init();
+        jobSystem.Initializate();
+        ilen::time::Time::Init();
+        bc7enc_compress_block_init();
 
-    bc7enc_compress_block_init();
+        if(options.mode == AssetBuildMode::Engine) {
+            buildEngineAssets(options);
+        } else {
+            buildProjectAssets(options);
+        }
 
-    for(int i = 0; i < argc; i++){
-        std::string arg = argv[i];
-        if(arg == "--ilen-folder" || arg == "-f"){
-            if(i + 1 < argc){
-                folderPath = argv[i + 1];
-            } else {
-                std::cerr << "Error: El indicador --ilen-folder requiere una ruta a una carpeta." << std::endl;
-                return 1;
-            }
-        } else if(arg == "--compile-target" || arg == "-t"){
-            if(i + 1 < argc){
-                std::string target = std::string(argv[i + 1]);
-                ILEN_LOG_P("Binarization", "Data: %s", target.c_str());
-                if(target == "macOS"){
-                    actualCompileOption = CompileTargetOptions::macOS;
-                }else if(target == "iOS"){
-                    actualCompileOption = CompileTargetOptions::iOS;
-                }else if (target == "tvOS") {
-                    actualCompileOption = CompileTargetOptions::tvOS;
-                }else if(target == "windows") {
-                    actualCompileOption = CompileTargetOptions::Windows;
-                }else if(target == "linux") {
-                    actualCompileOption = CompileTargetOptions::Linux;
-                }else if(target == "android"){
-                    actualCompileOption = CompileTargetOptions::Android;
-                }else {
-                    actualCompileOption = CompileTargetOptions::Undefined;
-                }
-            } else {
-                std::cerr << "Error: El indicador --compile-target requiere un valor de target." << std::endl;
-                return 1;
-            }
+        jobSystem.StopJobSystem();
+        return 0;
+    }catch(const std::exception& exception) {
+        jobSystem.StopJobSystem();
+
+        std::cerr << "[ILEN_FILE_BINARIZATION] " << exception.what() << '\n';
+        return 1;
+    }
+}
+
+namespace {
+    constexpr const char* ASSETS_MANIFEST_NAME = "assets.meta_ilenmanifest";
+    constexpr const char* BINARY_MANIFEST_NAME = "assets.ilenmanifest";
+
+    const std::array<std::string, 5> MANIFEST_GROUPS = {
+        ILEN_ASSET_MANIFEST_MODEL,
+        ILEN_ASSET_MANIFEST_TEXTURES,
+        ILEN_ASSET_MANIFEST_AUDIO,
+        ILEN_ASSET_MANIFEST_MATERIALS,
+        ILEN_ASSET_MANIFEST_SHADERS
+    };
+
+    file_route requirePathArgument(int& index, int argc, char* argv[], const std::string& argument) {
+        if(index + 1 >= argc) {
+            throw std::runtime_error(argument + "requiere una ruta");
+        }
+
+        ++index;
+        return file_route(argv[index]);
+    }
+
+    CompileTargetOptions parseCompileTarget(const std::string& target) {
+        if(target == "macOS")
+            return CompileTargetOptions::macOS;
+        if(target == "iOS")
+            return CompileTargetOptions::iOS;
+        if(target == "tvOS")
+            return  CompileTargetOptions::tvOS;
+        if(target == "windows")
+            return CompileTargetOptions::Windows;
+        if(target == "linux")
+            return CompileTargetOptions::Linux;
+        if(target == "android")
+            return CompileTargetOptions::Android;
+
+        throw std::runtime_error("Target de compilación desconocido: "+ target);
+    }
+
+    void validateDirectory(const file_route& path, const std::string& argument) {
+        if(path.empty()) {
+            throw std::runtime_error("Falta el argumento " + argument);
+        }
+
+        if(!std::filesystem::is_directory(path)) {
+            throw std::runtime_error("La ruta recibida por " + argument + " no es un directorio válido: " + path.string());
         }
     }
 
-    if(actualCompileOption == CompileTargetOptions::Undefined){
-        std::cerr << "Se requiere un target para usar esta libreria. Añádela con el comando --compile-target <target>." << std::endl;
-        return -1;
+    void validateRegularFile(const file_route& path, const std::string& argument){
+        if(path.empty()) {
+            throw std::runtime_error("Falta el argumento " + argument);
+        }
+
+        if(!std::filesystem::is_regular_file(path)) {
+            throw std::runtime_error("La ruta recibida por " + argument + " no es una archivo válido: " + path.string());
+        }
     }
 
-    if(folderPath.empty()){
-        return -1;
+    void initializaManifest(json& manifest) {
+        for(const std::string& group : MANIFEST_GROUPS) {
+            if(!manifest.contains(group) || !manifest[group].is_array()){
+                manifest[group] = json::array();
+            }
+        }
+
+        if(!manifest.contains(ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS)) {
+            manifest[ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS] = 0;
+        }
     }
 
-    //Pasos para poder binarizar
-    createAndOrganizeFiles(folderPath);
-    binarizeFiles(folderPath);
+    std::string makeAssetKey(const std::string& group, const json& asset) {
+        return group + ":" + asset.value(ILEN_ASSET_MANIFEST_ASSET_PATH, std::string{});
+    }
 
-    jobSystem.StopJobSystem();
+    std::unordered_set<std::string> collectAssetKeys(const json& manifest) {
+        std::unordered_set<std::string> result;
+        for(const std::string& group : MANIFEST_GROUPS) {
+            if(!manifest.contains(group)) continue;
 
-    return 0;
+            for(const json& asset : manifest[group]) {
+                result.insert(makeAssetKey(group, asset));
+            }
+        }
+
+        return result;
+    }
+    
+    file_route removeCategoryPrefix(const file_route& sourcePath, const std::string& category) {
+        const file_route prefix(category);
+        const file_route relative = sourcePath.lexically_relative(prefix);
+
+        if(relative.empty()) return sourcePath.filename();
+
+        const std::string relativeString = relative.generic_string();
+        if(relativeString.starts_with("..")) return sourcePath;
+
+        return relative;
+    }
+
+    file_route runtimePathForAsset(const std::string& group, const file_route& sourcePath) {
+        file_route result = removeCategoryPrefix(sourcePath, group);
+
+        if(group == ILEN_ASSET_MANIFEST_MODEL) {
+            result.replace_extension(".ilenmesh");
+        }else if(group == ILEN_ASSET_MANIFEST_TEXTURES) {
+            result.replace_extension(".ilentex");
+        }else if(group == ILEN_ASSET_MANIFEST_SHADERS) {
+            result.replace_extension(".ilenshader");
+        }else if(group == ILEN_ASSET_MANIFEST_MATERIALS) {
+            result.replace_extension(".ilenmat");
+        }
+
+        return result;
+    }
+
+    template<typename AssetMap>
+    void writeAssetMap(std::ofstream& output, const AssetMap& assets) {
+        for(const auto& [id, asset]: assets) {
+            const std::string path = asset.assetPath.generic_string();
+            const uint32_t pathSize = static_cast<uint32_t>(path.size());
+            output.write(reinterpret_cast<const char*>(&id), sizeof(id));
+            output.write(reinterpret_cast<const char*>(&pathSize), sizeof(pathSize));
+            output.write(path.data(), pathSize);
+        }
+    }
+}
+
+AssetBuildOptions parseBuildOptions(int argc, char* argv[]) {
+    AssetBuildOptions options;
+    bool modeWasProvided = false;
+
+    for(int index = 1; index < argc; index++) {
+        const std::string argument = argv[index];
+
+        if(argument == "--mode" || argument == "-m"){
+            if(index + 1 >= argc) {
+                throw std::runtime_error("--mode requiere engine o project");
+            }
+
+            const std::string mode = argv[++index];
+
+            if(mode == "engine"){
+                options.mode = AssetBuildMode::Engine;
+            }else if(mode == "project"){
+                options.mode = AssetBuildMode::Project;
+            }else{
+                throw std::runtime_error("Modo desconocido: " + mode);
+            }
+
+            modeWasProvided = true;
+        }else if(argument == "--source-manifest"){
+            options.sourceManifest = requirePathArgument(index, argc, argv, argument);
+        }else if(argument == "--source-assets") {
+            options.sourceAssets = requirePathArgument(index, argc, argv, argument);
+        }else if(argument == "--predefined-assets") {
+            options.predefinedAssets = requirePathArgument(index, argc, argv, argument);
+        }else if(argument == "--predefined-manifest") {
+            options.predefinedManifest = requirePathArgument(index, argc, argv, argument);
+        }else if(argument == "--output") {
+            options.output = requirePathArgument(index, argc, argv, argument);
+        }else if(argument == "--compile-target" || argument == "-t") {
+            if(index + 1 >= argc) {
+                throw std::runtime_error("--compile-target requiere un valor");
+            }
+            actualCompileOption = parseCompileTarget(argv[++index]);
+        }else {
+            throw std::runtime_error("Argumento desconocido: " + argument);
+        }
+    }
+
+    if(!modeWasProvided) {
+        throw std::runtime_error("Debes indicar --mode engine o --mode project");
+    }
+
+    validateDirectory(options.sourceAssets, "--source-assets");
+    //validateRegularFile(options.sourceManifest, "--source-manifest");
+    if(options.sourceManifest.empty())
+    {
+        throw std::runtime_error(
+            "Falta el argumento --source-manifest."
+        );
+    }
+
+    if(options.output.empty())
+    {
+        throw std::runtime_error(
+            "Falta el argumento --output."
+        );
+    }
+
+    if(actualCompileOption ==
+    CompileTargetOptions::Undefined)
+    {
+        throw std::runtime_error(
+            "Falta --compile-target."
+        );
+    }
+
+    if(options.mode == AssetBuildMode::Engine)
+    {
+        // Al compilar el motor, su manifiesto predefinido
+        // sí tiene que existir.
+        validateRegularFile(
+            options.sourceManifest,
+            "--source-manifest"
+        );
+    }
+    else
+    {
+        // En un proyecto nuevo, assets.meta_ilenmanifest
+        // todavía no existe. Solo comprobamos que pueda
+        // crearse dentro de project_data/manifests.
+        if(options.sourceManifest.has_filename() == false)
+        {
+            throw std::runtime_error(
+                "--source-manifest debe indicar la ruta completa "
+                "del manifiesto que se creará."
+            );
+        }
+
+        validateDirectory(
+            options.predefinedAssets,
+            "--predefined-assets"
+        );
+
+        validateRegularFile(
+            options.predefinedManifest,
+            "--predefined-manifest"
+        );
+    }
+
+    /*if(options.mode == AssetBuildMode::Project) {
+        validateDirectory(options.predefinedAssets, "--predefined-assets");
+        validateRegularFile(options.predefinedManifest, "--predefined-manifest");
+    }*/
+
+    return options;
+}
+
+json readJsonFile(const file_route& path) {
+    std::ifstream input(path);
+
+    if(!input.is_open()) {
+        throw std::runtime_error("No se pudo abrir el JSON: " + path.string());
+    }
+
+    json result;
+    try {
+        input >> result;
+    }catch(const json::parse_error& exception) {
+        throw std::runtime_error("JSON inválido en " + path.string() + ": " + exception.what());
+    }
+
+    return result;
+}
+
+void writeJsonFile(const file_route& path, const json& data) {
+    std::filesystem::create_directories(path.parent_path());
+
+    std::ofstream output(path);
+    if(!output.is_open()) {
+        throw std::runtime_error("No se pudo escribir: " + path.string());
+    }
+
+    output << data.dump(4);
+}
+
+void copyDirectoryContents(const file_route& source, const file_route& destination) {
+    if(!std::filesystem::exists(source)) {
+        throw std::runtime_error("No existe la carpeta que debe copiarse: " + source.string());
+    }
+
+    std::filesystem::create_directories(destination);
+    for(const auto& entry : std::filesystem::recursive_directory_iterator(source)) {
+        const file_route relative = std::filesystem::relative(entry.path(), source);
+        const file_route finalPath = destination / relative;
+
+        if(entry.is_directory()) {
+            std::filesystem::create_directories(finalPath);
+            continue;
+        }
+
+        if(!entry.is_regular_file()) continue;
+
+        std::filesystem::create_directories(finalPath.parent_path());
+
+        std::filesystem::copy_file(entry.path(), finalPath, std::filesystem::copy_options::overwrite_existing);
+    }
+}
+
+json mergeProjectManifest(const json& predefinedManifest, const json& currentProjectManifest) {
+    json result = predefinedManifest;
+    initializaManifest(result);
+
+    json current = currentProjectManifest;
+    initializaManifest(current);
+
+    std::unordered_set<std::string> existingKeys = collectAssetKeys(result);
+    std::unordered_set<uint32_t> existingIDs;
+
+    uint32_t maximumID = result.value(ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS, 0u);
+
+    for(const std::string& group: MANIFEST_GROUPS) {
+        for(const json& asset: result[group]) {
+            const uint32_t id = asset.value(ILEN_ASSET_MANIFEST_ASSET_ID, 0u);
+            existingIDs.insert(id);
+            maximumID = std::max(maximumID, id);
+        }
+    }
+
+    for(const std::string& group : MANIFEST_GROUPS) {
+        for(json asset : current[group]) {
+            const std::string key = makeAssetKey(group, asset);
+
+            if(existingKeys.contains(key)) continue;
+
+            uint32_t id = asset.value(ILEN_ASSET_MANIFEST_ASSET_ID, 0u);
+            if(id == 0 || existingIDs.contains(id)) {
+                id = maximumID++;
+                asset[ILEN_ASSET_MANIFEST_ASSET_ID] = id;
+            }else {
+                maximumID = std::max(maximumID, id);
+            }
+
+            existingIDs.insert(id);
+            existingKeys.insert(key);
+            result[group].push_back(std::move(asset));
+        }
+    }
+
+    result[ILEN_ASSET_MANIFEST_TOTAL_OF_ELEMENTS] = maximumID;
+
+    return result;
+}
+
+json createProjectOnlyManifest(const json& completeManifest, const json& predefinedManifest) {
+    json result = completeManifest;
+    initializaManifest(result);
+
+    const std::unordered_set<std::string> predefinedKeys = collectAssetKeys(predefinedManifest);
+
+    for(const std::string& group : MANIFEST_GROUPS) {
+        json filtered = json::array();
+        for(const json& asset: result[group]) {
+            if(!predefinedKeys.contains(makeAssetKey(group, asset))) {
+                filtered.push_back(asset);
+            }
+        }
+
+        if(filtered.empty()) {
+            result.erase(group);
+        }else {
+            result[group] = std::move(filtered);
+        }
+    }
+
+    return result;
+}
+
+void writeRuntimeAssetManifest(const json& completeManifest, const file_route& binaryAssetsFolder) {
+    using namespace ilen::resources;
+
+    std::unordered_map<std::string, uint32_t> friendlyNameToID;
+    std::unordered_map<uint32_t, ModelAsset> models;
+    std::unordered_map<uint32_t, TextureAsset> textures;
+    std::unordered_map<uint32_t, ShaderAsset> shaders;
+    std::unordered_map<uint32_t, MaterialAsset> materials;
+
+    const auto registerGroup = [&](const std::string& group) {
+        if(!completeManifest.contains(group)) return;
+
+        for(const json& asset : completeManifest[group]) {
+            const uint32_t id = asset.at(ILEN_ASSET_MANIFEST_ASSET_ID);
+            const std::string name = asset.at(ILEN_ASSET_MANIFEST_ASSET_NAME);
+            const file_route sourcePath = asset.at(ILEN_ASSET_MANIFEST_ASSET_PATH).get<std::string>();
+            const file_route runtimePath = runtimePathForAsset(group, sourcePath);
+            const file_route physicalPath = binaryAssetsFolder / group / runtimePath;
+
+            if(!std::filesystem::is_regular_file(physicalPath)) {
+                throw std::runtime_error("El manifiesto declara un asset cuyo binario no existe: " + physicalPath.string());
+            }
+
+            friendlyNameToID[name] = id;
+
+            if(group == ILEN_ASSET_MANIFEST_MODEL) {
+                models.emplace(id, ModelAsset(id, runtimePath));
+            }else if(group == ILEN_ASSET_MANIFEST_TEXTURES) {
+                textures.emplace(id, TextureAsset(id, runtimePath));
+            }else if(group == ILEN_ASSET_MANIFEST_SHADERS) {
+                shaders.emplace(id, ShaderAsset(id, runtimePath));
+            }else if(group == ILEN_ASSET_MANIFEST_MATERIALS) {
+                materials.emplace(id, MaterialAsset(id, runtimePath));
+            }
+        }
+    };
+
+    registerGroup(ILEN_ASSET_MANIFEST_MODEL);
+    registerGroup(ILEN_ASSET_MANIFEST_TEXTURES);
+    registerGroup(ILEN_ASSET_MANIFEST_MATERIALS);
+    registerGroup(ILEN_ASSET_MANIFEST_SHADERS);
+
+    const file_route manifestPath = binaryAssetsFolder / "manifests" / BINARY_MANIFEST_NAME;
+    std::filesystem::create_directories(manifestPath.parent_path());
+
+    ilen::binary::headers::IlenManifestHeader header{};
+
+    strncpy(
+        header.magicNumber,
+        "TSEFINAM_NELI",
+        sizeof(header.magicNumber) - 1
+    );
+
+    header.version = 1;
+    header.totalOfNamesToID = friendlyNameToID.size();
+    header.totalOfModels = models.size();
+    header.totalOfTextures = textures.size();
+    header.totalOfShaders = shaders.size();
+    header.totalOfMaterials = materials.size();
+
+    std::ofstream output(manifestPath, std::ios::binary | std::ios::trunc);
+    if(!output.is_open()) {
+        throw std::runtime_error("No se pudo crear el manifiesto runtime: " + manifestPath.string());
+    }
+
+    output.write(reinterpret_cast<const char*>(&header), sizeof(ilen::binary::headers::IlenManifestHeader));
+
+    for(const auto& [name, id]: friendlyNameToID) {
+        const uint32_t nameSize = static_cast<uint32_t>(name.size());
+        output.write(reinterpret_cast<const char*>(&id), sizeof(id));
+        output.write(reinterpret_cast<const char*>(&nameSize), sizeof(nameSize));
+        output.write(name.data(), nameSize);
+    }
+
+    writeAssetMap(output, models);
+    writeAssetMap(output, textures);
+    writeAssetMap(output, shaders);
+    writeAssetMap(output, materials);
+}
+
+void buildEngineAssets(const AssetBuildOptions& options) {
+    const file_route workRoot = options.output.parent_path() / (".ilen_engine_assets_work_" + options.output.filename().string());
+    std::filesystem::remove_all(workRoot);
+
+    const file_route workAssets = workRoot / "project_data" / "assets";
+    const file_route workManifest = workRoot / "project_data" / "manifests" / ASSETS_MANIFEST_NAME;
+
+    copyDirectoryContents(options.sourceAssets, workAssets);
+    writeJsonFile(workManifest, readJsonFile(options.sourceManifest));
+
+    binarizeFiles(workRoot);
+
+    std::filesystem::remove_all(options.output);
+    copyDirectoryContents(workRoot / ".ilen_bin_data", options.output);
+    
+    std::filesystem::remove(options.output / "manifests" / BINARY_MANIFEST_NAME); //Los binarios del motor no incluyen manifiesto, solo el de proyecto debe generarlo
+    std::error_code error;
+    std::filesystem::remove(options.output / "manifests", error);
+    
+    std::filesystem::remove_all(workRoot);
+}
+
+void buildProjectAssets(const AssetBuildOptions& options) {
+    const file_route workRoot = options.output.parent_path() / (".ilen_project_assets_work_" + options.output.filename().string());
+    std::filesystem::remove_all(workRoot);
+
+    const file_route workAssets = workRoot / "project_data" / "assets";
+    const file_route workManifet = workRoot / "project_data" / "manifests" / ASSETS_MANIFEST_NAME;
+
+    copyDirectoryContents(options.sourceAssets, workAssets);
+
+    json predefined = readJsonFile(options.predefinedManifest);
+    initializaManifest(predefined);
+
+    json currentProjectManifest = predefined;
+
+    if(std::filesystem::is_regular_file(options.sourceManifest)) {
+        currentProjectManifest = readJsonFile(options.sourceManifest);
+    }
+
+    json completeManifest = mergeProjectManifest(predefined, currentProjectManifest);
+
+    writeJsonFile(workManifet, completeManifest);
+    createAndOrganizeFiles(workRoot);
+
+    completeManifest = readJsonFile(workManifet);
+
+    writeJsonFile(options.sourceManifest, completeManifest);
+
+    const json projectOnlyManifest = createProjectOnlyManifest(completeManifest, predefined);
+    writeJsonFile(workManifet, projectOnlyManifest);
+
+    binarizeFiles(workRoot);
+
+    std::filesystem::remove_all(options.output);
+    std::filesystem::create_directories(options.output);
+
+    copyDirectoryContents(options.predefinedAssets, options.output);
+    copyDirectoryContents(workRoot / ".ilen_bin_data", options.output);
+
+    writeRuntimeAssetManifest(completeManifest, options.output);
+
+    std::filesystem::remove_all(workRoot);
 }
 
 void createAndOrganizeFiles(std::filesystem::path ilenEngineFolder)
@@ -737,7 +1239,7 @@ void binarizeFiles(std::filesystem::path ilenEngineFolder) {
 
     //std::filesystem::path engineSourceFolder(ILEN_SOURCES_FOLDER); //Carpeta del engine con los assets en crudo.
     //std::filesystem::path sourceAssetFolders = engineSourceFolder / "assets";
-    std::filesystem::path binaryDataFolder = engineSourceFolder / ".ilen-bin-data";
+    std::filesystem::path binaryDataFolder = engineSourceFolder / ".ilen_bin_data";
     //Creando el directotio de los binarios si no existe
     if(!std::filesystem::exists(binaryDataFolder)){
         std::filesystem::create_directories(binaryDataFolder);

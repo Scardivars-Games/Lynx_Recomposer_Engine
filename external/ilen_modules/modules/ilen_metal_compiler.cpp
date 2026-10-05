@@ -61,7 +61,7 @@ int main(int argc, char* argv[]){
     std::filesystem::path metalIncludes = folderPath / "include";
     std::vector<std::filesystem::path> shaderFiles;
 
-    std::filesystem::path buildFolder = folderPath / ".ilen-bin-data" / "shader-code";
+    std::filesystem::path buildFolder = folderPath / ".ilen_bin_data" / "shader-code";
 
     for(const auto& entry: std::filesystem::recursive_directory_iterator(sourceFolder)){
         if(entry.is_regular_file()){
