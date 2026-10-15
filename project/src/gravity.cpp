@@ -1,25 +1,24 @@
-#if !ILEN_ONLY_ECS
+#include "lynx/headers/lynx_logs.h"
+#if !LYNX_ONLY_ECS
 
-#include <ilen_examples/gravity.h>
-#include <ilen_public/API/input_api.h>
-#include <ilen_public/API/physics_2d_api.h>
-#include <ilen_public/API/entity_api.h>
-#include <ilen_public/API/camera_api.h>
-#include <ilen_public/API/transform_api.h>
-#include <ilen_public/API/rendering_api.h>
-#include <ilen_public/API/scenes_api.h>
-#include <ilen/core/runtime_options.h>
+#include <lynx_examples/gravity.h>
+#include <lynx_public/API/input_api.h>
+#include <lynx_public/API/physics_2d_api.h>
+#include <lynx_public/API/entity_api.h>
+#include <lynx_public/API/camera_api.h>
+#include <lynx_public/API/transform_api.h>
+#include <lynx_public/API/rendering_api.h>
+#include <lynx_public/API/scenes_api.h>
 
-#if ILEN_DEBUG
-#include <ilen/debug/debug_render_system_2d.h>
+#if LYNX_DEBUG
+#include <lynx/debug/debug_render_system_2d.h>
 #endif
 
-using namespace ilen::game;
-using namespace ilen::core;
-using namespace ilen::ecs::components;
-using namespace ilen::ecs::components::physics;
-using namespace ilen::engine::api;
-using namespace ilen::core::options;
+using namespace lynx::game;
+using namespace lynx::core;
+using namespace lynx::ecs::components;
+using namespace lynx::ecs::components::physics;
+using namespace lynx::engine::api;
 
 
 int velocity = 15;
@@ -28,10 +27,10 @@ float deathZoneMobileSize = 0;
 int lastWindowWidth = 0;
 
 void Cube::Init() {
-    ILEN_LOG_P("Gravedad", "Inicializado prueba de gravedad");
+    LYNX_LOG_P("Gravedad", "Inicializado prueba de gravedad");
 
-    deathZoneMobileSize = ilen::window::IWindow::getWidth() * deathZoneThreshold;
-    lastWindowWidth = ilen::window::IWindow::getWidth();
+    deathZoneMobileSize = lynx::window::IWindow::getWidth() * deathZoneThreshold;
+    lastWindowWidth = lynx::window::IWindow::getWidth();
 
     /*int elementosPrueba = 1000;
 
@@ -67,13 +66,13 @@ void Cube::Init() {
 }
 
 void Cube::Update() {
-    using namespace ilen::engine::api;
-    using namespace ilen::input;
+    using namespace lynx::engine::api;
+    using namespace lynx::input;
     vec3 playerPos = TransformAPI::GetEntityPosition(entity);
     vec3 camPos = TransformAPI::GetEntityPosition(EntityAPI::GetEntityByName("Camara"));
 
     /*if(playerPos.x == camPos.x && playerPos.y == playerPos.y) {
-        ILEN_LOG_P("TEST","Camara y Jugador comparten posición.");
+        LYNX_LOG_P("TEST","Camara y Jugador comparten posición.");
     }*/
 
     if(InputAPI::IsKeyDown(Key::D) || InputAPI::IsKeyDown(Key::Right)){
@@ -130,9 +129,9 @@ void Cube::Update() {
                 firstXPointerPos = touchPos.x;
             }
 
-            if(lastWindowWidth != ilen::window::IWindow::getWidth()){
-                deathZoneMobileSize = ilen::window::IWindow::getWidth() * deathZoneThreshold;
-                lastWindowWidth = ilen::window::IWindow::getWidth();
+            if(lastWindowWidth != lynx::window::IWindow::getWidth()){
+                deathZoneMobileSize = lynx::window::IWindow::getWidth() * deathZoneThreshold;
+                lastWindowWidth = lynx::window::IWindow::getWidth();
             }
             
             //Vemos si debe ir para la derecha o la izquierda
@@ -162,8 +161,8 @@ void Cube::Update() {
     }
 
         //Debug, activar
-#if ILEN_DEBUG
-    using DebugSystem = ilen::ecs::systems::DebugRenderSystem2D;
+#if LYNX_DEBUG
+    using DebugSystem = lynx::ecs::systems::DebugRenderSystem2D;
     auto& debutSettings = DebugSystem::GetSettings();
 
     if(InputAPI::IsKeyPressed(Key::K)) {
@@ -174,9 +173,9 @@ void Cube::Update() {
 }
 
 void Cube::OnCollisionStay(const ContactManifold2D &contact) {
-    //ILEN_LOG_P("PRUEBA DE COLISION", "Colisionando con %s", EntityAPI::GetEntityName(contact.entityB).c_str());
+    //LYNX_LOG_P("PRUEBA DE COLISION", "Colisionando con %s", EntityAPI::GetEntityName(contact.entityB).c_str());
     if(EntityAPI::entityHasTag(contact.entityB, TagSystem::Ground)) {
-        //ILEN_LOG_P("PRUEBA DE COLISION", "Estoy colisionando con el suelo.");
+        //LYNX_LOG_P("PRUEBA DE COLISION", "Estoy colisionando con el suelo.");
         canJump = true;
     }
 }
@@ -184,7 +183,7 @@ void Cube::OnCollisionStay(const ContactManifold2D &contact) {
 void Cube::OnCollisionExit(const ContactManifold2D &contact) {
     //canJump = false;
     coyoteTime = defaultCoyoteTime;
-    //ILEN_LOG_P("PRUEBA DE COLISION", "Deje de colisionar con %s", EntityAPI::GetEntityName(contact.entityB).c_str());
+    //LYNX_LOG_P("PRUEBA DE COLISION", "Deje de colisionar con %s", EntityAPI::GetEntityName(contact.entityB).c_str());
 }
 
 void PointerPos::Init() {
@@ -201,19 +200,19 @@ void PointerPos::Init() {
 
 
     //API
-    using namespace ilen::engine::api;
+    using namespace lynx::engine::api;
     EntityAPI::SetActive(entity, false);*/
 }
 
 void PointerPos::Update(){
-    using namespace ilen::engine::api;
+    using namespace lynx::engine::api;
     //Escritorio
     if(InputAPI::IsPrimaryMouseButtonPressed()){
         EntityAPI::SetActive(entity, true);
         vec2 mousePos = InputAPI::GetMousePosition();
         vec3 worldPos = CameraAPI::ConvertScreenToWorld(CameraAPI::mainCamera, mousePos);
         worldPos.z = 0;
-       // ILEN_LOG_P("AYUDA", vector::to_string(worldPos).c_str());
+       // LYNX_LOG_P("AYUDA", vector::to_string(worldPos).c_str());
         TransformAPI::SetPosition(entity, worldPos);
     }else{
         EntityAPI::SetActive(entity, false);
@@ -228,8 +227,8 @@ void PointerPos::Update(){
             vec2 touchPos = InputAPI::GetTouchPosition(0);
             vec3 worldPos = CameraAPI::ConvertScreenToWorld(CameraAPI::mainCamera, touchPos);
             worldPos.z = 0;
-            //    ILEN_LOG_P("AYUDA", vector::to_string(touchPos).c_str());
-            //ILEN_LOG_P("AYUDA", vector::to_string(worldPos).c_str());
+            //    LYNX_LOG_P("AYUDA", vector::to_string(touchPos).c_str());
+            //LYNX_LOG_P("AYUDA", vector::to_string(worldPos).c_str());
             TransformAPI::SetPosition(entity, worldPos);
         }
     }
@@ -272,7 +271,7 @@ void GravityCamera::Init() {
     camera.fovDegrees = 70.0f;
     camera.orthoSize = 15;
     camera.nearClip = 2;
-    camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
+    camera.projectionType = LYNX_CAMERA_PROJECTION_TYPE::LYNX_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->setComponent(entity, std::move(camera));*/
 }
 
@@ -281,28 +280,28 @@ void GravityCamera::LateUpdate() {
     vec3 playerPos = TransformAPI::GetEntityPosition(EntityAPI::GetEntityByName("Player"));
     vec3 actualPos = TransformAPI::GetEntityPosition(entity);
     vec3 newPos(playerPos.x, playerPos.y, actualPos.z);
-    //ILEN_LOG_P("AYUDA", vector::to_string(newPos).c_str());
+    //LYNX_LOG_P("AYUDA", vector::to_string(newPos).c_str());
     TransformAPI::SetPosition(entity, newPos);
 }
 
 
 void PlayerSpawner::Init() {
-    ILEN_LOG_P("Player Spawner", "Spwaneando al jugador");
+    LYNX_LOG_P("Player Spawner", "Spwaneando al jugador");
     EntityAPI::LoadPrefab("Player_Prefab", TransformAPI::GetEntityPosition(entity));
 
-#if ILEN_DEBUG
-    using DebugSystem = ilen::ecs::systems::DebugRenderSystem2D;
+#if LYNX_DEBUG
+    using DebugSystem = lynx::ecs::systems::DebugRenderSystem2D;
     auto& debutSettings = DebugSystem::GetSettings();
 
-    debutSettings.colliderMode = ilen::debug::DebugShapeMode2D::Solid;
-    debutSettings.staticColor = ilen::graphics::Color{0.0f,0.5f,1.0f,1.0f};
-    debutSettings.dynamicColor = ilen::graphics::Color{1.0f, 0.0f,0.0f, 1.0f};
+    debutSettings.colliderMode = lynx::debug::DebugShapeMode2D::Solid;
+    debutSettings.staticColor = lynx::graphics::Color{0.0f,0.5f,1.0f,1.0f};
+    debutSettings.dynamicColor = lynx::graphics::Color{1.0f, 0.0f,0.0f, 1.0f};
     debutSettings.showColliders = false;
 #endif
 }
 
-using namespace ilen::engine::api;
-using namespace ilen::input;
+using namespace lynx::engine::api;
+using namespace lynx::input;
 
 void RotateGround::Update() {
     PhysicsAPI::ChangeObjectGravity(entity, false, 10.0f);
@@ -312,6 +311,6 @@ void RotateGround::Update() {
     if(InputAPI::IsKeyPressed(Key::Q)) {
         PhysicsAPI::ChangeObjectMass(entity, -0.25, true);
     }
-    TransformAPI::Rotate(entity, vec3(0,0,50) * ilen::time::Time::getDeltaTime());
+    TransformAPI::Rotate(entity, vec3(0,0,50) * lynx::time::Time::getDeltaTime());
 }
-#endif //!ILEN_ONLY_ECS
+#endif //!LYNX_ONLY_ECS

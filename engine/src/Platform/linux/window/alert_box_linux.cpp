@@ -1,10 +1,10 @@
-#if ILEN_LINUX
-#include <ilen/window/alert_box.h>
-#include <ilen/core/lifetime.h>
+#if LYNX_LINUX
+#include <lynx/window/alert_box.h>
+#include <lynx/core/lifetime.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_ewmh.h>
 
-namespace ilen::window::box {
+namespace lynx::window::box {
     bool userClickedCartel = false;
 
     void handle_ok_button(xcb_generic_event_t* event) {
@@ -35,7 +35,7 @@ namespace ilen::window::box {
         //Todo el código a continuación serviría, si existiera un motor de renderizado que cree UI. Algo en desarrollo. De momento algo más básico.
         /*
         //Obtener la conexción
-        auto connectionHandle = ilen::AppRuntime::getInstance().getEngineContext()->p_gameWindow->getWindow();
+        auto connectionHandle = lynx::AppRuntime::getInstance().getEngineContext()->p_gameWindow->getWindow();
         auto* connection = static_cast<xcb_connection_t*>(connectionHandle);
 
         if (!connection) return;

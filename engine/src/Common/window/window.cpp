@@ -1,6 +1,6 @@
-#include <ilen/window/window.h>
+#include <lynx/window/window.h>
 
-namespace ilen::window
+namespace lynx::window
 {
     uint32_t IWindow::s_width = 0;
     uint32_t IWindow::s_height = 0;

@@ -1,7 +1,7 @@
-#include <ilen/input/input_keys.h>
+#include <lynx/input/input_keys.h>
 
-ilen::input::Key ilen::input::TranslateNativeKey(uint16_t nativeKeyCode){
-    using namespace ilen::input;
+lynx::input::Key lynx::input::TranslateNativeKey(uint16_t nativeKeyCode){
+    using namespace lynx::input;
     switch (nativeKeyCode)
     {
         // Letras (macOS codes)

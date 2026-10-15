@@ -1,10 +1,10 @@
-#if ILEN_LINUX
-#include <ilen/core/filemanager.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/core/application.h>
+#if LYNX_LINUX
+#include <lynx/core/filemanager.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/core/application.h>
 
 
-using namespace ilen::core;
+using namespace lynx::core;
 
 std::filesystem::path FileManager::s_applicationResourcesPath;
 std::filesystem::path FileManager::s_applicationWrittablePath;
@@ -21,20 +21,20 @@ void FileManager::Init(){
     }else{
         const char* home = std::getenv("HOME");
         if(home == nullptr || home[0] == '\0'){
-            ILEN_FATAL_ERROR_P(DEBUG_PREFIX, "No se puedo obtener una ruta apropiada para guardar los datos del juego.");
+            LYNX_FATAL_ERROR_P(DEBUG_PREFIX, "No se puedo obtener una ruta apropiada para guardar los datos del juego.");
         }
 
         s_applicationWrittablePath = home;
         s_applicationWrittablePath /= ".local/share";
     }
 
-    auto appName = ilen::application::Application::getApplicationName();
+    auto appName = lynx::application::Application::getApplicationName();
     
     s_applicationWrittablePath /= appName;
 
 
-    ILEN_LOG_P(DEBUG_PREFIX, "Resources path: %s.", s_applicationResourcesPath.string().c_str());
-    ILEN_LOG_P(DEBUG_PREFIX, "Writtable path: %s.", s_applicationWrittablePath.string().c_str());
+    LYNX_LOG_P(DEBUG_PREFIX, "Resources path: %s.", s_applicationResourcesPath.string().c_str());
+    LYNX_LOG_P(DEBUG_PREFIX, "Writtable path: %s.", s_applicationWrittablePath.string().c_str());
 
     isInited = true;
 }

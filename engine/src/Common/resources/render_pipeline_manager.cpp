@@ -1,8 +1,8 @@
-#include <ilen/resources/render_pipeline_manager.h>
-#include <ilen/core/engine_context.h>
+#include <lynx/resources/render_pipeline_manager.h>
+#include <lynx/core/engine_context.h>
 
 
-namespace ilen::resources::render_pipeline {
+namespace lynx::resources::render_pipeline {
     PipelineManager::PipelineManager(EngineContext* context) {
         p_renderer = context->p_gameRenderer.get();
         p_matManager = context->p_materialManager.get();
@@ -10,7 +10,7 @@ namespace ilen::resources::render_pipeline {
         p_jobSystem = context->p_jobSystem.get();
     }
 
-    std::weak_ptr<IGPURenderPipeline> PipelineManager::getRenderPipeline(const IlenRenderPipelineDescriptor& descriptor) {
+    std::weak_ptr<IGPURenderPipeline> PipelineManager::getRenderPipeline(const LynxRenderPipelineDescriptor& descriptor) {
         std::lock_guard lock(m_mutex);
 
         //Primero, buscar si existe la Pipeline ya creada en el mapa, sino se solicita crear una

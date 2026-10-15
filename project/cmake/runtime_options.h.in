@@ -1,0 +1,61 @@
+#pragma once
+
+#include <cstdint>
+
+#include <lynx/core/project_bootstrap.h>
+#include <lynx/headers/enumerations.h>
+#include <lynx/resources/scene_manager.h>
+
+namespace game {
+    void RegisterProjectReflection(lynx::resources::scene::SceneManager& sceneManager);
+}
+
+namespace game::generated {
+    inline lynx::core::ProjectBootsrap MakeProjectBootstrap() {
+        lynx::core::ProjectBootsrap bootsrap{};
+
+        bootsrap.metadata.applicationName = "@LRE_WINDOW_TITLE_CPP@";
+        bootsrap.metadata.applicationDeveloper = "@LRE_GAME_DEVELOPER_CPP@";
+        bootsrap.metadata.applicationVersion = "@LRE_GAME_VERSION_CPP@";
+        bootsrap.metadata.applicationFramerate = @LRE_WINDOW_FRAMERATE@;
+
+#if LYNX_DESKTOP
+        bootsrap.metadata.startWidth = @LRE_WINDOW_WIDTH@;
+        bootsrap.metadata.startHeight = @LRE_WINDOW_HEIGHT@;
+        bootsrap.metadata.windowPropertiesFlags = static_cast<LynxWindowPropertiesFlags>(@LRE_WINDOW_FLAGS@u);
+#endif
+
+        auto& configuration = bootsrap.runtimeConfiguration;
+
+        configuration.graphics.flags = static_cast<LynxGraphicsOptionsFlags>(@LRE_GRAPHICS_FLAGS@u);
+        configuration.graphics.instanceBufferSizeInMB = @LRE_INSTANCE_BUFFER_SIZE@u;
+        configuration.graphics.generalBufferSizeInMB = @LRE_GENERAL_BUFFER_SIZE@u;
+        configuration.graphics.actualFPS = @LRE_WINDOW_FRAMERATE@u;
+        
+        configuration.physics.updatedPerSecond = @LRE_PHYSICS_UPDATES_PER_SECOND@;
+        configuration.physics.gravity = @LRE_PHYSICS_GRAVITY@f;
+        configuration.physics.linearMovementResistance = @LRE_PHYSICS_RESISTANCE@f;
+        configuration.physics.velocityZeroThreshold = @LRE_PHYSICS_ZERO_THRESHOLD@f;
+        configuration.physics.solveRealisticCollision = @LRE_PHYSICS_REALISTIC_CPP@;
+        configuration.physics.showDebugArrows = @LRE_PHYSICS_DEBUG_ARROWS_CPP@;
+        configuration.physics.collisionMatrix.fill(0xFFFFFFFFu);
+        
+        configuration.ecs.initialEntityCapacity = @LRE_INITIAL_ENTITY_CAPACITY@u;
+
+        configuration.predefinedAssets.errorShader = @LRE_ID_ERROR_SHADER@u;
+        configuration.predefinedAssets.errorMaterial = @LRE_ID_ERROR_MATERIAL@u;
+        configuration.predefinedAssets.errorTexture = @LRE_ID_ERROR_TEXTURE@u;
+        configuration.predefinedAssets.quadMesh = @LRE_ID_QUAD_MESH@u;
+        configuration.predefinedAssets.postProcessPresentShader = @LRE_ID_POST_PROCESS_PRESENT@u;
+        configuration.predefinedAssets.postProcessCalculateShader = @LRE_ID_POST_PROCESS_CALCULATE@u;
+        configuration.predefinedAssets.defaultTexture = @LRE_ID_DEFAULT_TEXTURE@u;
+        configuration.predefinedAssets.defaultUnlitOpaqueMaterial = @LRE_ID_DEFAULT_UNLIT_OPAQUE@u;
+        configuration.predefinedAssets.defaultUnlitTransparentMaterial = @LRE_ID_DEFAULT_UNLIT_TRANSPARENT@u;
+
+        bootsrap.initialScene = @LRE_INITIAL_SCENE@u;
+
+        bootsrap.registerReflection = &game::RegisterProjectReflection;
+
+        return bootsrap;
+    }
+}

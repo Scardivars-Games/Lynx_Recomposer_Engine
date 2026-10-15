@@ -8,25 +8,24 @@
 #include <Metal/texture_metal.h>
 #include <Metal/instance_buffer_metal.h>
 #include <Metal/sampler_metal.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/window/window.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/window/window.h>
 
 #include <TargetConditionals.h>
 
 #import <QuartzCore/QuartzCore.h>
 #import <Metal/Metal.h>
 
-namespace ilen::render {
-    using namespace ilen::core::options;
+namespace lynx::render {
 
     //TODO: ADD Metal 4 support to use the more efficients encoders!!!
     MetalRender::MetalRender(const void* native_surface){
         @autoreleasepool {
             //lastUsedGraphicsOptions = defaultOptions;
-            
-#ifdef ILEN_MACOS
+            p_runtimeConfiguration = application::Application::getEngineContext()->runtimeConfiguration.get();
+#ifdef LYNX_MACOS
             _metalView = (__bridge NSView*)native_surface;
-#elif defined ILEN_IOS || ILEN_TVOS
+#elif defined LYNX_IOS || LYNX_TVOS
             _metalView = (__bridge UIView*)native_surface;
             
 #endif
@@ -34,43 +33,43 @@ namespace ilen::render {
             _device = _metalLayer.device;
             if(!_device){
                 //Es imposible crear el dispositivo de Metal!!! (Fallback a OpenGL)
-                ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se logro crear el contexto de Metal. Dispositivo inválido");
+                LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se logro crear el contexto de Metal. Dispositivo inválido");
             }
             
             defineSupportedGPUCompression();
             
-            ILEN_LOG("Device: %p", _metalLayer.device);
-            ILEN_LOG("DrawableSize: %.0f x %.0f", _metalLayer.drawableSize.width, _metalLayer.drawableSize.height);
+            LYNX_LOG("Device: %p", _metalLayer.device);
+            LYNX_LOG("DrawableSize: %.0f x %.0f", _metalLayer.drawableSize.width, _metalLayer.drawableSize.height);
             
            
             _commandQueue = [_device newCommandQueue];
             
             _predefinedValues.screenPixelFormat = _metalLayer.pixelFormat;
             _predefinedValues.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
-            #if ILEN_MACOS
+            #if LYNX_MACOS
             _predefinedValues.clearColor = MTLClearColor(0.1, 0.1, 0.2, 1.0);
-            #elif ILEN_IOS
+            #elif LYNX_IOS
             _predefinedValues.clearColor = MTLClearColor(0.5, 0.2, 0.2, 1.0);
-            #elif ILEN_TVOS
+            #elif LYNX_TVOS
             _predefinedValues.clearColor = MTLClearColor(0.83, 0.68, 0.21, 1.0);
             #endif //TARGET_OS_IOS
             
-            #if ILEN_MACOS
+            #if LYNX_MACOS
             //Cargar .metallib
-            NSString* libraryPath = [[NSBundle mainBundle] pathForResource:@"ilen" ofType:@"metallib" inDirectory:@"shader-code"];
-            #elif ILEN_IOS || ILEN_TVOS
-            NSString* libraryPath = [[NSBundle mainBundle] pathForResource:@"ilen" ofType:@"metallib" inDirectory:@"assets/shader-code"];
+            NSString* libraryPath = [[NSBundle mainBundle] pathForResource:@"lynx" ofType:@"metallib" inDirectory:@"shader_code"];
+            #elif LYNX_IOS || LYNX_TVOS
+            NSString* libraryPath = [[NSBundle mainBundle] pathForResource:@"lynx" ofType:@"metallib" inDirectory:@"assets/shader_code"];
             #endif
             
             if(!libraryPath){
-                ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se encontro libreria por defecto de Metal");
+                LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se encontro libreria por defecto de Metal");
                 generateNewMetalLibrary();
             }else{
                 NSURL* libraryURL = [NSURL fileURLWithPath:libraryPath];
                 NSError *localError = nil;
-                _ilenMetalLibrary = [_device newLibraryWithURL:libraryURL error:&localError];
-                if(!_ilenMetalLibrary){
-                    ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Imposible cargar libreria por defecto del motor %@", localError);
+                _lynxMetalLibrary = [_device newLibraryWithURL:libraryURL error:&localError];
+                if(!_lynxMetalLibrary){
+                    LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Imposible cargar libreria por defecto del motor %@", localError);
                 }
             }
             
@@ -82,7 +81,7 @@ namespace ilen::render {
             _parallelCommandEncoder.resize(MAX_FRAMES_IN_FLIGHT);
 
             
-            size_t instanceBufferSize = ilen::core::options::GraphicsOptions::instanceBufferSizeInMB * 1024 * 1024; //Obtenemos el tamaño del buffer, de acuerdo a las opciones, y llevamos ese valor a los bytes que corresponden.
+            size_t instanceBufferSize = p_runtimeConfiguration->graphics.instanceBufferSizeInMB * 1024 * 1024; //Obtenemos el tamaño del buffer, de acuerdo a las opciones, y llevamos ese valor a los bytes que corresponden.
             for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){
                 _instanceBuffer[i] = createInstanceBuffer(instanceBufferSize, "Instance Main Ring Buffer -> Frame " + std::to_string(_actualFrame));
             }
@@ -96,9 +95,9 @@ namespace ilen::render {
             //Es importante que los command encoder
             
             int totalOfCustomTextures = 0;
-            if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
+            if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS){
                 totalOfCustomTextures += MAX_FRAMES_IN_FLIGHT; //Estas texturas son los render target de los Pass Descriptor. La idea es, por cada pass que no dibuje en pantalla, crea las texturas, y luego se usa un índice que viene en el Constructor que doy para saber en que bloque de texturas leer. 0 sería la textura de pantalla (i * 0 = 0), así que es buena idea, y a partir del 1, pues se obtiene el índice de la custom texture.
-                if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
+                if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
                     totalOfCustomTextures += MAX_FRAMES_IN_FLIGHT; //Para almacenar el velocity buffer en al attachment 1.
                 }
             }
@@ -125,14 +124,14 @@ namespace ilen::render {
 
         _device = nil;
         _commandQueue = nil;
-        _ilenMetalLibrary = nil;
+        _lynxMetalLibrary = nil;
     }
 
 void MetalRender::beginFrame() {
    /* 
-    //        ILEN_LOG("Waitin for frame %i. Start time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
+    //        LYNX_LOG("Waitin for frame %i. Start time %.8f", _actualFrame, lynx::time::Time::getTimeSinceCurrentFrameStart());
     dispatch_semaphore_wait(_frameSemaphores[_actualFrame], DISPATCH_TIME_FOREVER);
-    //ILEN_LOG("Getted frame %i. End time %.8f", _actualFrame, ilen::time::Time::getTimeSinceCurrentFrameStart());
+    //LYNX_LOG("Getted frame %i. End time %.8f", _actualFrame, lynx::time::Time::getTimeSinceCurrentFrameStart());
     
     _frameAutoReleasePool = [[NSAutoreleasePool alloc] init];
     generateFrameTextures();
@@ -162,13 +161,13 @@ void MetalRender::beginFrame() {
         regenerateEncoderDescriptor();
     }
     
-    IlenParallelEncoderDescriptor parallelEncoderDescriptor = actualMainDescriptor;
+    LynxParallelEncoderDescriptor parallelEncoderDescriptor = actualMainDescriptor;
     
-    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
+    if(GraphicsOptions::graphicsOptionsFlags & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS){
         parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_Color]->texture = _sceneTexture[_actualFrame].get();
         uint32_t actualIndexForNextTexture = MAX_FRAMES_IN_FLIGHT;
 
-        if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
+        if(GraphicsOptions::graphicsOptionsFlags & LYNX_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
             parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_VelocityBuffer]->texture = _sceneTexture[_actualFrame + actualIndexForNextTexture].get();
             actualIndexForNextTexture += MAX_FRAMES_IN_FLIGHT;
         }
@@ -176,7 +175,7 @@ void MetalRender::beginFrame() {
         parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_Color]->texture = _drawableTexture[_actualFrame].get();
     }
     
-    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
+    if(GraphicsOptions::graphicsOptionsFlags & LYNX_GRAPHICS_OPTIONS_USE_DEPTH){
         parallelEncoderDescriptor.depthAttachment->texture = _depthTexture[_actualFrame].get();
     }
     
@@ -201,7 +200,7 @@ void MetalRender::beginFrame() {
     // Command buffer si, encoder NO todavia
     _commandBuffer[_actualFrame] = [_commandQueue commandBuffer];
 
-    if (lastUsedGraphicsOptions != GraphicsOptions::graphicsOptionsFlags) {
+    if (lastUsedGraphicsOptions != p_runtimeConfiguration->graphics.flags) {
         regenerateEncoderDescriptor();
     }
 }
@@ -220,14 +219,14 @@ bool MetalRender::acquireDrawable(){
     _drawableTexture[_actualFrame] = std::make_unique<MetalTexture>(_drawables[_actualFrame].texture);
 
     // Ahora si construimos el encoder con el render target correcto
-    IlenParallelEncoderDescriptor parallelEncoderDescriptor = actualMainDescriptor;
+    LynxParallelEncoderDescriptor parallelEncoderDescriptor = actualMainDescriptor;
 
-    if (GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
+    if (p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
         parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_Color]->texture
             = _sceneTexture[_actualFrame].get();
 
         uint32_t actualIndexForNextTexture = MAX_FRAMES_IN_FLIGHT;
-        if (GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
+        if (p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
             parallelEncoderDescriptor.colorAttachments[slots::RenderPassAttachment_VelocityBuffer]->texture
                 = _sceneTexture[_actualFrame + actualIndexForNextTexture].get();
         }
@@ -237,7 +236,7 @@ bool MetalRender::acquireDrawable(){
             = _drawableTexture[_actualFrame].get();
     }
 
-    if (GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH) {
+    if (p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_DEPTH) {
         parallelEncoderDescriptor.depthAttachment->texture = _depthTexture[_actualFrame].get();
     }
 
@@ -249,7 +248,7 @@ bool MetalRender::acquireDrawable(){
 }
 
     void MetalRender::endFrame() {
-        //ILEN_LOG("Drawable: %i", _actualFrame);
+        //LYNX_LOG("Drawable: %i", _actualFrame);
         if(!_drawableAcquired){
             acquireDrawable();
         }
@@ -257,7 +256,7 @@ bool MetalRender::acquireDrawable(){
         if(isParallelEncoderInOtherObject){
             [(__bridge NSAutoreleasePool*)_frameAutoReleasePool drain];
             _frameAutoReleasePool = nullptr;
-            ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "The parallel encoder was given to another process, but never returned a parallel encoder to the renderer");
+            LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "The parallel encoder was given to another process, but never returned a parallel encoder to the renderer");
             return;
         }
         
@@ -275,7 +274,7 @@ bool MetalRender::acquireDrawable(){
             IRenderer::FinalizeEncoding(_parallelCommandEncoder[_actualFrame].get());
             _parallelCommandEncoder[_actualFrame].reset();
         }else{
-            ILEN_ERROR_P(DEBUG_PREFIX, "Llamado el end frame sin un válido parallel encoder creado");
+            LYNX_ERROR_P(DEBUG_PREFIX, "Llamado el end frame sin un válido parallel encoder creado");
         }
         
         dispatch_semaphore_t semaphore = _frameSemaphores[_actualFrame];
@@ -286,7 +285,7 @@ bool MetalRender::acquireDrawable(){
             
         [_commandBuffer[_actualFrame] presentDrawable:_drawables[_actualFrame]];
         [_commandBuffer[_actualFrame] commit];
-//        ILEN_LOG("Showing frame %i", _actualFrame);
+//        LYNX_LOG("Showing frame %i", _actualFrame);
         
         _commandBuffer[_actualFrame] = nil;
        // [_drawables[_actualFrame] release];
@@ -301,23 +300,23 @@ bool MetalRender::acquireDrawable(){
 
     void MetalRender::endEncoding(IGPUParallelCommandEncoder *encoder){
         if(encoder == nullptr){
-            ILEN_ERROR_P(DEBUG_PREFIX, "Called to end the encoding to a null Parallel command encoder.");
+            LYNX_ERROR_P(DEBUG_PREFIX, "Called to end the encoding to a null Parallel command encoder.");
         }
         
         IRenderer::FinalizeEncoding(encoder);
         
     }
         
-    std::shared_ptr<IGPUBuffer> MetalRender::createBuffer(const IlenBufferDescriptor& descriptor, const void* data) {
+    std::shared_ptr<IGPUBuffer> MetalRender::createBuffer(const LynxBufferDescriptor& descriptor, const void* data) {
         //Vamos a crear primero un stagging buffer y luego crear el buffer real que manejara la app
         return std::make_shared<MetalBuffer>(_device, descriptor, data, _commandQueue);
     }
 
-    std::shared_ptr<IShader> MetalRender::createShader(const ilen::graphics::IlenShader& shaderDescriptor){
-        return std::make_shared<MetalShader>(_ilenMetalLibrary, shaderDescriptor);
+    std::shared_ptr<IShader> MetalRender::createShader(const lynx::graphics::LynxShader& shaderDescriptor){
+        return std::make_shared<MetalShader>(_lynxMetalLibrary, shaderDescriptor);
     }
 
-    std::shared_ptr<IGPURenderPipeline> MetalRender::createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor &pipelineDescriptor, ilen::resources::shaders::ShaderManager *shaderManager){
+    std::shared_ptr<IGPURenderPipeline> MetalRender::createRenderPipeline(const lynx::render::LynxRenderPipelineDescriptor &pipelineDescriptor, lynx::resources::shaders::ShaderManager *shaderManager){
         return std::make_shared<MetalRenderPipeline>(_device, pipelineDescriptor, shaderManager, actualMainDescriptor, _predefinedValues);
     }
 
@@ -346,14 +345,14 @@ bool MetalRender::acquireDrawable(){
 //ADVERTENCIA: La lógica de esto hay que reescribirla. Porque, y si el usuario activa el postprocesado, añade 3 texturas más a las scene texture, pero ya el valor [0] tiene algo escrito, porque por algun proceso el motor requeria otro Render Pass. En ese caso, al usar el indice de los target que necesita el post procesado, no encotrara nada!!!.
 void MetalRender::generateFrameTextures(){
     @autoreleasepool {
-        auto width = ilen::window::IWindow::getWidth();
-        auto height = ilen::window::IWindow::getHeight();
+        auto width = lynx::window::IWindow::getWidth();
+        auto height = lynx::window::IWindow::getHeight();
         
         bool haveTextures = _sceneTexture.size() > 0;
         bool haveDepth = _depthTexture.size() > 0;
         
-        if(!(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) && !(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH)
-           && !(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL)){
+        if(!(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS) && !(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_DEPTH)
+           && !(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_STENCIL)){
             return;
         }
         
@@ -361,36 +360,36 @@ void MetalRender::generateFrameTextures(){
             for(size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++){ //Se calcula con respecto a los Frames in flight por seguridad. Si aquí almaceno referencia a todas las texturas que usa mi motor, usando como distancia lógica los frames in flight, por cada frame in flight, y reglas claras de como generar las texturas, debo ir creándolas
                 
                 int advacedSteps = 0; //Para calcular se deben ser las texturas 0 - 2, o 3 - 5, o 6 - 8
-                if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
+                if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS){
                     _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)].reset(); //Para forzar la liberación de cualquier textura de antes.
                     std::string label = "Pre-PostProcess Texture Data - Frame " + std::to_string(i);
                     //Generamos la textura para dibujar
-                    IlenGPUTextureDescriptor descriptor{};
+                    LynxGPUTextureDescriptor descriptor{};
                     descriptor.height = height;
                     descriptor.width = width;
-                    descriptor.presentation = enumerations::ILEN_GPU_TEXTURE_PRESENTATION_TYPE::ILEN_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
-                    descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_SCREEN;
-                    descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET | ILEN_GPU_TEXTURE_USAGE_SHADER_READ;
-                    descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
+                    descriptor.presentation = enumerations::LYNX_GPU_TEXTURE_PRESENTATION_TYPE::LYNX_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
+                    descriptor.pixelFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_SCREEN;
+                    descriptor.usage = LYNX_GPU_TEXTURE_USAGE_RENDERTARGET | LYNX_GPU_TEXTURE_USAGE_SHADER_READ;
+                    descriptor.memoryProperty = enumerations::LYNX_GPU_MEMORY_PROPERTY_TYPE::LYNX_GPU_MEMORY_PROPERTY_PRIVATE;
                     descriptor.label = label;
                     
                     _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)] = createNewPlatformTexture(descriptor);
                     advacedSteps++;
                     
                     //Post process effect requerided images!!!
-                    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
+                    if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
                         //Generate the motion texture
                         _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)].reset(); //Para forzar la liberación de cualquier textura de antes.
 
                         label = "Motion Texture for Post Process - Frame " + std::to_string(i);
-                        IlenGPUTextureDescriptor descriptor{};
+                        LynxGPUTextureDescriptor descriptor{};
                         descriptor.height = height;
                         descriptor.width = width;
-                        descriptor.presentation = enumerations::ILEN_GPU_TEXTURE_PRESENTATION_TYPE::ILEN_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
-                        //descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF;
-                        descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG16_FLOAT;
-                        descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET | ILEN_GPU_TEXTURE_USAGE_SHADER_READ;
-                        descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
+                        descriptor.presentation = enumerations::LYNX_GPU_TEXTURE_PRESENTATION_TYPE::LYNX_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
+                        //descriptor.pixelFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_FLOAT2_HALF;
+                        descriptor.pixelFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_RG16_FLOAT;
+                        descriptor.usage = LYNX_GPU_TEXTURE_USAGE_RENDERTARGET | LYNX_GPU_TEXTURE_USAGE_SHADER_READ;
+                        descriptor.memoryProperty = enumerations::LYNX_GPU_MEMORY_PROPERTY_TYPE::LYNX_GPU_MEMORY_PROPERTY_PRIVATE;
                         descriptor.label = label;
                         
                         _sceneTexture[i + (MAX_FRAMES_IN_FLIGHT * advacedSteps)] = createNewPlatformTexture(descriptor);
@@ -403,16 +402,16 @@ void MetalRender::generateFrameTextures(){
         
         if((haveDepth && !_depthTexture[0]) || (haveDepth && _depthTexture[0]->getTexWidth() != width && _depthTexture[0]->getTexHeight() != height)){
             for(size_t i = 0; i < _depthTexture.size(); i++){
-                if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
+                if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_DEPTH){
                     std::string label = "Depth texture - Frame " + std::to_string(i);
 
-                    IlenGPUTextureDescriptor descriptor{};
+                    LynxGPUTextureDescriptor descriptor{};
                     descriptor.height = height;
                     descriptor.width = width;
-                    descriptor.presentation = enumerations::ILEN_GPU_TEXTURE_PRESENTATION_TYPE::ILEN_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
-                    descriptor.pixelFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_32_FLOAT;
-                    descriptor.usage = ILEN_GPU_TEXTURE_USAGE_RENDERTARGET;
-                    descriptor.memoryProperty = enumerations::ILEN_GPU_MEMORY_PROPERTY_TYPE::ILEN_GPU_MEMORY_PROPERTY_PRIVATE;
+                    descriptor.presentation = enumerations::LYNX_GPU_TEXTURE_PRESENTATION_TYPE::LYNX_GPU_TEXTURE_PRESENTATION_NOTPRESENT;
+                    descriptor.pixelFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_DEPTH_32_FLOAT;
+                    descriptor.usage = LYNX_GPU_TEXTURE_USAGE_RENDERTARGET;
+                    descriptor.memoryProperty = enumerations::LYNX_GPU_MEMORY_PROPERTY_TYPE::LYNX_GPU_MEMORY_PROPERTY_PRIVATE;
                     descriptor.label = label;
                     
                     _depthTexture[i] = createNewPlatformTexture(descriptor);
@@ -443,64 +442,64 @@ std::vector<IGPUTexture*> MetalRender::getAllSceneTexturesPtr() {
 }
 
 
-std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::createNewParallelCommandEncoder(IlenParallelEncoderDescriptor&& descriptor){
+std::unique_ptr<IGPUParallelCommandEncoder> MetalRender::createNewParallelCommandEncoder(LynxParallelEncoderDescriptor&& descriptor){
     //Parte de su responsabilidad es asignar las texturas para el nuevo Parallel Encoder Descriptor.
         //CAUTION: Cuidar todos los objetos que no retornan nada, porque pueden hacer crashear el programa de la nada, como al usar esto.
     return std::make_unique<MetalParallelCommandEncoder>(_commandBuffer[_actualFrame], std::move(descriptor));
 }
 
-std::unique_ptr<IGPUTexture> MetalRender::createNewPlatformTexture(const IlenGPUTextureDescriptor &descriptor){
+std::unique_ptr<IGPUTexture> MetalRender::createNewPlatformTexture(const LynxGPUTextureDescriptor &descriptor){
     return std::make_unique<MetalTexture>(descriptor, _predefinedValues, _device);
 }
 
-std::shared_ptr<IGPUSampler> MetalRender::createSampler(const IlenGPUSamplerDescriptor &descriptor){
+std::shared_ptr<IGPUSampler> MetalRender::createSampler(const LynxGPUSamplerDescriptor &descriptor){
     return MetalSampler::getOrCreate(descriptor, _device);
 }
 
-std::shared_ptr<IGPUTexture> MetalRender::createTexture(const IlenGPUTextureDescriptor &descriptor, const void* initialData){
+std::shared_ptr<IGPUTexture> MetalRender::createTexture(const LynxGPUTextureDescriptor &descriptor, const void* initialData){
     return std::make_shared<MetalTexture>(descriptor, _predefinedValues, _device, initialData, _commandQueue);
 }
 
 void MetalRender::regenerateEncoderDescriptor(){
-    IlenParallelEncoderDescriptor parallelEncoderDescriptor {};
+    LynxParallelEncoderDescriptor parallelEncoderDescriptor {};
     parallelEncoderDescriptor.label = "Main Render Pass Encoder";
     parallelEncoderDescriptor.colorAttachments.resize(3); //Metal soporta hasta 8, pero creo que de momento 3 son más que suficientes.
-    auto colorAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+    auto colorAttach = std::make_unique<LynxEncoderAttachmentDescriptor>();
 
-    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS){
+    if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS){
         colorAttach->texture = _sceneTexture[_actualFrame].get();
         uint32_t actualIndexForNextTexture = MAX_FRAMES_IN_FLIGHT;
-        if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
+        if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_MOTION_BLUR){
             //TODO: asignar la textura para el velocity buffer.
-            auto motionBlurAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+            auto motionBlurAttach = std::make_unique<LynxEncoderAttachmentDescriptor>();
             motionBlurAttach->texture = _sceneTexture[_actualFrame + actualIndexForNextTexture].get();
-            motionBlurAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-            motionBlurAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+            motionBlurAttach->loadOption = LYNX_GPU_RENDER_PASS_LOAD_OPTION_TYPE::LYNX_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+            motionBlurAttach->storeOption = LYNX_GPU_RENDER_PASS_STORE_OPTION_TYPE::LYNX_GPU_RENDER_PASS_STORE_OPTION_STORE;
             //Porque este encoder no tiene asignado el attachment?? Luego así vienen los errores random.
-            parallelEncoderDescriptor.colorAttachments[ilen::render::slots::RenderPassAttachment_VelocityBuffer] = std::move(motionBlurAttach); // Slot 1 para el Velocity Buffer
+            parallelEncoderDescriptor.colorAttachments[lynx::render::slots::RenderPassAttachment_VelocityBuffer] = std::move(motionBlurAttach); // Slot 1 para el Velocity Buffer
             actualIndexForNextTexture += 3; // Se añade un stride de 3 para los indices de alguna nueva textura especial a añadir.
             //motionBlurAttach->texture
         }
     }else{
         colorAttach->texture = _drawableTexture[_actualFrame].get();
     }
-    colorAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-    colorAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+    colorAttach->loadOption = LYNX_GPU_RENDER_PASS_LOAD_OPTION_TYPE::LYNX_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+    colorAttach->storeOption = LYNX_GPU_RENDER_PASS_STORE_OPTION_TYPE::LYNX_GPU_RENDER_PASS_STORE_OPTION_STORE;
     colorAttach->clearColor = graphics::Color(_predefinedValues.clearColor.red, _predefinedValues.clearColor.green, _predefinedValues.clearColor.blue);
-    parallelEncoderDescriptor.colorAttachments[ilen::render::slots::RenderPassAttachment_Color] = std::move(colorAttach);
+    parallelEncoderDescriptor.colorAttachments[lynx::render::slots::RenderPassAttachment_Color] = std::move(colorAttach);
 
-    if(GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH){
+    if(p_runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_DEPTH){
         //Depth buffer
-        auto depthAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+        auto depthAttach = std::make_unique<LynxEncoderAttachmentDescriptor>();
         depthAttach->texture = _depthTexture[_actualFrame].get();
-        depthAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
-        depthAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE;
+        depthAttach->loadOption = LYNX_GPU_RENDER_PASS_LOAD_OPTION_TYPE::LYNX_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+        depthAttach->storeOption = LYNX_GPU_RENDER_PASS_STORE_OPTION_TYPE::LYNX_GPU_RENDER_PASS_STORE_OPTION_DONT_CARE;
         
         parallelEncoderDescriptor.depthAttachment = std::move(depthAttach);
     }
     
     actualMainDescriptor = parallelEncoderDescriptor;
-    lastUsedGraphicsOptions = GraphicsOptions::graphicsOptionsFlags;
+    lastUsedGraphicsOptions = p_runtimeConfiguration->graphics.flags;
 }
 
 std::unique_ptr<IGPUInstanceBuffer> MetalRender::createInstanceBuffer(size_t bufferSize, std::string bufferName){
@@ -515,16 +514,16 @@ std::unique_ptr<IGPUInstanceBuffer> MetalRender::createInstanceBuffer(size_t buf
 
 void MetalRender::defineSupportedGPUCompression() {
     if([_device supportsFamily:MTLGPUFamilyApple6]){
-        compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
+        compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
     }
-//#if ILEN_MACOS
+//#if LYNX_MACOS
     else if (@available(iOS 16.4, *)) {
         if([_device supportsBCTextureCompression]){
-            compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
+            compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
         }
         //#endif
         else {
-            compressionActualFormat = enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
+            compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
         }
     } else {
         // Fallback on earlier versions

@@ -1,123 +1,150 @@
-# =============================================================================
-# Fuentes comunes del motor
-# =============================================================================
+cmake_minimum_required(VERSION 4.0)
 
-file(GLOB_RECURSE 
-    ILEN_ENGINE_COMMON_SOURCES 
-    CONFIGURE_DEPENDS 
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/*.cpp"
-)
-
-set(ILEN_ENGINE_PLATFORM_SOURCES)
-set(ILEN_ENGINE_RENDERER_SOURCES)
-set(ILEN_ENGINE_PRIVATE_INCLUDE_DIRS)
+project(LynxRecomposerEngine VERSION 0.1.0 LANGUAGES C CXX)
 
 if(APPLE)
-    file(GLOB_RECURSE 
-        ILEN_ENGINE_APPLE_SOURCES
-        CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/apple/*.cpp"
+    enable_language(OBJCXX)
+endif()
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+#Engine options
+
+option(LRE_ONLY_ECS "Use LRE exclusively through ECS" OFF)
+option(LRE_BUILD_TESTS "Build LRE tests" OFF)
+option(LRE_BUILD_PHYSICS_BENCHMARKS "Build physics benchmarks" OFF)
+option(LRE_BUILD_ENGINE_ASSETS "Create the engine asset target" ON)
+
+option(LRE_ENABLE_PHYSICS_DEBUG "Enable physics debug rendering" ON)
+option(LRE_ENABLE_PHYSICS_STATS "Enable physics statistics" ON)
+option(LRE_IGNORE_RENDERING "Disable rendering" OFF)
+option(LRE_TEST_ERROR_WINDOW_AT_START "Show an error window at startup" OFF)
+option(LRE_SINGLECORE_TEST "Force the job system to one thread" OFF)
+option(LRE_DISABLE_BASIC_LOGGING "Disable basic logging" OFF)
+option(LRE_DISABLE_TIME_LOGGING "Disable automatic time logging" ON)
+
+#Configuracion compartida con el juego
+
+add_library(lre_build_config INTERFACE)
+add_library(Lynx::BuildConfig ALIAS lre_build_config)
+
+target_compile_features(lre_build_config INTERFACE cxx_std_23)
+target_compile_definitions(lre_build_config INTERFACE
+    LYNX_ONLY_ECS=$<BOOL:${LRE_ONLY_ECS}>
+    LYNX_ENABLE_PHYSICS_DEBUG=$<BOOL:${LRE_ENABLE_PHYSICS_DEBUG}>
+    LYNX_ENABLE_PHYSICS_STATS=$<BOOL:${LRE_ENABLE_PHYSICS_STATS}>
+
+    IGNORE_RENDERING=$<BOOL:${LRE_IGNORE_RENDERING}>
+    TEST_ERROR_WINDOW_AT_START=$<BOOL:${LRE_TEST_ERROR_WINDOW_AT_START}>
+    LYNX_SINGLECORE_TEST=$<BOOL:${LRE_SINGLECORE_TEST}>
+    LYNX_DISABLE_BASIC_LOGGIN=$<BOOL:${LRE_DISABLE_BASIC_LOGGING}>
+    LYNX_DISABLE_TIME_LOGGING=$<BOOL:${LRE_DISABLE_TIME_LOGGING}>
+
+    $<$<CONFIG:Debug>:LYNX_DEBUG=1>
+)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    target_compile_definitions(lre_build_config INTERFACE LYNX_MOBILE=1 LYNX_IOS=1)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    target_compile_definitions(lre_build_config INTERFACE LYNX_MOBILE=1 LYNX_TVOS=1)
+elseif(APPLE)
+    target_compile_definitions(lre_build_config INTERFACE LYNX_DESKTOP=1 LYNX_MACOS=1)
+elseif(LINUX)
+    target_compile_definitions(lre_build_config INTERFACE LYNX_DESKTOP=1 LYNX_LINUX=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+elseif(WIN32)
+    target_compile_definitions(lre_build_config INTERFACE LYNX_DESKTOP=2 LYNX_WINDOWS=1 VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1)
+endif()
+
+
+#Fuentes comunes
+
+file(GLOB_RECURSE LRE_COMMON_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/*.cpp")
+set(LRE_PLATFORM_SOURCES)
+set(LRE_RENDERER_SOURCES)
+set(LRE_PRIVATE_INCLUDE_DIRS)
+
+#Fuentes por plataforma
+
+if(APPLE)
+    file(GLOB_RECURSE LRE_APPLE_COMMON_SOURCES
+        CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/apple/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/apple/*.mm"
     )
-    file(GLOB_RECURSE 
-        ILEN_ENGINE_METAL_SOURCES
-        CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Metal/*.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Metal/*.mm"
-    )
-    list(APPEND ILEN_ENGINE_PLATFORM_SOURCES ${ILEN_ENGINE_APPLE_SOURCES})
-    list(APPEND ILEN_ENGINE_RENDERER_SOURCES ${ILEN_ENGINE_METAL_SOURCES})
-    list(APPEND ILEN_ENGINE_PRIVATE_INCLUDE_DIRS 
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/apple"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Metal"
+
+    file(GLOB_RECURSE LRE_METAL_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Metal/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Metal/*.mm"
     )
 
-    if(IOS)
-        file(GLOB_RECURSE
-            ILEN_ENGINE_IOS_SOURCES
-            CONFIGURE_DEPENDS
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/*.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/*.mm"
+    list(APPEND LRE_PLATFORM_SOURCES ${LRE_APPLE_COMMON_SOURCES})
+    list(APPEND LRE_RENDERER_SOURCES ${LRE_METAL_SOURCES})
+    list(APPEND LRE_PRIVATE_INCLUDE_DIRS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/apple" "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Metal"
+    )
+
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+        file(GLOB_RECURSE LRE_TARGET_PLATFORM_SOURCES CONFIGURE_DEPENDS
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS/*.mm"
         )
-        list(APPEND ILEN_ENGINE_PLATFORM_SOURCES ${ILEN_ENGINE_IOS_SOURCES})
-        list(APPEND ILEN_ENGINE_PRIVATE_INCLUDE_DIRS 
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS"
+        list(APPEND LRE_PRIVATE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/iOS")
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        file(GLOB_RECURSE LRE_TARGET_PLATFORM_SOURCES CONFIGURE_DEPENDS
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS/*.mm"
         )
-    elseif(TVOS)
-        file(GLOB_RECURSE
-            ILEN_ENGINE_TVOS_SOURCES
-            CONFIGURE_DEPENDS
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS/*.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS/*.mm"
-        )
-        list(APPEND ILEN_ENGINE_PLATFORM_SOURCES ${ILEN_ENGINE_TVOS_SOURCES})
-        list(APPEND ILEN_ENGINE_PRIVATE_INCLUDE_DIRS 
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS"
-        )
+        list(APPEND LRE_PRIVATE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/tvOS")
     else()
-        file(GLOB_RECURSE
-            ILEN_ENGINE_MACOS_SOURCES
-            CONFIGURE_DEPENDS
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS/*.cpp"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS/*.mm"
+        file(GLOB_RECURSE LRE_TARGET_PLATFORM_SOURCES CONFIGURE_DEPENDS
+            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS/*.mm"
         )
-        list(APPEND ILEN_ENGINE_PLATFORM_SOURCES ${ILEN_ENGINE_MACOS_SOURCES})
-        list(APPEND ILEN_ENGINE_PRIVATE_INCLUDE_DIRS 
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS"
-        )
+        list(APPEND LRE_PRIVATE_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/macOS")
     endif()
+    list(APPEND LRE_PLATFORM_SOURCES ${LRE_TARGET_PLATFORM_SOURCES})
+
 elseif(LINUX)
-    file(GLOB_RECURSE ILEN_ENGINE_LINUX_SOURCES
-        CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/linux/*.cpp"
+    file(GLOB_RECURSE LRE_LINUX_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/linux/*.cpp"
     )
-    file(GLOB_RECURSE ILEN_ENGINE_VULKAN_SOURCES CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Vulkan/*.cpp"    
+    file(GLOB_RECURSE LRE_VULKAN_SOURCES CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Vulkan/*.cpp"
     )
-    list(APPEND ILEN_ENGINE_PLATFORM_SOURCES ${ILEN_ENGINE_LINUX_SOURCES})
-    list(APPEND ILEN_ENGINE_RENDERER_SOURCES ${ILEN_ENGINE_VULKAN_SOURCES})
-    list(APPEND ILEN_ENGINE_PRIVATE_INCLUDE_DIRS 
+
+    list(APPEND LRE_PLATFORM_SOURCES ${LRE_LINUX_SOURCES})
+    list(APPEND LRE_RENDERER_SOURCES ${LRE_VULKAN_SOURCES})
+    list(APPEND LRE_PRIVATE_INCLUDE_DIRS
         "${CMAKE_CURRENT_SOURCE_DIR}/src/Platform/linux"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/Renderer/Vulkan"
     )
 endif()
 
-# =============================================================================
-# Biblioteca del motor
-# =============================================================================
+# Creación de la biblioteca dinámica
+add_library(lre_engine SHARED ${LRE_COMMON_SOURCES} ${LRE_PLATFORM_SOURCES} ${LRE_RENDERER_SOURCES})
+add_library(Lynx::Engine ALIAS lre_engine)
 
-add_library(ilen_engine STATIC)
-add_library(ilen::engine ALIAS ilen_engine)
-
-target_sources(ilen_engine PRIVATE 
-    ${ILEN_ENGINE_COMMON_SOURCES} 
-    ${ILEN_ENGINE_RENDERER_SOURCES} 
-    ${ILEN_ENGINE_PLATFORM_SOURCES}
-    "${ILEN_GENERATED_SERIALIZERS}"
+set_target_properties(lre_engine PROPERTIES 
+    OUTPUT_NAME "LynxRecomposer"
+    #VERSION "${PROJECT_VERSION}"
+    #SOVERSION $"{PROJECT_VERSION_MAJOR}"
+    #Solucion inicial para exportar la API de windows
+    WINDOWS_EXPORT_ALL_SYMBOLS TRUE
+    EXPORT_NAME Engine
 )
 
-target_include_directories(
-    ilen_engine
-    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    PRIVATE ${ILEN_ENGINE_PRIVATE_INCLUDE_DIRS}
-    #Estas 2 abajo son temporales hasta que se ajuste
-    "${ILEN_GENERATED_REFLECTION_ROOT}/project_data"
-    "${ILEN_PROJECT_ROOT}/include"
+target_include_directories(lre_engine
+    PUBLIC
+        "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+        "$<INSTALL_INTERFACE:include>"
+    PRIVATE
+        ${LRE_PRIVATE_INCLUDE_DIRS}
 )
 
 find_package(Threads REQUIRED)
 
-target_link_libraries(
-    ilen_engine PUBLIC ilen::build_config Threads::Threads
-)
+target_link_libraries(lre_engine PUBLIC Lynx::BuildConfig Threads::Threads)
 
-add_dependencies(ilen_engine ilen_reflection_codegen)
-
-# =============================================================================
-# Dependencias de plataforma
-# =============================================================================
-
+#Dependencias por sistema
 if(APPLE)
-    target_link_libraries(ilen_engine PUBLIC
+    target_link_libraries(lre_engine PUBLIC
         "-framework MetalKit"
         "-framework Metal"
         "-framework QuartzCore"
@@ -125,208 +152,198 @@ if(APPLE)
     )
 
     if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-        target_link_libraries(ilen_engine PUBLIC
+        target_link_libraries(lre_engine PUBLIC
             "-framework Foundation"
             "-framework UIKit"
         )
-        target_compile_options(ilen_engine PRIVATE "-fno-objc-arc")
     elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
-        target_link_libraries(ilen_engine PUBLIC
+        target_link_libraries(lre_engine PUBLIC
             "-framework Foundation"
             "-framework UIKit"
             "-framework TVUIKit"
         )
-        target_compile_options(ilen_engine PRIVATE "-fno-objc-arc")
     else()
-        target_link_libraries(ilen_engine PUBLIC "-framework Cocoa")
-        target_compile_options(ilen_engine PRIVATE "-fno-objc-arc")
+        target_link_libraries(lre_engine PUBLIC "-framework Cocoa")
     endif()
+
+    target_compile_options(lre_engine PRIVATE "-fno-objc-arc")
+
 elseif(LINUX)
     find_package(PkgConfig REQUIRED)
     find_package(Vulkan REQUIRED)
-    pkg_check_modules(ILEN_XCB REQUIRED IMPORTED_TARGET xcb xcb-ewmh xcb-icccm)
 
-    target_link_libraries(ilen_engine PUBLIC Vulkan::Vulkan PRIVATE PkgConfig::ILEN_XCB)
+    pkg_check_modules(LRE_XCB REQUIRED IMPORTED_TARGET xcb xcb-ewmh xcb-icccm)
+    target_link_libraries(lre_engine PUBLIC Vulkan::Vulkan PRIVATE PkgConfig::LRE_XCB)
 endif()
 
-# =============================================================================
-# Pruebas aisladas del motor
-# =============================================================================
+#Compilacion de los assets propios del motor
 
-if(ILEN_BUILD_TESTS OR ILEN_BUILD_PHYSICS_BENCHMARK)
-    add_executable(
-        ilen-physics-broadphase-benchmark
+if(LRE_BUILD_ENGINE_ASSETS)
+    foreach(LRE_REQUIRED_TOOL LYNX_RE_FILE_BINARIZER LYNX_RE_COMPONENTS_REFLECTION_TOOL)
+        if(NOT TARGET ${LRE_REQUIRED_TOOL})
+            message(FATAL_ERROR "LRE_BUILD_ENGINE_ASSETS requiere el target ${LRE_REQUIRED_TOOL}")
+        endif()
+    endforeach()
+    
+    if(APPLE AND NOT TARGET LYNX_RE_METAL_COMPILER)
+        message(FATAL_ERROR "Los assets de Apple requieren LYNX_RE_METAL_COMPILER")
+    endif()
 
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests/physics/broad_phase_2d_benchmark.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/physics/broad_phase_2d.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/maths/AABB.cpp"
-    )
+    if(NOT LRE_ENGINE_BINARY_ASSET_DIR)
+        set(LRE_ENGINE_BINARY_ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/generated_assets" CACHE PATH "Assets compilados de Lynx Recomposer Engine")
+    endif()
 
-    target_link_libraries(
-        ilen-physics-broadphase-benchmark
-        PRIVATE
-            ilen::build_config
-    )
+    if(NOT LRE_ENGINE_SCHEMA_FILE)
+        set(LRE_ENGINE_SCHEMA_FILE "${CMAKE_CURRENT_BINARY_DIR}/generated_schema/engine_defaults.meta_lynxschema" CACHE PATH "Esquema de componentes de Lynx Recomposer Engine")
+    endif()
 
-    target_include_directories(
-        ilen-physics-broadphase-benchmark
-        PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
+    set(LRE_ENGINE_DEFAULT_ASSET_MANIFEST "${CMAKE_CURRENT_SOURCE_DIR}/project_data/manifests/assets_defaults.meta_lynxmanifest")
+    set(LRE_ENGINE_ASSET_STAMP "${LRE_ENGINE_BINARY_ASSET_DIR}/.build_complete")
+    set(LRE_ENGINE_ASSET_WORK_ROOT "${CMAKE_CURRENT_BINARY_DIR}/engine_asset_work")
 
-    add_executable(
-        ilen-physics-swept-sat-test
+    file(GLOB_RECURSE LRE_ENGINE_REFLECTION_INPUTS CONFIGURE_DEPENDS LIST_DIRECTORIES false "${CMAKE_CURRENT_SOURCE_DIR}/include/lynx/*.h" "${CMAKE_CURRENT_SOURCE_DIR}/include/lynx/*.hpp")
+    file(GLOB_RECURSE LRE_ENGINE_ASSET_INPUTS CONFIGURE_DEPENDS LIST_DIRECTORIES false "${CMAKE_CURRENT_SOURCE_DIR}/project_data/assets/*")
+    list(APPEND LRE_ENGINE_ASSET_INPUTS ${LRE_ENGINE_DEFAULT_ASSET_MANIFEST})
+    list(FILTER LRE_ENGINE_ASSET_INPUTS EXCLUDE REGEX "/\\.DS_Store$")
 
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests/physics/swept_sat_2d_test.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/physics/narrow_phase_2d.cpp"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/Common/maths/AABB.cpp"
-    )
-
-    target_link_libraries(
-        ilen-physics-swept-sat-test
-        PRIVATE
-            ilen::build_config
-    )
-
-    target_include_directories(
-        ilen-physics-swept-sat-test
-        PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-
-    add_executable(
-        ilen-physics-collider-proxy-test
-
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests/physics/collider_proxy_builder_2d_test.cpp"
-    )
-
-    target_link_libraries(
-        ilen-physics-collider-proxy-test
-        PRIVATE
-            ilen::build_config
-    )
-
-    target_include_directories(
-        ilen-physics-collider-proxy-test
-        PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-endif()
-
-if(ILEN_BUILD_TESTS)
-    add_executable(
-        ilen-command-buffer-concurrency-test
-
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests/command_buffer_concurrency.cpp"
-    )
-
-    target_link_libraries(
-        ilen-command-buffer-concurrency-test
-        PRIVATE
-            ilen::build_config
-            Threads::Threads
-    )
-
-    target_include_directories(
-        ilen-command-buffer-concurrency-test
-        PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    )
-endif()
-
-# =============================================================================
-# Assets binarios predefinidos
-# =============================================================================
-
-file(GLOB_RECURSE ILEN_ENGINE_ASSET_INPUTS CONFIGURE_DEPENDS
-    LIST_DIRECTORIES false
-    "${ILEN_ENGINE_DATA_DIR}/assets/*"
-    "${ILEN_ENGINE_DATA_DIR}/manifests/assets_defaults.meta_ilenmanifest"
-)
-
-list(FILTER ILEN_ENGINE_ASSET_INPUTS EXCLUDE REGEX "/\\.DS_Store$")
-set(ILEN_ENGINE_ASSET_WORK_ROOT "${ILEN_GENERATED_ROOT}/engine_asset_compiler")
-set(
-    ILEN_ENGINE_DEFAULT_MANIFEST
-    "${ILEN_ENGINE_DATA_DIR}/manifests/assets_defaults.meta_ilenmanifest"
-)
-
-set(
-    ILEN_ENGINE_ASSET_COMMANDS
-
-    COMMAND
-        "${CMAKE_COMMAND}" -E rm -rf
-        "${ILEN_ENGINE_ASSET_WORK_ROOT}"
-
-    COMMAND
-        "${CMAKE_COMMAND}" -E make_directory
-        "${ILEN_ENGINE_ASSET_WORK_ROOT}/project_data/assets"
-
-    COMMAND
-        "${CMAKE_COMMAND}" -E make_directory
-        "${ILEN_ENGINE_ASSET_WORK_ROOT}/include/ilen/render"
-
-    COMMAND
-        "${CMAKE_COMMAND}" -E copy_directory
-        "${ILEN_ENGINE_DATA_DIR}/assets"
-        "${ILEN_ENGINE_ASSET_WORK_ROOT}/project_data/assets"
-
-    COMMAND
-        "${CMAKE_COMMAND}" -E copy_if_different
-        "${ILEN_ENGINE_ROOT}/include/ilen/render/render_constants.h"
-        "${ILEN_ENGINE_ASSET_WORK_ROOT}/include/ilen/render/render_constants.h"
-
-    COMMAND
-        $<TARGET_FILE:ILEN_FILE_BINARIZATION>
-        --mode engine
-        --source-assets "${ILEN_ENGINE_DATA_DIR}/assets"
-        --source-manifest "${ILEN_ENGINE_DEFAULT_MANIFEST}"
-        --output "${ILEN_ENGINE_BINARY_ASSET_DIR}"
-        --compile-target "${ILEN_TARGET_NAME}"
-)
-
-if(APPLE)
-    list(
-        APPEND
-        ILEN_ENGINE_ASSET_COMMANDS
+    set(LRE_ENGINE_ASSET_DEPENDENCIES ${LRE_ENGINE_ASSET_INPUTS} ${LRE_ENGINE_REFLECTION_INPUTS} LYNX_RE_FILE_BINARIZER LYNX_RE_COMPONENTS_REFLECTION_TOOL)
+    set(LRE_ENGINE_ASSET_COMMANDS
+    
+        COMMAND
+            "${CMAKE_COMMAND}" -E rm -rf
+            "${LRE_ENGINE_ASSET_WORK_ROOT}"
+        
+        COMMAND
+            "${CMAKE_COMMAND}" -E make_directory
+            "${LRE_ENGINE_ASSET_WORK_ROOT}/include"
 
         COMMAND
-            $<TARGET_FILE:ILEN_METAL_COMPILER>
-            --ilen-folder "${ILEN_ENGINE_ASSET_WORK_ROOT}"
-            --sdk "${ILEN_METAL_SDK}"
-            $<$<CONFIG:Debug>:--add-debug>
+            "${CMAKE_COMMAND}" -E make_directory
+            "${LRE_ENGINE_ASSET_WORK_ROOT}/project_data/manifests"
 
         COMMAND
             "${CMAKE_COMMAND}" -E copy_directory
-            "${ILEN_ENGINE_ASSET_WORK_ROOT}/.ilen_bin_data/shader-code"
-            "${ILEN_ENGINE_BINARY_ASSET_DIR}/shader-code"
+            "${CMAKE_CURRENT_SOURCE_DIR}/include/lynx"
+            "${LRE_ENGINE_ASSET_WORK_ROOT}/include/lynx"
+        
+        COMMAND
+            $<TARGET_FILE:LYNX_RE_COMPONENTS_REFLECTION_TOOL>
+            --engine-mode
+            --lynx-folder "${LRE_ENGINE_ASSET_WORK_ROOT}"
+        
+        COMMAND
+            "${CMAKE_COMMAND}" -E make_directory
+            "$<PATH:GET_PARENT_PATH,${LRE_ENGINE_SCHEMA_FILE}>"
+
+        COMMAND
+            "${CMAKE_COMMAND}" -E copy_if_different
+            "${LRE_ENGINE_ASSET_WORK_ROOT}/project_data/manifests/engine_defaults.meta_lynxschema"
+            "${LRE_ENGINE_SCHEMA_FILE}"
+
+        COMMAND
+            $<TARGET_FILE:LYNX_RE_FILE_BINARIZER>
+            --mode engine
+            --source-assets "${CMAKE_CURRENT_SOURCE_DIR}/project_data/assets"
+            --source-manifest "${LRE_ENGINE_DEFAULT_ASSET_MANIFEST}"
+            --output "${LRE_ENGINE_BINARY_ASSET_DIR}"
+            --compile-target "${LRE_TARGET_NAME}"
+    )
+
+    if(APPLE)
+        list(APPEND LRE_ENGINE_ASSET_DEPENDENCIES LYNX_RE_METAL_COMPILER)
+
+        if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+            if(PLATFORM STREQUAL "SIMULATOR")
+                set(LRE_METAL_SDK "iphonesimulator")
+            else()
+                set(LRE_METAL_SDK "iphoneos")
+            endif()
+        elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+            if(PLATFORM STREQUAL "SIMULATOR")
+                set(LRE_METAL_SDK "appletvsimulator")
+            else()
+                set(LRE_METAL_SDK "appletvos")
+            endif()
+        else()
+            set(LRE_METAL_SDK "macosx")
+        endif()
+
+        list(APPEND LRE_ENGINE_ASSET_COMMANDS
+        
+            COMMAND
+                "${CMAKE_COMMAND}" -E copy_directory
+                "${CMAKE_CURRENT_SOURCE_DIR}/project_data/assets"
+                "${LRE_ENGINE_ASSET_WORK_ROOT}/project_data/assets"
+
+            COMMAND
+                $<TARGET_FILE:LYNX_RE_METAL_COMPILER>
+                --lynx-folder "${LRE_ENGINE_ASSET_WORK_ROOT}"
+                --sdk "${LRE_METAL_SDK}"
+                $<$<CONFIG:Debug>:--add-debug>
+
+            COMMAND
+                "${CMAKE_COMMAND}" -E copy_directory
+                "${LRE_ENGINE_ASSET_WORK_ROOT}/.lynx_bin_data/shader_code"
+                "${LRE_ENGINE_BINARY_ASSET_DIR}/shader_code"
+        )
+    endif()
+
+    add_custom_command(
+        OUTPUT
+            "${LRE_ENGINE_ASSET_STAMP}"
+            "${LRE_ENGINE_SCHEMA_FILE}"
+
+        ${LRE_ENGINE_ASSET_COMMANDS}
+
+        COMMAND
+            "${CMAKE_COMMAND}" -E touch
+            "${LRE_ENGINE_ASSET_STAMP}"
+        
+        DEPENDS
+            ${LRE_ENGINE_ASSET_DEPENDENCIES}
+        
+        COMMENT
+            "Compiling Lynx Recomposer Engine assets"
+        
+        COMMAND_EXPAND_LISTS
+        VERBATIM
+    )
+
+    add_custom_target(lre_engine_assets DEPENDS "${LRE_ENGINE_ASSET_STAMP}" "${LRE_ENGINE_SCHEMA_FILE}")
+endif()
+
+#pruebas
+
+if(LRE_BUILD_TESTS OR LRE_BUILD_PHYSICS_BENCHMARKS)
+    add_executable(
+        lre_physics_broadphase_benchmark
+        tests/physics/broad_phase_2d_benchmark.cpp
+        src/Common/physics/broad_phase_2d.cpp
+        src/Common/maths/AABB.cpp
+    )
+
+    target_link_libraries(
+        lre_physics_broadphase_benchmark
+        PRIVATE
+            Lynx::BuildConfig
+    )
+
+    target_include_directories(
+        lre_physics_broadphase_benchmark
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/include"
     )
 endif()
 
-add_custom_command(
-    OUTPUT
-        "${ILEN_ENGINE_ASSET_STAMP}"
 
-    ${ILEN_ENGINE_ASSET_COMMANDS}
+#INSTALACION DE LA BIBLIOTECA
 
-    COMMAND
-        "${CMAKE_COMMAND}" -E touch
-        "${ILEN_ENGINE_ASSET_STAMP}"
-
-    DEPENDS
-        ${ILEN_ENGINE_ASSET_INPUTS}
-        ILEN_FILE_BINARIZATION
-        $<$<BOOL:${APPLE}>:ILEN_METAL_COMPILER>
-
-    COMMENT
-        "Compiling Ilusions Engine predefined assets"
-
-    COMMAND_EXPAND_LISTS
-    VERBATIM
+install(TARGETS lre_engine lre_build_config
+    EXPORT LynxRecomposerEngineTargets
+    RUNTIME DESTINATION bin
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
 )
 
-add_custom_target(
-    ilen_engine_assets
-    DEPENDS
-        "${ILEN_ENGINE_ASSET_STAMP}"
-)
+install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
+install(EXPORT LynxRecomposerEngineTargets FILE LynxRecomposerEngineTargets.cmake NAMESPACE LYNX:: DESTINATION lib/cmake/LynxRecomposerEngine)

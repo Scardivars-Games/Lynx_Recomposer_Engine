@@ -1,0 +1,71 @@
+{
+    "models": [
+        {
+            "id": 1,
+            "name": "triangle",
+            "path": "models/predefined/triangle.obj"
+        },
+        {
+            "id": 2,
+            "name": "quad",
+            "path": "models/predefined/quad.obj"
+        },
+        {
+            "id": 3,
+            "name": "cube",
+            "path": "models/predefined/cube.obj"
+        }
+    ],
+    "materials" : [
+        {
+            "id": 4,
+            "name": "error",
+            "path": "materials/predefined/error.meta_lynxmat"
+        },
+        {
+            "id": 5,
+            "name": "unlit_opaque",
+            "path": "materials/predefined/unlit_opaque.meta_lynxmat"
+        },
+        {
+            "id": 6,
+            "name": "unlit_transparent",
+            "path": "materials/predefined/unlit_transparent.meta_lynxmat"
+        }
+    ],
+    "shaders" : [
+        {
+            "id": 7,
+            "name": "error",
+            "path": "shaders/predefined/error.meta_lynxshader"
+        },
+	    {
+            "id": 8,
+            "name": "unlit",
+            "path": "shaders/predefined/unlit.meta_lynxshader"
+        },
+	    {
+            "id": 9,
+            "name": "post-processing",
+            "path": "shaders/predefined/post-processing.meta_lynxshader"
+        },
+        {
+            "id": 10,
+            "name": "post-processing-calculations",
+            "path": "shaders/predefined/post-processing-calculations.meta_lynxshader"
+        }
+    ],
+    "textures" : [
+        {
+            "id": 11,
+            "name": "default-texture",
+            "path": "textures/predefined/default_texture.png" 
+        },
+        {
+            "id": 12,
+            "name": "error-texture",
+            "path": "textures/predefined/error_texture.png"
+        }
+    ],
+    "totalOfElements": 12
+}

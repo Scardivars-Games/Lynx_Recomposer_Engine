@@ -1,12 +1,12 @@
 #pragma once
-#if ILEN_LINUX
-#include <ilen/window/window.h>
-#include <ilen/headers/enumerations.h>
+#if LYNX_LINUX
+#include <lynx/window/window.h>
+#include <lynx/headers/enumerations.h>
 
 //X11 Window (USING XCB)
 #include <xcb/xcb.h>
 
-namespace ilen::window {
+namespace lynx::window {
     struct XCBSurfaceCreationInfo {
         xcb_window_t _window;
         xcb_connection_t* _connection;
@@ -15,7 +15,7 @@ namespace ilen::window {
     //X11 implementation using modern XCB
     class WindowsNativeLinuxXCB final : public WindowNative {
         public:
-            WindowsNativeLinuxXCB(const ilen::application::ApplicationMetadata& metadata);
+            WindowsNativeLinuxXCB(const lynx::application::ApplicationMetadata& metadata);
             ~WindowsNativeLinuxXCB() override;
             void pollEvents() override;
             bool shouldClose() override {return m_shouldClose; }

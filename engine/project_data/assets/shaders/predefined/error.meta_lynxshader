@@ -1,0 +1,5 @@
+{
+    "shader-file-name": "error",
+    "shader-dir" : "predefined/error_shader",
+    "shader-name" : "Error"
+}

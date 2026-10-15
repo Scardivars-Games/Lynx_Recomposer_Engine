@@ -1,22 +1,22 @@
 #pragma once
 #if defined(__APPLE__)
 
-#include <ilen/render/gpu_interfaces/sampler.h>
+#include <lynx/render/gpu_interfaces/sampler.h>
 #include <vector>
 #include <mutex>
 #include <memory>
 
 #import <Metal/Metal.h>
 
-namespace ilen::render {
+namespace lynx::render {
     class MetalSampler final : public IGPUSampler {
         public:
-            static std::shared_ptr<IGPUSampler> getOrCreate(const IlenGPUSamplerDescriptor& descriptor, id<MTLDevice> device);
+            static std::shared_ptr<IGPUSampler> getOrCreate(const LynxGPUSamplerDescriptor& descriptor, id<MTLDevice> device);
             ~MetalSampler() override;
             void* getNativeSampler() override;
         private:
             //De esta forma, solo getOrCreate puede instanciar la clase
-            MetalSampler(id<MTLSamplerState> nativeSampler, const IlenGPUSamplerDescriptor& descriptor);
+            MetalSampler(id<MTLSamplerState> nativeSampler, const LynxGPUSamplerDescriptor& descriptor);
             id<MTLSamplerState> _sampler = nil;
 
             static std::vector<std::shared_ptr<IGPUSampler>> _cachedSamplers;

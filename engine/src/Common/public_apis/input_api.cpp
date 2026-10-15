@@ -1,26 +1,26 @@
-#include <ilen_public/API/input_api.h>
+#include <lynx_public/API/input_api.h>
 
-using namespace ilen::engine::api;
-using namespace ilen::input;
+using namespace lynx::engine::api;
+using namespace lynx::input;
 
-ilen::input::InputBuffer* InputAPI::inputBuffer = nullptr;
-ilen::input::Pointer* InputAPI::mouse = nullptr;
+lynx::input::InputBuffer* InputAPI::inputBuffer = nullptr;
+lynx::input::Pointer* InputAPI::mouse = nullptr;
 
-void InputAPI::Init(const ilen::EngineContext* context) {
-    inputBuffer = &ilen::input::InputBuffer::Get();
+void InputAPI::Init(const lynx::EngineContext* context) {
+    inputBuffer = &lynx::input::InputBuffer::Get();
     mouse = &inputBuffer->GetPointer(0);
 }
 
-bool InputAPI::IsKeyDown(ilen::input::Key key){
-    return inputBuffer->CheckKeyState<ilen::input::KeyState::Down>(key);
+bool InputAPI::IsKeyDown(lynx::input::Key key){
+    return inputBuffer->CheckKeyState<lynx::input::KeyState::Down>(key);
 }
 
-bool InputAPI::IsKeyPressed(ilen::input::Key key){
-    return inputBuffer->CheckKeyState<ilen::input::KeyState::Pressed>(key);
+bool InputAPI::IsKeyPressed(lynx::input::Key key){
+    return inputBuffer->CheckKeyState<lynx::input::KeyState::Pressed>(key);
 }
 
-bool InputAPI::IsKeyReleased(ilen::input::Key key){
-    return inputBuffer->CheckKeyState<ilen::input::KeyState::Released>(key);
+bool InputAPI::IsKeyReleased(lynx::input::Key key){
+    return inputBuffer->CheckKeyState<lynx::input::KeyState::Released>(key);
 }
 
 bool InputAPI::IsPrimaryMouseButtonPressed() {
@@ -76,10 +76,10 @@ bool InputAPI::IsButtonReleased(GamepadButton button, int index) {
     return inputBuffer->CheckGamepadButton<KeyState::Released>(index, button);
 }
 
-vec2 InputAPI::GetGamepadAxis(ilen::input::GamepadAxis axis, int index) {
+vec2 InputAPI::GetGamepadAxis(lynx::input::GamepadAxis axis, int index) {
     return inputBuffer->GetGamepadAxis(axis, index);
 }
 
-float InputAPI::GetGamepadValue(ilen::input::GamepadSpecialValues value, int index) {
+float InputAPI::GetGamepadValue(lynx::input::GamepadSpecialValues value, int index) {
     return inputBuffer->GetGamepadValue(value, index);
 }

@@ -1,14 +1,14 @@
 #include <Metal/sampler_metal.h>
-#include <ilen/headers/ilen_logs.h>
+#include <lynx/headers/lynx_logs.h>
 #include <Metal_Common/engine_to_native_converters.h>
 
-using namespace ilen::render::utils::metal;
+using namespace lynx::render::utils::metal;
 
-namespace ilen::render {
+namespace lynx::render {
     std::vector<std::shared_ptr<IGPUSampler>> MetalSampler::_cachedSamplers;
     std::mutex MetalSampler::_samplerMutex;
     
-    std::shared_ptr<IGPUSampler> MetalSampler::getOrCreate(const IlenGPUSamplerDescriptor &descriptor, id<MTLDevice> device){
+    std::shared_ptr<IGPUSampler> MetalSampler::getOrCreate(const LynxGPUSamplerDescriptor &descriptor, id<MTLDevice> device){
         std::lock_guard lock(_samplerMutex);
         
         //Buscando si esta cacheado el sampelr
@@ -36,7 +36,7 @@ namespace ilen::render {
             [mtlDescriptor release];
             
             if(!nativeSampler) {
-                ILEN_ERROR_P(DEBUG_PREFIX, "Error interno en Metal al tratar de crear el MTLSamplerState");
+                LYNX_ERROR_P(DEBUG_PREFIX, "Error interno en Metal al tratar de crear el MTLSamplerState");
                 return nullptr;
             }
             
@@ -48,7 +48,7 @@ namespace ilen::render {
     }
 
     //Constructor privado
-    MetalSampler::MetalSampler(id<MTLSamplerState> nativeSampler, const IlenGPUSamplerDescriptor& descriptor){
+    MetalSampler::MetalSampler(id<MTLSamplerState> nativeSampler, const LynxGPUSamplerDescriptor& descriptor){
         _sampler = nativeSampler;
         [_sampler retain];
         

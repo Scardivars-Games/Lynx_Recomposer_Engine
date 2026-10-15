@@ -1,16 +1,17 @@
-#include "ilen/game_logic/ecs_bridge.h"
-#include "ilen/physics/components/specification/collision_components.h"
+
 #if !ILEN_ONLY_ECS
 
-#include <ilen/game_logic/physics_event_system_2d.h>
-#include <ilen/game_logic/game_object.h>
+#include <lynx/game_logic/physics_event_system_2d.h>
+#include <lynx/game_logic/game_object.h>
+#include <lynx/game_logic/ecs_bridge.h>
+#include <lynx/physics/components/specification/collision_components.h>
 
-namespace ilen::ecs::systems {
-    using ilen::ecs::components::ScriptingBridgeComponent;
-    using namespace ilen::ecs::components::physics;
+namespace lynx::ecs::systems {
+    using lynx::ecs::components::ScriptingBridgeComponent;
+    using namespace lynx::ecs::components::physics;
 
     namespace {
-        void DispatchContact (ilen::game::GameObject& gameObject, const ContactManifold2D& contact) {
+        void DispatchContact (lynx::game::GameObject& gameObject, const ContactManifold2D& contact) {
             if(contact.isTrigger) {
                 switch (contact.phase) {
                     case CollisionPhase2D::Enter:
@@ -41,7 +42,7 @@ namespace ilen::ecs::systems {
         }
     }
 
-    void PhysicsEventSystem2D::Init(const ilen::EngineContext *engineContext) {
+    void PhysicsEventSystem2D::Init(const lynx::EngineContext *engineContext) {
         p_coordinator = engineContext->p_coordinator.get();
         p_jobSystem = engineContext->p_jobSystem.get();
         p_commandDispatcher = engineContext->p_commandDispatcher.get();

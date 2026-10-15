@@ -1,0 +1,54 @@
+{
+    "project": {
+        "name": "Lemon's Conspiracy",
+        "developer": "Scardivar's Games",
+        "identifier": "com.scardivargames.lemonsconspiracy",
+        "version": "0.0.1",
+        "initialScene": 1
+    },
+
+    "window": {
+        "title": "Lemon's Conspiracy",
+        "width": 800,
+        "height": 600,
+        "framerate": 120,
+        "closable": true,
+        "resizable": true,
+        "maximizable": true,
+        "fullscreen": false
+    },
+
+    "graphics": {
+        "postProcess": true,
+        "motionBlur": true,
+        "depth": true,
+        "stencil": false,
+        "instanceBufferSizeInMB": 4,
+        "generalBufferSizeInMB": 64
+    },
+
+    "physics": {
+        "updatedPerSecond":60,
+        "gravity": -9.81,
+        "linearMovementResistance": 4.0,
+        "velocityZeroThreshold": 0.1,
+        "solveRealisticCollision": true,
+        "showDebugArrows": false
+    },
+
+    "ecs": {
+        "initialEntityCapacity" : 300
+    },
+
+    "predefinedAssetID": {
+        "errorShader": 7,
+        "errorMaterial": 4,
+        "errorTexture": 12,
+        "quadMesh": 2,
+        "postProcessPresentShader": 9,
+        "postProcessCalculateShader": 10,
+        "defaultTexture": 11,
+        "defaultUnlitOpaqueMaterial": 5,
+        "defaultUnlitTransparentMaterial": 6
+    }
+}

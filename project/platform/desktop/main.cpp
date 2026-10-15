@@ -1,39 +1,28 @@
 //Este punto de entrada es válido para muchos sistemas operativos, pero no para iOS
-#include "ilen/core/runtime_options.h"
-#ifdef __APPLE__
-#include <TargetConditionals.h>
-#endif
+#include <exception>
+#include <utility>
+#include <game/runtime_options.h>
 
-#if ILEN_DESKTOP //Si esta app no es de iOS
-#include <ilen/headers/core.h>
-#include <ilen/headers/visual.h>
-#include <ilen/headers/enumerations.h>
+#include <lynx/core/exceptions.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/core/lifetime.h>
 
-using namespace ilen::enumerations;
-using namespace ilen;
-using namespace ilen::window;
-int main() {
-    application::ApplicationMetadata metadata{};
-    metadata.applicationName = "Lemon's Conspiracy -> PreAlpha";
-    metadata.applicationDeveloper = "Scardivar's Games";
-    metadata.applicationVersion = "0.0.1";
-    metadata.startHeight = 600;
-    metadata.startWidth = 800;
-    metadata.windowPropertiesFlags = ILEN_WINDOW_PROPERTY_CLOSABLE | ILEN_WINDOW_PROPERTY_RESIZABLE | ILEN_WINDOW_PROPERTY_MAXIMIZABLE | ILEN_WINDOW_PROPERTY_FULLSCREEN;
-    metadata.applicationFramerate = ilen::core::options::GraphicsOptions::actualFPS;
+int main(int argc, char* argv[]) {
+    auto bootstrap = game::generated::MakeProjectBootstrap();
+    auto& application = lynx::AppRuntime::getInstance();
 
-    AppRuntime& app = AppRuntime::getInstance();
-    try{
-        app.init(metadata);
+    try {
+        application.init(std::move(bootstrap));
 
-        while (app.isRunning()) {
-            app.update();
+        while (application.isRunning()) {
+            application.update();
         }
-    }catch(const core::BasicException& e){
-        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
+    }catch(const lynx::core::BasicException& exception) {
+        LYNX_FATAL_ERROR_P(exception.prefix(),exception.what());
+    }catch(const std::exception& exception) {
+        LYNX_FATAL_ERROR_P("GAME", exception.what());
     }
 
-    app.shutdown();
+    application.shutdown();
     return 0;
 }
-#endif

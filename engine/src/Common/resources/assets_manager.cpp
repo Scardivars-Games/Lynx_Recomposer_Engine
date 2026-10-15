@@ -1,34 +1,34 @@
 #include <fstream>
-#include <ilen/resources/assets_manager.h>
-#include <ilen/graphics/material.h>
-#include <ilen/graphics/shader.h>
-#include <ilen/core/filemanager.h>
-#include <ilen/resources/texture_manager.h>
+#include <lynx/resources/assets_manager.h>
+#include <lynx/graphics/material.h>
+#include <lynx/graphics/shader.h>
+#include <lynx/core/filemanager.h>
+#include <lynx/resources/texture_manager.h>
 #include <set>
 #include <vector>
 
-using namespace ilen::resources;
-using namespace ilen::core;
+using namespace lynx::resources;
+using namespace lynx::core;
 
 void AssetsManager::loadManifiest(EngineContext* engineContext) {
     context = engineContext;
 
-    m_manifestFileName = "assets.ilenmanifest";
+    m_manifestFileName = "assets.lynxmanifest";
 
-    auto manifestPath = FileManager::fileRoute(m_manifestFileName, ILEN_FILE_TYPE_ASSETS_MANIFEST);
+    auto manifestPath = FileManager::fileRoute(m_manifestFileName, LYNX_FILE_TYPE_ASSETS_MANIFEST);
 
     std::ifstream file(manifestPath, std::ios::binary);
 
     if(!file.is_open()){
-        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se pudo abrir el manifiesto principal de assets del juego");
+        LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "No se pudo abrir el manifiesto principal de assets del juego");
     }
 
-    ilen::binary::headers::IlenManifestHeader header{};
+    lynx::binary::headers::LynxManifestHeader header{};
 
-    file.read(reinterpret_cast<char*>(&header),sizeof(ilen::binary::headers::IlenManifestHeader));
+    file.read(reinterpret_cast<char*>(&header),sizeof(lynx::binary::headers::LynxManifestHeader));
 
     if(std::string(header.magicNumber) != "TSEFINAM_NELI"){
-        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Header of Manifest file is not compatible by magic number");
+        LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Header of Manifest file is not compatible by magic number");
     }
 
     m_friendlyNameToID.reserve(header.totalOfNamesToID);
@@ -108,13 +108,13 @@ void AssetsManager::loadManifiest(EngineContext* engineContext) {
     }
 
     isManifestLoaded = true;
-    ILEN_LOG_P(DEBUG_PREFIX, "MANIFIESTO CARGADO EXITOSAMENTE. Total de items cargados: %zu", m_friendlyNameToID.size());
+    LYNX_LOG_P(DEBUG_PREFIX, "MANIFIESTO CARGADO EXITOSAMENTE. Total de items cargados: %zu", m_friendlyNameToID.size());
 }
 
 uint32_t AssetsManager::getAssetID(const std::string& friendlyName) const {
     auto element = m_friendlyNameToID.find(friendlyName);
     if(element == m_friendlyNameToID.end()){
-        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "El asset con nombre %s no existe en los registros. Revisar el nombre.", friendlyName.c_str());
+        LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "El asset con nombre %s no existe en los registros. Revisar el nombre.", friendlyName.c_str());
     }
     return element->second; //Regresa el id :)
 }

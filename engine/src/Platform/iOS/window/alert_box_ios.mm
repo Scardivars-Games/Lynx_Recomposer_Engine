@@ -1,10 +1,10 @@
-#if defined (__APPLE__) && ILEN_IOS
+#if defined (__APPLE__) && LYNX_IOS
 
-#include <ilen/window/alert_box.h>
+#include <lynx/window/alert_box.h>
 #include <cstdlib>
 #import <UIKit/UIKit.h>
 
-namespace ilen::window::box {
+namespace lynx::window::box {
     void ShowErrorDialogBox(const std::string& title, const std::string& message){
         NSString* dialogTitle = [NSString stringWithUTF8String:title.c_str()];
         NSString* dialogMessage = [NSString stringWithUTF8String:message.c_str()];

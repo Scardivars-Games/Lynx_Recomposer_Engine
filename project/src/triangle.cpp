@@ -1,16 +1,15 @@
-#if !ILEN_ONLY_ECS
+#include "lynx/headers/enumerations.h"
+#if !LYNX_ONLY_ECS
 
-#include <ilen_examples/triangle.h>
-#include <ilen/core/runtime_options.h>
-#include <ilen_public/API/transform_api.h>
+#include <lynx_examples/triangle.h>
+#include <lynx_public/API/transform_api.h>
 
-using namespace ilen::game;
-using namespace ilen::core;
-using namespace ilen::ecs::components;
-using namespace ilen::core::options;
+using namespace lynx::game;
+using namespace lynx::core;
+using namespace lynx::ecs::components;
 
 void Triangle::Init() {
-    //ILEN_LOG_P("TRIANGLE", "Inicializado triángulo de prueba");
+    //LYNX_LOG_P("TRIANGLE", "Inicializado triángulo de prueba");
 
     // Posición aleatoria entre -5 y 5 en X e Y
     float randomX = -35.0f + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / 70.0f);
@@ -20,17 +19,17 @@ void Triangle::Init() {
     transform.scale = vec3(0.5f, 0.5f, 0.5f);
     coordinator->setComponent(entity, std::move(transform));*/
 
-    using namespace ilen::engine::api;
+    using namespace lynx::engine::api;
     TransformAPI::SetPosition(entity, vec3(randomX, randomY, -1.0f));
     TransformAPI::Scale(entity, 0.5f);
 }
 
 void Triangle::Update(){
-    using namespace ilen::engine::api;
-//    ILEN_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", ilen::time::Time::getDeltaTime());
+    using namespace lynx::engine::api;
+//    LYNX_LOG_P("TRIANGLE", "Triangle update. Delta time: %.4f", lynx::time::Time::getDeltaTime());
     int zRotate = 360;
 
-    float xAdvance = 5 * ilen::time::Time::getDeltaTime();
+    float xAdvance = 5 * lynx::time::Time::getDeltaTime();
     if(advance > 5 || isRight == false) {
         zRotate = -360;
         xAdvance *= -1;
@@ -41,7 +40,7 @@ void Triangle::Update(){
         isRight = true;
     }
 
-    TransformAPI::Rotate(entity, vec3(0, 0, static_cast<float>(zRotate)) * ilen::time::Time::getDeltaTime());
+    TransformAPI::Rotate(entity, vec3(0, 0, static_cast<float>(zRotate)) * lynx::time::Time::getDeltaTime());
     TransformAPI::Translate(entity, vec3(xAdvance, 0, 0));
     advance += xAdvance;
 }
@@ -56,7 +55,7 @@ void FalseCamera::Init() {
     camera.isPrimary = true;
     camera.fovDegrees = 70.0f;
     camera.nearClip = 2;
-    camera.projectionType = ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_ORTHOGRAPHIC;
+    camera.projectionType = enumerations::LYNX_CAMERA_PROJECTION_TYPE::LYNX_CAMERA_PROJECTION_ORTHOGRAPHIC;
     coordinator->setComponent(entity, std::move(camera));
 }
 
@@ -73,9 +72,9 @@ void Object3D::Init() {
 }
 
 void Object3D::Update() {
-    using namespace ilen::engine::api;
-    TransformAPI::Rotate(entity, vec3(0, 50, 0) * ilen::time::Time::getDeltaTime());
+    using namespace lynx::engine::api;
+    TransformAPI::Rotate(entity, vec3(0, 50, 0) * lynx::time::Time::getDeltaTime());
     
 }
 
-#endif //!ILEN_ONLY_ECS
+#endif //!LYNX_ONLY_ECS

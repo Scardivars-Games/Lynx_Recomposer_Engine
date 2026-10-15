@@ -1,7 +1,7 @@
 #pragma once
 #import <GameController/GameController.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/input/input_buffer.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/input/input_buffer.h>
 
 inline void AddGameControllerNotifications() {
     
@@ -10,23 +10,23 @@ inline void AddGameControllerNotifications() {
                                                     object:nil
                                                     queue:[NSOperationQueue mainQueue]
                                                   usingBlock:^(NSNotification *note){
-        ILEN_LOG_P("APPLE_GAMEPADS", "Gamepad connectado %s", [[(GCController*)note.object vendorName] UTF8String]);
+        LYNX_LOG_P("APPLE_GAMEPADS", "Gamepad connectado %s", [[(GCController*)note.object vendorName] UTF8String]);
     }];
     
     [[NSNotificationCenter defaultCenter] addObserverForName:GCControllerDidDisconnectNotification
                                             object:nil
                                             queue:[NSOperationQueue mainQueue]
                                                   usingBlock:^(NSNotification *note) {
-        ILEN_LOG_P("APPLE_GAMEPADS", "Gamepad desconected %s", [[(GCController*)note.object vendorName] UTF8String]);
+        LYNX_LOG_P("APPLE_GAMEPADS", "Gamepad desconected %s", [[(GCController*)note.object vendorName] UTF8String]);
     }];
 };
 
 inline void UpdateGamePadsApple() {
-    using namespace ilen::input;
-    auto& input = ilen::input::InputBuffer::Get();
+    using namespace lynx::input;
+    auto& input = lynx::input::InputBuffer::Get();
     NSArray<GCController *> *controllers = [GCController controllers];
     
-    for(int i = 0; i < controllers.count && i < ilen::input::MAX_CONTROLLER; i++){
+    for(int i = 0; i < controllers.count && i < lynx::input::MAX_CONTROLLER; i++){
         GCController *controller = controllers[i];
         GCExtendedGamepad *profile = [controller extendedGamepad];
         

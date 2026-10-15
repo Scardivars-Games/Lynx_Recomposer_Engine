@@ -1,0 +1,94 @@
+{
+    "entities": [
+        {
+            "components": {
+                "BoxCollider2D": {},
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "layers": 1,
+                    "name": "Tierra",
+                    "tags": 1,
+                    "uuid": 6506968542066569176
+                },
+                "RenderComponent": {},
+                "Rigidbody2D": {
+                    "gravityScale": 1.0,
+                    "isStatic": true
+                },
+                "ScriptingBridgeComponent": {
+                    "scriptName": "lynx::game::Ground"
+                },
+                "TransformComponent": {
+                    "position": [
+                        0.0,
+                        -6.7,
+                        100.0
+                    ],
+                    "scale": [
+                        90.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "activeStatus": false,
+                    "layers": 16,
+                    "name": "Pointer Pos",
+                    "tags": 0,
+                    "uuid": 231749713158294129
+                },
+                "RenderComponent": {
+                    "defaultSpriteInTextureID": 10,
+                    "mainTexID": 13,
+                    "materialID": 6
+                },
+                "ScriptingBridgeComponent": {
+                    "scriptName": "lynx::game::PointerPos"
+                },
+                "TransformComponent": {
+                    "position": [
+                        0.0,
+                        0.0,
+                        3.0
+                    ],
+                    "scale": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "activeStatus": false,
+                    "layers": 16,
+                    "name": "Spawn Pos",
+                    "tags": 0,
+                    "uuid": 6499708965731273818
+                },
+                "ScriptingBridgeComponent": {
+                    "scriptName": "lynx::game::PlayerSpawner"
+                },
+                "TransformComponent": {
+                    "position": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scale": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                }
+            }
+        }
+    ],
+    "scene_name": "GravedadTest"
+}

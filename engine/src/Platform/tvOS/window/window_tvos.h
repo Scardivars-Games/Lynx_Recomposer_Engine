@@ -1,8 +1,8 @@
 #pragma once
 
 // Cambiamos la macro para que sea específica de tvOS
-#if defined (__APPLE__) && defined(ILEN_TVOS)
-#include <ilen/window/window.h>
+#if defined (__APPLE__) && defined(LYNX_TVOS)
+#include <lynx/window/window.h>
 #include <atomic>
 #include <cstdint>
 
@@ -11,12 +11,12 @@
 @class UIWindow;
 @class UIViewController;
 
-namespace ilen::window
+namespace lynx::window
 {
     class WindowNativeTVOS : public WindowNative
     {
         public:
-            WindowNativeTVOS(const ilen::application::ApplicationMetadata& metadata);
+            WindowNativeTVOS(const lynx::application::ApplicationMetadata& metadata);
             
             ~WindowNativeTVOS() override = default;
             

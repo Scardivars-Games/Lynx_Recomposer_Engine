@@ -1,9 +1,9 @@
-#include <ilen_public/API/entity_api.h>
-#include <ilen/resources/scene_manager.h>
+#include <lynx_public/API/entity_api.h>
+#include <lynx/resources/scene_manager.h>
 #include <string>
-#include "ilen/ecs/types.h"
+#include "lynx/ecs/types.h"
 
-using namespace ilen::engine::api;
+using namespace lynx::engine::api;
 
 void EntityAPI::SetActive(Entity entity, bool newState){
     GetMetadataPointer();
@@ -30,7 +30,7 @@ std::string EntityAPI::GetEntityName(Entity entity) {
     return metadataPtr->getData(entity)->getName();
 }
 
-void EntityAPI::Init(const ilen::EngineContext* context){
+void EntityAPI::Init(const lynx::EngineContext* context){
     p_coordinator = context->p_coordinator.get();
     p_sceneManager = context->p_sceneManager.get();
 }

@@ -1,15 +1,15 @@
-#if ILEN_LINUX
+#if LYNX_LINUX
 #include <Vulkan/renderer_vulkan.h>
-#include <ilen/render/renderer.h>
+#include <lynx/render/renderer.h>
 
-using namespace ilen::render;
+using namespace lynx::render;
 
-//ILEN_GPU_GRAPHICS_API_TYPE IRenderer::actualAPI;
+//LYNX_GPU_GRAPHICS_API_TYPE IRenderer::actualAPI;
 
-std::unique_ptr<IRenderer> IRenderer::CreateRenderer(const void* native_surface, ILEN_GPU_GRAPHICS_API_TYPE api){
+std::unique_ptr<IRenderer> IRenderer::CreateRenderer(const void* native_surface, LYNX_GPU_GRAPHICS_API_TYPE api){
     //This is linux, only can use is Vulkan or OpenGL. Preferred Vulkan than Open GL.
-    if(api == ILEN_GPU_GRAPHICS_API_TYPE::Auto){
-        api = ILEN_GPU_GRAPHICS_API_TYPE::Vulkan;
+    if(api == LYNX_GPU_GRAPHICS_API_TYPE::Auto){
+        api = LYNX_GPU_GRAPHICS_API_TYPE::Vulkan;
         //Aquí trataria de ver si funciona
     }
 

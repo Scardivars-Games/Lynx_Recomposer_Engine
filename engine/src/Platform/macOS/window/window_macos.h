@@ -1,7 +1,7 @@
 #pragma once
-#if defined (__APPLE__) && ILEN_MACOS
-#include <ilen/window/window.h>
-#include <ilen/headers/enumerations.h>
+#if defined (__APPLE__) && LYNX_MACOS
+#include <lynx/window/window.h>
+#include <lynx/headers/enumerations.h>
 
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAMetalLayer.h>
@@ -13,11 +13,11 @@
 #endif
 
 
-namespace ilen::window
+namespace lynx::window
 {
     class WindowNativeMacOS : public WindowNative {
         public:
-            WindowNativeMacOS(const ilen::application::ApplicationMetadata& metadata);
+            WindowNativeMacOS(const lynx::application::ApplicationMetadata& metadata);
 
             ~WindowNativeMacOS() = default;
 

@@ -1,10 +1,10 @@
-#if defined (__APPLE__) && ILEN_MACOS
+#if defined (__APPLE__) && LYNX_MACOS
 
-#include <ilen/window/alert_box.h>
+#include <lynx/window/alert_box.h>
 
 #import <Cocoa/Cocoa.h>
 
-namespace ilen::window::box {
+namespace lynx::window::box {
     void ShowErrorDialogBox(const std::string& title, const std::string& message){
         @autoreleasepool {
             NSString* dialogTitle = [NSString stringWithUTF8String:title.c_str()];

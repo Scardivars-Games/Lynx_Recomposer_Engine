@@ -5,14 +5,14 @@
 
 #import <Metal/Metal.h>
 
-using namespace ilen::enumerations;
+using namespace lynx::enumerations;
 
-namespace ilen::render {
-MetalTexture::MetalTexture(const IlenGPUTextureDescriptor& descriptor, MetalViewPredefinedValues predefinedVal, id<MTLDevice> device, const void* initialData, id<MTLCommandQueue> cmdQueue){
-    using namespace ilen::render::utils::metal;
+namespace lynx::render {
+MetalTexture::MetalTexture(const LynxGPUTextureDescriptor& descriptor, MetalViewPredefinedValues predefinedVal, id<MTLDevice> device, const void* initialData, id<MTLCommandQueue> cmdQueue){
+    using namespace lynx::render::utils::metal;
     @autoreleasepool {
-        if(descriptor.presentation == ILEN_GPU_TEXTURE_PRESENTATION_TYPE::ILEN_GPU_TEXTURE_PRESENTATION_PRESENT){
-            ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Receibed the order to generate a Present Texture. By engine filosophy in Metal, before texture creation, you check if is a Present texture, and if it is true, you asign a CAMetalLayer from the view instead.");
+        if(descriptor.presentation == LYNX_GPU_TEXTURE_PRESENTATION_TYPE::LYNX_GPU_TEXTURE_PRESENTATION_PRESENT){
+            LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Receibed the order to generate a Present Texture. By engine filosophy in Metal, before texture creation, you check if is a Present texture, and if it is true, you asign a CAMetalLayer from the view instead.");
         }
         
         MTLPixelFormat format = transformEngineToNativePixelFormat(descriptor.pixelFormat, predefinedVal.screenPixelFormat);
@@ -38,10 +38,10 @@ MetalTexture::MetalTexture(const IlenGPUTextureDescriptor& descriptor, MetalView
             
             //Calcular el tamaño de los bytes por fila (pitch)
             bool isCompressedBlock4x4 = (
-                    descriptor.pixelFormat == enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM ||
-                    descriptor.pixelFormat == enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_SRGB ||
-                     descriptor.pixelFormat == enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_SRGB ||
-                     descriptor.pixelFormat == enumerations::ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM
+                    descriptor.pixelFormat == enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM ||
+                    descriptor.pixelFormat == enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_SRGB ||
+                     descriptor.pixelFormat == enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_BC7_SRGB ||
+                     descriptor.pixelFormat == enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM
                                          );
             //En texturas comprimidas, cada bloque es de 16 bytes
             if(isCompressedBlock4x4) {
@@ -51,15 +51,15 @@ MetalTexture::MetalTexture(const IlenGPUTextureDescriptor& descriptor, MetalView
                 totalBytes = bytesPerRow * blocksPerCol;
             }else{
                 NSUInteger bytesPerPixel = 4;
-                if (descriptor.pixelFormat == ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_R8_UNORM) {
+                if (descriptor.pixelFormat == LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_R8_UNORM) {
                     bytesPerPixel = 1;
-                } else if (descriptor.pixelFormat == ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG8_UNORM ||
-                       descriptor.pixelFormat == ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_R16_FLOAT) {
+                } else if (descriptor.pixelFormat == LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_RG8_UNORM ||
+                       descriptor.pixelFormat == LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_R16_FLOAT) {
                     bytesPerPixel = 2;
-                } else if (descriptor.pixelFormat == ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA16_FLOAT ||
-                           descriptor.pixelFormat == ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RG32_FLOAT) {
+                } else if (descriptor.pixelFormat == LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_RGBA16_FLOAT ||
+                           descriptor.pixelFormat == LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_RG32_FLOAT) {
                     bytesPerPixel = 8;
-                } else if (descriptor.pixelFormat == ILEN_GPU_TEXTURE_PIXEL_FORMAT_TYPE::ILEN_GPU_TEXTURE_PIXEL_FORMAT_RGBA32_FLOAT) {
+                } else if (descriptor.pixelFormat == LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_RGBA32_FLOAT) {
                     bytesPerPixel = 16;
                 }
 

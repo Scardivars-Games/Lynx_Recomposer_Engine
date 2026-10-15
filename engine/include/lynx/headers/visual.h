@@ -1,0 +1,10 @@
+#pragma once
+#include <lynx/window/window.h>
+#include <lynx/render/renderer.h>
+#include <lynx/render/render_component.h>
+#include <lynx/graphics/color.h>
+#include <lynx/graphics/material.h>
+#include <lynx/graphics/shader.h>
+#include <lynx/render/gpu_interfaces/render_pipelines.h>
+#include <lynx/render/gpu_interfaces/buffers.h>
+#include <lynx/render/gpu_interfaces/shaders.h>

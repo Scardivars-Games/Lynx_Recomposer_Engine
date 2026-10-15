@@ -2,11 +2,11 @@
 
 #include <Metal/parallel_command_encoder_metal.h>
 #include <Metal_Common/engine_to_native_converters.h>
-#include <ilen/headers/ilen_logs.h>
+#include <lynx/headers/lynx_logs.h>
 
-namespace ilen::render {
-    MetalParallelCommandEncoder::MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, IlenParallelEncoderDescriptor&& descriptor){
-        using namespace ilen::render::utils::metal;
+namespace lynx::render {
+    MetalParallelCommandEncoder::MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, LynxParallelEncoderDescriptor&& descriptor){
+        using namespace lynx::render::utils::metal;
         
         MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
         
@@ -51,7 +51,7 @@ namespace ilen::render {
         if(_parallelEncoder){
             [_parallelEncoder endEncoding];
             [_parallelEncoder release];
-            ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Llamado al destructor del Parallel Encoder de Metal antes de terminar el codificado");
+            LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Llamado al destructor del Parallel Encoder de Metal antes de terminar el codificado");
         }
     }
 
@@ -69,7 +69,7 @@ namespace ilen::render {
             auto engineEncoder = std::make_unique<MetalRenderEncoder>(threadEncoder);
             
             for(auto const& [slot, buffer]: _globalBuffers){
-                //ILEN_LOG_P(DEBUG_PREFIX, "Setting global buffer for the single thread encoder");
+                //LYNX_LOG_P(DEBUG_PREFIX, "Setting global buffer for the single thread encoder");
                 engineEncoder->SetGlobalBuffer(slot, buffer);
             }
             

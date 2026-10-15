@@ -1,7 +1,7 @@
-#include <ilen/core/logs.h>
-#include <ilen/window/alert_box.h>
+#include <lynx/core/logs.h>
+#include <lynx/window/alert_box.h>
 
-namespace ilen::internal{
+namespace lynx::internal{
     std::mutex Debug::logMutex;
     const uint32_t messageBufferSize = 200000;
 
@@ -12,7 +12,7 @@ namespace ilen::internal{
 
         return "";
     }
-#if !ILEN_DISABLE_BASIC_LOGGIN
+#if !LYNX_DISABLE_BASIC_LOGGIN
     void Debug::Log(const char* content, const char* prefijo, ...){
         std::lock_guard<std::mutex> lock(logMutex);
         char messageBuffer[4096];
@@ -62,13 +62,13 @@ namespace ilen::internal{
         vsnprintf(messageBuffer, sizeof(messageBuffer), content, args);
 
         va_end(args);
-        throw ilen::core::BasicException(messageBuffer, prefijo);
+        throw lynx::core::BasicException(messageBuffer, prefijo);
     }
 
     void Debug::FatalError(const char* content, const char* prefijo){
         std::lock_guard<std::mutex> lock(logMutex);
         std::cerr << "\033[31m [FATAL_ERROR"<< preparatePrefix(std::string(prefijo)) << "] \033[0m" << content << std::endl;
-        ilen::window::box::ShowErrorDialogBox("FATAL ERROR", content);
-        //throw ilen::core::BasicException(content, prefijo);
+        lynx::window::box::ShowErrorDialogBox("FATAL ERROR", content);
+        //throw lynx::core::BasicException(content, prefijo);
     }
 }

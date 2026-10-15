@@ -1,12 +1,12 @@
-#include <ilen/render/post_process_effects/post_process_system.h>
-#include <ilen/core/runtime_options.h>
-#include <ilen/core/engine_context.h>
-#include <ilen/render/gpu_interfaces/parallel_command_encoder.h>
-#include <ilen/render/render_draw_system.h>
+#include <lynx/render/post_process_effects/post_process_system.h>
+//#include <lynx/core/runtime_options.h>
+#include <lynx/core/engine_context.h>
+#include <lynx/render/gpu_interfaces/parallel_command_encoder.h>
+#include <lynx/render/render_draw_system.h>
+#include "lynx/core/application.h"
 
-using namespace ilen::ecs::systems;
-using namespace ilen::maths::matrix;
-using namespace ilen::core::options;
+using namespace lynx::ecs::systems;
+using namespace lynx::maths::matrix;
 
 
 void PostProcessSystem::Init(const EngineContext *engineContext) {
@@ -19,13 +19,14 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
     p_jobSystem = engineContext->p_jobSystem.get();
     drawSystem = p_coordinator->getSystem<RenderDrawSystem>().get();
     cameraSystem = p_coordinator->getSystem<CameraSystem>().get();
+    runtimeConfiguration = engineContext->runtimeConfiguration.get();
 
 
     //Todo, crear los PSO especiales para el post-procesado, según esten en uso o no. (Completado, creo)
     //De momento, creo que un unico PSO para postprocesado debe ser suficiente.
     auto postProcessPSO = GenerateNewPSO();
 
-    ilen::render::IlenParallelEncoderDescriptor temporalDescriptor {};
+    lynx::render::LynxParallelEncoderDescriptor temporalDescriptor {};
     postProcessPSO[0].encoderDescriptor = &temporalDescriptor; // Inicia el motor, no se sabe que post procesados hay en memoria.
 
     encoderToPostProcessPSO.second = renderer->createRenderPipeline(postProcessPSO[0], shaderManager);
@@ -35,7 +36,7 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
 
     //quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
 
-    constexpr size_t instanceBufferSize = ilen::core::options::GraphicsOptions::instanceBufferSizeInMB * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
+    size_t instanceBufferSize = runtimeConfiguration->graphics.instanceBufferSizeInMB * 1024 * 1024; //4 MB (con eso es suficiente para pruebas y así no me asusto tanto por el brindo de RAM. A futuro cambiar a 16)
     auto framesInFlight = renderer->getActualNumOfFramesInFlight();
     postProcessInstanceBuffer.resize(framesInFlight);
     for (int i = 0; i < framesInFlight; i++) {
@@ -45,12 +46,12 @@ void PostProcessSystem::Init(const EngineContext *engineContext) {
 
 void PostProcessSystem::Update() {
    {
-        ilen::time::ScopedTimer postProcessTimer("Post-Process Timer");
+        lynx::time::ScopedTimer postProcessTimer("Post-Process Timer");
         /*auto quadPtr = quadGPUMesh.lock();
         if (quadPtr == nullptr) {
             meshManager->UpdateProcess();
             quadGPUMesh = meshManager->getMeshHandlers(resources::QuadMeshID);
-            ILEN_LOG_P(DEBUG_PREFIX, "Saltando el frame porque no esta en memoria el mesh para el Quad.");
+            LYNX_LOG_P(DEBUG_PREFIX, "Saltando el frame porque no esta en memoria el mesh para el Quad.");
             return; //Saltamos el frame
         }*/
 
@@ -62,7 +63,7 @@ void PostProcessSystem::Update() {
             return; //Es imposible ejecutar este sistema si esos componentes aún no existen.
         }
 
-        if (ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
+        if (runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
             //Comprobar si el Parallel es el mismo que esta configurado en el PSO!!!
             auto actualFrameInFlight = renderer->getActualFrameInFlight();
             postProcessInstanceBuffer[actualFrameInFlight]->OnBeginFrame();
@@ -71,7 +72,7 @@ void PostProcessSystem::Update() {
             bool changedPSO = false;
 
             if (*actualParallel->getParallelEncoderDescriptor() != encoderToPostProcessPSO.first) {
-                ILEN_LOG_P(DEBUG_PREFIX, "Generating new PSO for post-processing. Reason: Encoder Descriptor changed");
+                LYNX_LOG_P(DEBUG_PREFIX, "Generating new PSO for post-processing. Reason: Encoder Descriptor changed");
                 auto *descriptor = actualParallel->getParallelEncoderDescriptor(); //Return a *
                 postProcessPSOs[0].encoderDescriptor = descriptor;
 
@@ -87,7 +88,7 @@ void PostProcessSystem::Update() {
             }
             
             {
-                ilen::time::ScopedTimer timer("Post-processing calculation time");
+                lynx::time::ScopedTimer timer("Post-processing calculation time");
                 //Post processing code
                 //Obtenemos la lista de todo lo que si dibujo anteriormente. La lista ya viene sorteada.
                 auto renderListItems = drawSystem->getLastUsedRenderItemList();
@@ -96,7 +97,7 @@ void PostProcessSystem::Update() {
                 //Instance buffer donde escribir.
                 auto* instanceBuffer = postProcessInstanceBuffer[actualFrameInFlight].get();
                 if (instanceBuffer == nullptr) {
-                    ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Instance buffer incorrecto en el área de Post Procesado. Revisar el proceso de creación.");
+                    LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Instance buffer incorrecto en el área de Post Procesado. Revisar el proceso de creación.");
                 }
 
                 size_t totalOfItem = renderListItems.size();
@@ -110,7 +111,7 @@ void PostProcessSystem::Update() {
 
                 auto activeCamera = cameraSystem->getMainCamera();
                 if (!activeCamera) {
-                    ILEN_WARNING_P(DEBUG_PREFIX, "No se encontró una cámara activa, por lo que no se puede dibujar.");
+                    LYNX_WARNING_P(DEBUG_PREFIX, "No se encontró una cámara activa, por lo que no se puede dibujar.");
                     renderer->returnParallelCommandEncoder(std::move(actualParallel));
                     return; //Sin camara, no puedo dibujar.
                 }
@@ -130,7 +131,7 @@ void PostProcessSystem::Update() {
                 //std::vector<std::future<void>> futures;
 
                 //new
-                ilen::job_system::JobGroup group;
+                lynx::job_system::JobGroup group;
 
                 encoderPtr->SetGlobalBuffers(slots::GlobalBufferSlot_Camera, activeCamera->cameraBuffer.get());
 
@@ -182,7 +183,7 @@ void PostProcessSystem::Update() {
 
                             if (totalOfInstance > 5) {
                                 //Instancing rendering
-                                //ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
+                                //LYNX_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
                                 if (instanceBufferData_PostProcess.size() < totalOfInstance) {
                                     instanceBufferData_PostProcess.resize(totalOfInstance);
                                 }
@@ -222,7 +223,7 @@ void PostProcessSystem::Update() {
 
                                 cmd->DrawIndexedInstanced(indexCount, totalOfInstance, offset, sizeof(structs::InstanceDataForVelocityBuffer));
                             }else {
-                                //ILEN_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
+                                //LYNX_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
                                 //Render en bucle
                                 if (!isIntanceBufferSet) {
                                     cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());
@@ -287,19 +288,19 @@ void PostProcessSystem::Update() {
                 renderer->endEncoding(actualParallel.get()); //Finalizamos el render actual, y generar uno nuevo.
             }
             {
-                ilen::time::ScopedTimer timer("Post-processing screen rendering");
-                IlenParallelEncoderDescriptor renderDescriptor {};
+                lynx::time::ScopedTimer timer("Post-processing screen rendering");
+                LynxParallelEncoderDescriptor renderDescriptor {};
                 renderDescriptor.colorAttachments.resize(1); //Solo posee 1 (El drawable.)
                 renderDescriptor.label = "Post-Process Parallel Renderer";
                 auto nativeTexture = renderer->getAllSceneTexturesPtr(); //Esto es un std::Vector con las texturas usadas en el color attachment
 
-                auto drawableAttach = std::make_unique<IlenEncoderAttachmentDescriptor>();
+                auto drawableAttach = std::make_unique<LynxEncoderAttachmentDescriptor>();
                 auto imagesAttach = renderer->getAllSceneTexturesPtr(); //Aqui solo llegan las texturas del Frame actual !!!
 
                 drawableAttach->texture = renderer->getDrawableTexturePtr();
-                drawableAttach->loadOption = ILEN_GPU_RENDER_PASS_LOAD_OPTION_TYPE::ILEN_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
+                drawableAttach->loadOption = LYNX_GPU_RENDER_PASS_LOAD_OPTION_TYPE::LYNX_GPU_RENDER_PASS_LOAD_OPTION_CLEAR;
                 drawableAttach->clearColor = color::Black;
-                drawableAttach->storeOption = ILEN_GPU_RENDER_PASS_STORE_OPTION_TYPE::ILEN_GPU_RENDER_PASS_STORE_OPTION_STORE;
+                drawableAttach->storeOption = LYNX_GPU_RENDER_PASS_STORE_OPTION_TYPE::LYNX_GPU_RENDER_PASS_STORE_OPTION_STORE;
 
                 renderDescriptor.colorAttachments[0] = std::move(drawableAttach);
 
@@ -318,7 +319,7 @@ void PostProcessSystem::Update() {
                 //encoder->SetIndexBuffer(quadPtr->indexBuffer.get());
                 encoder->SetFragmentTexture(0, nativeTexture[0]); //Esto siempre será la textura base de color con los datos renderizados.
                 size_t actualImageIndex = 1;
-                if (core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
+                if (runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_MOTION_BLUR) {
                     encoder->SetFragmentTexture(slots::TextureBufferSlot_VelocityBuffer, imagesAttach[actualImageIndex]);
                 }
                 encoder->DrawWithoutMesh();
@@ -332,15 +333,16 @@ void PostProcessSystem::Update() {
    }
 }
 
-std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
-    std::vector<IlenRenderPipelineDescriptor> toReturn;
-    auto actualGraphicsOptions = core::options::GraphicsOptions::graphicsOptionsFlags;
-    std::vector<IlenConstantValuesForPipeline> constants;
+std::vector<LynxRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
+    std::vector<LynxRenderPipelineDescriptor> toReturn;
+    auto runtimeConfig = application::Application::getEngineContext()->runtimeConfiguration.get();
+    auto actualGraphicsOptions = runtimeConfig->graphics.flags;
+    std::vector<LynxConstantValuesForPipeline> constants;
 
-    if (actualGraphicsOptions & ILEN_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
+    if (actualGraphicsOptions & LYNX_GRAPHICS_OPTIONS_USE_POSTPROCESS) {
         //Todos los bools de post procesado se definen aquí, y su valor depende del resultado del bitwise.
-        IlenConstantValuesForPipeline valueForMotionBlur {};
-        valueForMotionBlur.actualValue = actualGraphicsOptions & ILEN_GRAPHICS_OPTIONS_USE_MOTION_BLUR;
+        LynxConstantValuesForPipeline valueForMotionBlur {};
+        valueForMotionBlur.actualValue = actualGraphicsOptions & LYNX_GRAPHICS_OPTIONS_USE_MOTION_BLUR;
         valueForMotionBlur.index = slots::TextureBufferSlot_VelocityBuffer;
 
         //Subimos cada valor.
@@ -350,39 +352,39 @@ std::vector<IlenRenderPipelineDescriptor> PostProcessSystem::GenerateNewPSO() {
     
 
     //TODO: Las funciones y los id de shader no son los correctos en este caso. Ajustar en el futuro
-    IlenMaterial postProcessMat{};
+    LynxMaterial postProcessMat{};
     postProcessMat.fragmentFunctionName = "post_processing_calculations_fragment";
     postProcessMat.vertexFunctionName = "post_processing_calculations_vertex";
-    postProcessMat.vertexShaderID = PredefinedAssetsID::PostProcessCalculateShaderID;
-    postProcessMat.fragmentShaderID = PredefinedAssetsID::PostProcessCalculateShaderID;
+    postProcessMat.vertexShaderID = runtimeConfig->predefinedAssets.postProcessCalculateShader;
+    postProcessMat.fragmentShaderID = runtimeConfig->predefinedAssets.postProcessCalculateShader;
     postProcessMat.materialName = "Post Processing - Calculating Values";
-    postProcessMat.renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
+    postProcessMat.renderQueue = LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_OPAQUE;
 
     //Nota importante, si esto se esta ejecutando es porque estan activados los efectos de postProcesado.
-    IlenRenderPipelineDescriptor postProcessPSO {postProcessMat};
-    postProcessPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE;
-    postProcessPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER;
-    postProcessPSO.depthCompareFunction = ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_EQUAL;
+    LynxRenderPipelineDescriptor postProcessPSO {postProcessMat};
+    postProcessPSO.renderPipelineOptionFlags |= LYNX_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE;
+    postProcessPSO.renderPipelineOptionFlags |= LYNX_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER;
+    postProcessPSO.depthCompareFunction = LYNX_GPU_COMPARE_FUNCTION::LYNX_GPU_COMPARE_EQUAL;
     postProcessPSO.constantValuesForPipelines = constants;
 
     toReturn.push_back(postProcessPSO);
 
 
-    IlenMaterial postProcessRenderMat{};
+    LynxMaterial postProcessRenderMat{};
     postProcessMat.fragmentFunctionName = "post_processing_fragment";
     postProcessMat.vertexFunctionName = "post_processing_vertex";
-    postProcessMat.vertexShaderID = PredefinedAssetsID::PostProcessPresentShaderID;
-    postProcessMat.fragmentShaderID = PredefinedAssetsID::PostProcessPresentShaderID;
+    postProcessMat.vertexShaderID = runtimeConfig->predefinedAssets.postProcessPresentShader;
+    postProcessMat.fragmentShaderID = runtimeConfig->predefinedAssets.postProcessPresentShader;
     postProcessMat.materialName = "Post Processing - Final Rendering";
-    postProcessMat.renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE;
+    postProcessMat.renderQueue = LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_OPAQUE;
 
     //Nota importante, si esto se esta ejecutando es porque estan activados los efectos de postProcesado.
-    IlenRenderPipelineDescriptor postProcessRenderPSO {postProcessMat};
+    LynxRenderPipelineDescriptor postProcessRenderPSO {postProcessMat};
     postProcessRenderPSO.constantValuesForPipelines = constants;
-    postProcessRenderPSO.vertexLayout = ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_VERTEXLESS;
-    postProcessRenderPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER;
-    postProcessRenderPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER;
-    postProcessRenderPSO.renderPipelineOptionFlags |= ILEN_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED; //Al ser vertexless, y 2D, no tiene sentido el culling.
+    postProcessRenderPSO.vertexLayout = LYNX_VERTEX_LAYOUT_TYPE::LYNX_VERTEX_LAYOUT_VERTEXLESS;
+    postProcessRenderPSO.renderPipelineOptionFlags |= LYNX_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER;
+    postProcessRenderPSO.renderPipelineOptionFlags |= LYNX_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER;
+    postProcessRenderPSO.renderPipelineOptionFlags |= LYNX_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED; //Al ser vertexless, y 2D, no tiene sentido el culling.
     
 
     toReturn.push_back(postProcessRenderPSO);

@@ -4,8 +4,8 @@
 #include <Metal/shaders_metal.h>
 #import <Metal/Metal.h>
 
-namespace  ilen::render {
-    MetalShader::MetalShader(id<MTLLibrary> globalLibrary, ilen::graphics::IlenShader shaderRecipe) {
+namespace  lynx::render {
+    MetalShader::MetalShader(id<MTLLibrary> globalLibrary, lynx::graphics::LynxShader shaderRecipe) {
         @autoreleasepool {
             shaderData = std::move(shaderRecipe);
             _shaderLibrary = [globalLibrary retain];
@@ -24,19 +24,19 @@ namespace  ilen::render {
             /*if(vertexFunction){
                 MTLFunctionType type = [vertexFunction functionType];
                 if(type == MTLFunctionTypeVertex){
-                    ILEN_LOG_P(DEBUG_PREFIX, "Éxito: %s si es una función vertex", [vertName UTF8String]);
+                    LYNX_LOG_P(DEBUG_PREFIX, "Éxito: %s si es una función vertex", [vertName UTF8String]);
                 }else{
-                    ILEN_LOG_P(DEBUG_PREFIX, "ERROR!!! %s no es una función vertex, es %i", [vertName UTF8String], (uint32_t)type);
+                    LYNX_LOG_P(DEBUG_PREFIX, "ERROR!!! %s no es una función vertex, es %i", [vertName UTF8String], (uint32_t)type);
                 }
             }*/
             
             //Busqueda y reporte de errores
             if(!vertexFunction){
-                ILEN_ERROR_P(DEBUG_PREFIX, "La vertex function %s no fue encontrada en la biblioteca", vertNameString.c_str());
+                LYNX_ERROR_P(DEBUG_PREFIX, "La vertex function %s no fue encontrada en la biblioteca", vertNameString.c_str());
                 vertexFunction = nullptr;
             }
             if(!fragmentFunction){
-                ILEN_ERROR_P(DEBUG_PREFIX, "La fragment function %s no fue encontrada en la biblioteca", fragNameString.c_str());
+                LYNX_ERROR_P(DEBUG_PREFIX, "La fragment function %s no fue encontrada en la biblioteca", fragNameString.c_str());
                 fragmentFunction = nullptr;
             }
             
@@ -57,7 +57,7 @@ namespace  ilen::render {
         _shaderFunctions.clear();
     }
 
-    const ilen::graphics::IlenShader& MetalShader::getShaderMetadata() const {
+    const lynx::graphics::LynxShader& MetalShader::getShaderMetadata() const {
         return shaderData;
     }
 
@@ -70,7 +70,7 @@ namespace  ilen::render {
             //Si no existe,se genera la libreria y añade
             auto newFunction = [_shaderLibrary newFunctionWithName:[NSString stringWithUTF8String:functionName.c_str()]];
             if(!newFunction){
-                ILEN_ERROR_P(DEBUG_PREFIX, "La funcion %s no fue encontrada en la biblioteca de Metal", functionName.c_str());
+                LYNX_ERROR_P(DEBUG_PREFIX, "La funcion %s no fue encontrada en la biblioteca de Metal", functionName.c_str());
             }
             
             void* newFunctionPtr = (__bridge void*)newFunction;
@@ -79,7 +79,7 @@ namespace  ilen::render {
         }
     }
 
-const void* MetalShader::getNativeShaderFromFunctionNameAndUberActivations(std::string functionName, std::vector<IlenConstantValuesForPipeline> activations){
+const void* MetalShader::getNativeShaderFromFunctionNameAndUberActivations(std::string functionName, std::vector<LynxConstantValuesForPipeline> activations){
     @autoreleasepool {
         std::string finalName = functionName;
         for(const auto& activation: activations){
@@ -99,7 +99,7 @@ const void* MetalShader::getNativeShaderFromFunctionNameAndUberActivations(std::
         
         auto newFunction = [_shaderLibrary newFunctionWithName:[NSString stringWithUTF8String:functionName.c_str()] constantValues:constantValues error:&error];
         if(!newFunction){
-            ILEN_ERROR_P(DEBUG_PREFIX, "La funcion %s no fue encontrada en la biblioteca de Metal. Error: %s", functionName.c_str(), error);
+            LYNX_ERROR_P(DEBUG_PREFIX, "La funcion %s no fue encontrada en la biblioteca de Metal. Error: %s", functionName.c_str(), error);
         }
         
         void* newFunctionPtr = (__bridge void*)newFunction;

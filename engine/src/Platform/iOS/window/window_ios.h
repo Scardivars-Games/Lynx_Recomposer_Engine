@@ -1,18 +1,18 @@
 #pragma once
-#if defined (__APPLE__) && ILEN_IOS
-#include <ilen/window/window.h>
+#if defined (__APPLE__) && LYNX_IOS
+#include <lynx/window/window.h>
 
 @class UIView;
 @class UIWindow;
 @class UIViewController;
 @class IlenViewController;
 
-namespace ilen::window
+namespace lynx::window
 {
     class WindowNativeIOS : public WindowNative
     {
         public:
-            WindowNativeIOS(const ilen::application::ApplicationMetadata& metadata);
+            WindowNativeIOS(const lynx::application::ApplicationMetadata& metadata);
             
             ~WindowNativeIOS() = default;
             void pollEvents() override;

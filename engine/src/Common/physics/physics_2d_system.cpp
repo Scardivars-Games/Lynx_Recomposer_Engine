@@ -1,22 +1,24 @@
 #include <algorithm>
 #include <cmath>
-#include <ilen/physics/physics_2d_system.h>
-#include <ilen/headers/ecs.h>
-#include <ilen/headers/ecs_components.h>
-#include <ilen_public/API/physics_2d_api.h>
+#include <cstdint>
+#include <lynx/physics/physics_2d_system.h>
+#include <lynx/headers/ecs.h>
+#include <lynx/headers/ecs_components.h>
+#include <lynx_public/API/physics_2d_api.h>
 #include <iterator>
 #include <limits>
 #include <optional>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include "ilen/maths/AABB.h"
-#include "ilen/physics/narrow_phase_2d.h"
+#include <lynx/maths/AABB.h>
+#include <lynx/physics/narrow_phase_2d.h>
+#include "lynx/ecs/types.h"
 
 
-using namespace ilen::ecs::systems;
-using namespace ilen::ecs::components;
-using namespace ilen::maths::vector;
+using namespace lynx::ecs::systems;
+using namespace lynx::ecs::components;
+using namespace lynx::maths::vector;
 
 namespace {
     constexpr float DegreesToRadians2D = M_PI / 180.0f;
@@ -32,20 +34,33 @@ namespace {
 
 }
 
-void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
+void PhysicsSystem2D::Init(const lynx::EngineContext* engineContext){
+    p_physicsOptions = &engineContext->runtimeConfiguration.get()->physics;
     p_coordinator = engineContext->p_coordinator.get();
     p_jobSystem = engineContext->p_jobSystem.get();
     p_commandDispatcher = engineContext->p_commandDispatcher.get();
 
-    m_dynamicEntities.reserve(MAX_ENTITIES);
-    m_staticProxies.reserve(MAX_ENTITIES);
-    m_dynamicProxies.reserve(MAX_ENTITIES);
-    m_rotationBlockingStatic.fill(NULL_ENTITY);
+    maxEntities = engineContext->runtimeConfiguration->ecs.initialEntityCapacity;
+
+    m_dynamicEntities.reserve(maxEntities);
+    m_staticProxies.reserve(maxEntities);
+    m_dynamicProxies.reserve(maxEntities);
+    m_rotationBlockingStatic.assign(maxEntities, NULL_ENTITY);
+    m_registrationStates.assign(maxEntities, RegistrationState::None);
+    m_requestedTranslations.assign(maxEntities, vec2(0.0f));
+    m_teleportTargets.assign(maxEntities, vec2(0.0f));
+    m_hasTeleport.assign(maxEntities, false);
+    m_requestedRotations.assign(maxEntities, 0.0f);
+    m_teleportRotationTargets.assign(maxEntities, 0.0f);
+    m_hasTeleportRotation.assign(maxEntities, false);
+    m_activeVelocityAxes.assign(maxEntities, std::uint8_t{0});
+    m_rotationBlockingStatic.assign(maxEntities, NULL_ENTITY);
     
-#if ILEN_DEBUG
-    m_staticGuards.reserve(MAX_ENTITIES);
+#if LYNX_DEBUG
+    m_staticGuards.reserve(maxEntities);
     m_persistentDebugImpacts.reserve(4096);
-    m_debugActiveVectors.reserve(MAX_ENTITIES * 3);
+    m_debugActiveVectors.reserve(maxEntities * 3);
+    m_debugAppliedForces.assign(maxEntities, vec2(0.0f));
 #endif
 
     p_coordinator->registerComponent<physics::Rigidbody2D>();
@@ -53,13 +68,13 @@ void PhysicsSystem2D::Init(const ilen::EngineContext* engineContext){
     p_coordinator->registerComponent<physics::ConvexPolygonCollider2D>();
     p_coordinator->registerComponent<physics::CollisionComponent2D>();
 
-    ilen::engine::api::PhysicsAPI::Init(engineContext);
+    lynx::engine::api::PhysicsAPI::Init(engineContext);
 }
 
 
 //TODO: hacer este sistema multihilo.
 void PhysicsSystem2D::Update() {
-    ilen::time::ScopedTimer timer("Physics 2D update");
+    lynx::time::ScopedTimer timer("Physics 2D update");
    
     ArrayOfComponentsUsed componentArray{};
     
@@ -73,12 +88,12 @@ void PhysicsSystem2D::Update() {
     componentArray.convexPolygonCollider = p_coordinator->getComponentArray<physics::ConvexPolygonCollider2D>();
 
     m_accumulatedTransformOrder.clear();
-    m_activeVelocityAxes.fill(0);
+    std::fill(m_activeVelocityAxes.begin(), m_activeVelocityAxes.end(), 0);
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
     // Los vectores verdes describen únicamente el fixed update actual.
     m_debugActiveVectors.clear();
-    m_debugAppliedForces.fill(vec2(0.0f));
+    std::fill(m_debugAppliedForces.begin(), m_debugAppliedForces.end(), vec2(0.0f));
 #endif
 
 
@@ -87,7 +102,7 @@ void PhysicsSystem2D::Update() {
     //if(m_dynamicEntities.size() + m_staticEntities.size() != entities.size())
     if(m_dynamicEntities.empty() && m_staticProxies.empty()) return;
 
-    constexpr float dt = 1.0f / ilen::core::options::PhysicsOptions::PhysicsUpdateTime;
+    const float dt = static_cast<float>(1.0 / p_physicsOptions->updatedPerSecond);
 
     prepareCollisionData(&componentArray);
     registerPrevPosition(&componentArray);
@@ -99,8 +114,8 @@ void PhysicsSystem2D::Update() {
     detectAndResolve(dt, &componentArray);
     refreshRotationBlocks();
 
-#if ILEN_DEBUG
-    if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+#if LYNX_DEBUG
+    if(p_physicsOptions->showDebugArrows) {
         rebuildDebugActiveVectors(&componentArray);
     }
     reportCollisionDebugStats();
@@ -128,7 +143,7 @@ void PhysicsSystem2D::Update() {
         }
     }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
     checkStaticGuard(&componentArray);
 #endif
 }
@@ -143,13 +158,13 @@ void PhysicsSystem2D::registerEntity(Entity e, ArrayOfComponentsUsed* components
     m_rotationBlockingStatic[e] = NULL_ENTITY;
 
     if((boxColider == nullptr) == (polygonCollider == nullptr)) {
-        ILEN_ERROR_P("PHYSICS_2D", "La entidad %u debe tener al menos un collider 2D", e);
+        LYNX_ERROR_P("PHYSICS_2D", "La entidad %u debe tener al menos un collider 2D", e);
         return;
     }
 
     //Método de seguridad para forzar el collider si este no existe.
     if(boxColider && boxColider->halfExtents.x == 0.0f && boxColider->halfExtents.y == 0.0f) {
-        ilen::engine::api::PhysicsAPI::GenerateBoxColliderSize(e, boxColider);
+        lynx::engine::api::PhysicsAPI::GenerateBoxColliderSize(e, boxColider);
     }
 
     auto proxy = buildProxy(e, componentsArray);
@@ -175,7 +190,7 @@ void PhysicsSystem2D::registerEntity(Entity e, ArrayOfComponentsUsed* components
         m_staticBroadPhaseDirty = true;
         m_registrationStates[e] = RegistrationState::Static;
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
         auto* transform = p_coordinator->getComponent<TransformComponent>(e);
         m_staticGuards.push_back({
             .entity = e,
@@ -219,14 +234,14 @@ void PhysicsSystem2D::syncEntities(ArrayOfComponentsUsed* componentsArray) {
         m_staticProxies[i] = std::move(m_staticProxies.back());
         m_staticProxies.pop_back();
         m_staticBroadPhaseDirty = true;
-#if ILEN_DEBUG
+#if LYNX_DEBUG
         m_staticGuards[i] = std::move(m_staticGuards.back());
         m_staticGuards.pop_back();
 #endif
     }
 
     for(Entity entity: entities) {
-        if(entity >= MAX_ENTITIES) {
+        if(entity >= maxEntities) {
             continue;
         }
 
@@ -237,7 +252,7 @@ void PhysicsSystem2D::syncEntities(ArrayOfComponentsUsed* componentsArray) {
 }
 
 void PhysicsSystem2D::unregisterEntity(Entity e){
-    if(e >= MAX_ENTITIES) {
+    if(e >= maxEntities) {
         return;
     }
 
@@ -263,7 +278,7 @@ void PhysicsSystem2D::unregisterEntity(Entity e){
         auto iterator = std::find_if(
             m_staticProxies.begin(),
             m_staticProxies.end(),
-            [e](const ilen::physics::ColliderProxy2D& proxy) {
+            [e](const lynx::physics::ColliderProxy2D& proxy) {
                 return proxy.entity == e;
             }
         );
@@ -280,7 +295,7 @@ void PhysicsSystem2D::unregisterEntity(Entity e){
             m_staticProxies.pop_back();
             m_staticBroadPhaseDirty = true;
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
             m_staticGuards[index] = std::move(m_staticGuards.back());
             m_staticGuards.pop_back();
 #endif
@@ -290,7 +305,7 @@ void PhysicsSystem2D::unregisterEntity(Entity e){
     m_registrationStates[e] = RegistrationState::None;
 }
 
-std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
+std::optional<lynx::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
     Entity entity, ArrayOfComponentsUsed* componentsArray
 ) {
     auto* transform = componentsArray->transformComponentArray->getData(entity);
@@ -308,7 +323,7 @@ std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
     );
 
     if(auto* box = componentsArray->boxColliderArray->getData(entity)) {
-        return ilen::physics::ColliderProxyBuilder2D::FromBox(
+        return lynx::physics::ColliderProxyBuilder2D::FromBox(
             entity, 
             simulatedTransform,
             *rb,
@@ -318,7 +333,7 @@ std::optional<ilen::physics::ColliderProxy2D> PhysicsSystem2D::buildProxy(
     }
 
     if(auto* polygon = componentsArray->convexPolygonCollider->getData(entity)) {
-        return ilen::physics::ColliderProxyBuilder2D::FromPolygon(
+        return lynx::physics::ColliderProxyBuilder2D::FromPolygon(
             entity,
             simulatedTransform,
             *rb,
@@ -496,7 +511,7 @@ void PhysicsSystem2D::rebuildDynamicProxies(
 }
 
 void PhysicsSystem2D::translateProxy(
-    ilen::physics::ColliderProxy2D& proxy, const vec2& translation
+    lynx::physics::ColliderProxy2D& proxy, const vec2& translation
 ) {
     for(vec2& vertex : proxy.worldVertices) {
         vertex += translation;
@@ -507,7 +522,7 @@ void PhysicsSystem2D::translateProxy(
 }
 
 void PhysicsSystem2D::rotateProxy(
-    ilen::physics::ColliderProxy2D& proxy,
+    lynx::physics::ColliderProxy2D& proxy,
     float radians
 ) {
     if(radians == 0.0f) {
@@ -533,15 +548,15 @@ void PhysicsSystem2D::rotateProxy(
             local.x * sine + local.y * cosine
         };
 
-        minimum = ilen::maths::vector::min(minimum, vertex);
-        maximum = ilen::maths::vector::max(maximum, vertex);
+        minimum = lynx::maths::vector::min(minimum, vertex);
+        maximum = lynx::maths::vector::max(maximum, vertex);
     }
 
     proxy.bounds = AABB2D::fromMinMax(minimum, maximum);
 }
 
 AABB2D PhysicsSystem2D::calculateSweptBounds(
-    const ilen::physics::ColliderProxy2D& proxy,
+    const lynx::physics::ColliderProxy2D& proxy,
     const vec2& translation
 ) {
     constexpr float angularEpsilon = 0.000001f;
@@ -551,8 +566,8 @@ AABB2D PhysicsSystem2D::calculateSweptBounds(
         const vec2 radius{proxy.maximumRadius};
 
         return AABB2D::fromMinMax(
-            ilen::maths::vector::min(proxy.rotationPivot, endPivot) - radius,
-            ilen::maths::vector::max(proxy.rotationPivot, endPivot) + radius
+            lynx::maths::vector::min(proxy.rotationPivot, endPivot) - radius,
+            lynx::maths::vector::max(proxy.rotationPivot, endPivot) + radius
         );
     }
 
@@ -560,8 +575,8 @@ AABB2D PhysicsSystem2D::calculateSweptBounds(
     endBounds.center += translation;
 
     return AABB2D::fromMinMax(
-        ilen::maths::vector::min(proxy.bounds.min(), endBounds.min()),
-        ilen::maths::vector::max(proxy.bounds.max(), endBounds.max())
+        lynx::maths::vector::min(proxy.bounds.min(), endBounds.min()),
+        lynx::maths::vector::max(proxy.bounds.max(), endBounds.max())
     );
 }
 
@@ -641,11 +656,11 @@ void PhysicsSystem2D::applyForces(float dt, ArrayOfComponentsUsed* componentsArr
                 //Añadimos los impulsos. Estos no dependen de dt.
                 rb->velocity += impulse / rb->mass;
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
                 // Un impulso es instantáneo. Para poder compararlo visualmente
                 // con una fuerza se representa como su fuerza media en este
                 // fixed update: F = J / dt.
-                if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+                if(p_physicsOptions->showDebugArrows) {
                     m_debugAppliedForces[e] +=
                         static_cast<vec2>(order->accumulatedForce);
                     if(dt > 0.0f) {
@@ -684,14 +699,14 @@ void PhysicsSystem2D::applyGravity(float dt, ArrayOfComponentsUsed* componentsAr
         // La gravedad es una aceleración continua sobre Y; ese eje no debe
         // amortiguarse mientras esté habilitada.
         m_activeVelocityAxes[e] |= yAxis;
-        rb->velocity.y += ilen::core::options::PhysicsOptions::gravity * rb->gravityScale * dt;
+        rb->velocity.y += p_physicsOptions->gravity * rb->gravityScale * dt;
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
         // F = m * a. Guardarla antes del solver permite ver que la gravedad
         // sigue solicitándose aunque el contacto con el suelo la rechace.
-        if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+        if(p_physicsOptions->showDebugArrows) {
             m_debugAppliedForces[e].y +=
-                rb->mass * ilen::core::options::PhysicsOptions::gravity *
+                rb->mass * p_physicsOptions->gravity *
                 rb->gravityScale;
         }
 #endif
@@ -712,11 +727,11 @@ void PhysicsSystem2D::applyMovementResistance(
 
     const float resistance = std::max(
         0.0f,
-        ilen::core::options::PhysicsOptions::linearMovementResistance
+        p_physicsOptions->linearMovementResistance
     );
     const float zeroThreshold = std::max(
         0.0f,
-        ilen::core::options::PhysicsOptions::velocityZeroThreshold
+        p_physicsOptions->velocityZeroThreshold
     );
 
     // v(t + dt) = v(t) * e^(-resistance * dt). Esta forma produce el mismo
@@ -833,11 +848,11 @@ void PhysicsSystem2D::detectAndResolve(
     constexpr uint32_t maximumCollisionEvents = 8;
     constexpr float minimumRemainingTime = 0.000001f;
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
     m_collisionDebugStats.reset();
     m_debugCurrentCollisionPairs.clear();
     m_debugFixedDeltaTime =
-        ilen::core::options::PhysicsOptions::showDebugArrows ? dt : 0.0f;
+        p_physicsOptions->showDebugArrows ? dt : 0.0f;
 #endif
 
     if(m_staticBroadPhaseDirty) {
@@ -866,7 +881,7 @@ void PhysicsSystem2D::detectAndResolve(
         const auto& candidatePairs =
             m_broadPhase.BuildCandidatesPairs(m_dynamicProxies);
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
         const size_t dynamicCount = m_dynamicProxies.size();
         const size_t staticCount = m_staticProxies.size();
         m_collisionDebugStats.collisionPasses++;
@@ -877,8 +892,8 @@ void PhysicsSystem2D::detectAndResolve(
 #endif
 
         struct ContactEvent {
-            ilen::physics::ColliderProxy2D* proxyA = nullptr;
-            ilen::physics::ColliderProxy2D* proxyB = nullptr;
+            lynx::physics::ColliderProxy2D* proxyA = nullptr;
+            lynx::physics::ColliderProxy2D* proxyB = nullptr;
             physics::ContactManifold2D manifold{};
         };
 
@@ -905,7 +920,7 @@ void PhysicsSystem2D::detectAndResolve(
                 continue;
             }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
             if(proxyB.isStatic) {
                 m_collisionDebugStats.dynamicVsStaticPairs++;
             } else {
@@ -914,35 +929,35 @@ void PhysicsSystem2D::detectAndResolve(
 #endif
 
             const auto layerA =
-                static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyA.layerMask);
+                static_cast<lynx::enumerations::LYNX_LAYER_SYSTEM>(proxyA.layerMask);
             const auto layerB =
-                static_cast<ilen::enumerations::ILEN_LAYER_SYSTEM>(proxyB.layerMask);
+                static_cast<lynx::enumerations::LYNX_LAYER_SYSTEM>(proxyB.layerMask);
 
-            if(!ilen::physics::CollisionMatrix::CanCollide(layerA, layerB)) {
-#if ILEN_DEBUG
+            if(!lynx::physics::CollisionMatrix::CanCollide(p_physicsOptions->collisionMatrix, layerA, layerB)) {
+#if LYNX_DEBUG
                 m_collisionDebugStats.rejectedByLayer++;
 #endif
                 continue;
             }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
             m_collisionDebugStats.aabbTests++;
 #endif
 
-            const bool overlapsNow = ilen::maths::aabb::overlapAABB2D(
+            const bool overlapsNow = lynx::maths::aabb::overlapAABB2D(
                 proxyA.bounds,
                 proxyB.bounds
             );
 
             if(overlapsNow) {
-#if ILEN_DEBUG
+#if LYNX_DEBUG
                 m_collisionDebugStats.satTests++;
 #endif
 
-                auto manifold = ilen::physics::NarrowPhase2D::Test(proxyA, proxyB);
+                auto manifold = lynx::physics::NarrowPhase2D::Test(proxyA, proxyB);
 
                 if(manifold.has_value()) {
-#if ILEN_DEBUG
+#if LYNX_DEBUG
                     m_collisionDebugStats.collisionDetected++;
 #endif
 
@@ -984,23 +999,23 @@ void PhysicsSystem2D::detectAndResolve(
                 }
             }
 
-            if(!ilen::maths::aabb::overlapAABB2D(proxyA.sweptBounds, proxyB.sweptBounds)) {
-#if ILEN_DEBUG
+            if(!lynx::maths::aabb::overlapAABB2D(proxyA.sweptBounds, proxyB.sweptBounds)) {
+#if LYNX_DEBUG
                 m_collisionDebugStats.rejectedByAABB++;
 #endif
                 continue;
             }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
             m_collisionDebugStats.satTests++;
 #endif
 
-            auto manifold = ilen::physics::NarrowPhase2D::Sweep(proxyA, proxyB);
+            auto manifold = lynx::physics::NarrowPhase2D::Sweep(proxyA, proxyB);
             if(!manifold.has_value()) {
                 continue;
             }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
             m_collisionDebugStats.collisionDetected++;
 #endif
 
@@ -1055,7 +1070,7 @@ void PhysicsSystem2D::detectAndResolve(
                 bool foundPenetration = false;
 
                 for(auto& contact : penetrations) {
-                    auto currentManifold = ilen::physics::NarrowPhase2D::Test(
+                    auto currentManifold = lynx::physics::NarrowPhase2D::Test(
                         *contact.proxyA,
                         *contact.proxyB
                     );
@@ -1097,7 +1112,7 @@ void PhysicsSystem2D::detectAndResolve(
                     contact.proxyB->entity
                 );
 
-                auto remainingManifold = ilen::physics::NarrowPhase2D::Test(
+                auto remainingManifold = lynx::physics::NarrowPhase2D::Test(
                     *contact.proxyA,
                     *contact.proxyB
                 );
@@ -1216,7 +1231,7 @@ void PhysicsSystem2D::detectAndResolve(
         constexpr float solvedVelocityEpsilon = 0.0001f;
 
         struct BlockedDirection {
-            ilen::physics::ColliderProxy2D* proxy = nullptr;
+            lynx::physics::ColliderProxy2D* proxy = nullptr;
             vec2 normal{0.0f};
         };
 
@@ -1250,14 +1265,14 @@ void PhysicsSystem2D::detectAndResolve(
                 }
 
                 const auto layerA = static_cast<
-                    ilen::enumerations::ILEN_LAYER_SYSTEM
+                    lynx::enumerations::LYNX_LAYER_SYSTEM
                 >(pair.proxyA->layerMask);
 
                 const auto layerB = static_cast<
-                    ilen::enumerations::ILEN_LAYER_SYSTEM
+                    lynx::enumerations::LYNX_LAYER_SYSTEM
                 >(pair.proxyB->layerMask);
 
-                if(!ilen::physics::CollisionMatrix::CanCollide(layerA, layerB)) {
+                if(!lynx::physics::CollisionMatrix::CanCollide(p_physicsOptions->collisionMatrix, layerA, layerB)) {
                     continue;
                 }
 
@@ -1277,18 +1292,18 @@ void PhysicsSystem2D::detectAndResolve(
                     continue;
                 }
 
-                if(!ilen::maths::aabb::overlapAABB2D(
+                if(!lynx::maths::aabb::overlapAABB2D(
                     pair.proxyA->sweptBounds,
                     pair.proxyB->sweptBounds
                 )) {
                     continue;
                 }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
                 m_collisionDebugStats.satTests++;
 #endif
 
-                auto propagatedImpact = ilen::physics::NarrowPhase2D::Sweep(
+                auto propagatedImpact = lynx::physics::NarrowPhase2D::Sweep(
                     *pair.proxyA,
                     *pair.proxyB
                 );
@@ -1321,7 +1336,7 @@ void PhysicsSystem2D::detectAndResolve(
                     }
                 }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
                 m_collisionDebugStats.collisionDetected++;
 #endif
 
@@ -1336,7 +1351,7 @@ void PhysicsSystem2D::detectAndResolve(
             blockedDirections.clear();
 
             const auto isBlocked = [&blockedDirections](
-                const ilen::physics::ColliderProxy2D* proxy,
+                const lynx::physics::ColliderProxy2D* proxy,
                 const vec2& normal
             ) {
                 return std::any_of(
@@ -1344,7 +1359,7 @@ void PhysicsSystem2D::detectAndResolve(
                     blockedDirections.end(),
                     [proxy, &normal](const BlockedDirection& blocked) {
                         return blocked.proxy == proxy &&
-                            ilen::maths::vector::dot(
+                            lynx::maths::vector::dot(
                                 blocked.normal,
                                 normal
                             ) > 0.95f;
@@ -1356,7 +1371,7 @@ void PhysicsSystem2D::detectAndResolve(
                 &blockedDirections,
                 &isBlocked
             ](
-                ilen::physics::ColliderProxy2D* proxy,
+                lynx::physics::ColliderProxy2D* proxy,
                 const vec2& normal
             ) {
                 if(!proxy || proxy->isStatic || isBlocked(proxy, normal)) {
@@ -1421,7 +1436,7 @@ void PhysicsSystem2D::detectAndResolve(
             }
 
             for(const auto& blocked : blockedDirections) {
-                const float normalMotion = ilen::maths::vector::dot(
+                const float normalMotion = lynx::maths::vector::dot(
                     blocked.proxy->motionVelocity,
                     blocked.normal
                 );
@@ -1441,7 +1456,7 @@ void PhysicsSystem2D::detectAndResolve(
                 }
 
                 const float rigidbodyNormalVelocity =
-                    ilen::maths::vector::dot(
+                    lynx::maths::vector::dot(
                         rigidbody->velocity,
                         blocked.normal
                     );
@@ -1458,7 +1473,7 @@ void PhysicsSystem2D::detectAndResolve(
             bool hasUnsolvedConstraint = addedConstraint;
             for(const auto& contact : earliestImpacts) {
                 const float relativeNormalVelocity =
-                    ilen::maths::vector::dot(
+                    lynx::maths::vector::dot(
                         contact.proxyA->motionVelocity -
                             contact.proxyB->motionVelocity,
                         contact.manifold.normal
@@ -1478,8 +1493,8 @@ void PhysicsSystem2D::detectAndResolve(
         remainingTime = remainingTimeAfterImpact;
     }
 
-#if ILEN_DEBUG
-    if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+#if LYNX_DEBUG
+    if(p_physicsOptions->showDebugArrows) {
         m_debugPreviousCollisionPairs = m_debugCurrentCollisionPairs;
     } else {
         m_debugPreviousCollisionPairs.clear();
@@ -1501,14 +1516,14 @@ void PhysicsSystem2D::refreshRotationBlocks() {
         const auto staticIterator = std::find_if(
             m_staticProxies.begin(),
             m_staticProxies.end(),
-            [blockingStatic](const ilen::physics::ColliderProxy2D& proxy) {
+            [blockingStatic](const lynx::physics::ColliderProxy2D& proxy) {
                 return proxy.entity == blockingStatic;
             }
         );
 
         if(
             staticIterator == m_staticProxies.end() ||
-            !ilen::physics::NarrowPhase2D::AreTouching(
+            !lynx::physics::NarrowPhase2D::AreTouching(
                 dynamicProxy,
                 *staticIterator,
                 staticContactTolerance
@@ -1520,8 +1535,8 @@ void PhysicsSystem2D::refreshRotationBlocks() {
 }
 
 void PhysicsSystem2D::resolveCollision(
-    ilen::physics::ColliderProxy2D& proxyA,
-    ilen::physics::ColliderProxy2D& proxyB,
+    lynx::physics::ColliderProxy2D& proxyA,
+    lynx::physics::ColliderProxy2D& proxyB,
     const physics::ContactManifold2D& manifold,
     ArrayOfComponentsUsed* componentsArray
 ){
@@ -1531,8 +1546,8 @@ void PhysicsSystem2D::resolveCollision(
         return;
     }
 
-#if ILEN_DEBUG
-    if(ilen::core::options::PhysicsOptions::showDebugArrows) {
+#if LYNX_DEBUG
+    if(p_physicsOptions->showDebugArrows) {
         recordDebugImpact(
             proxyA,
             proxyB,
@@ -1558,7 +1573,7 @@ void PhysicsSystem2D::resolveCollision(
         const bool movableA = rigidbodyA && !rigidbodyA->isStatic;
         const bool movableB = rigidbodyB && !rigidbodyB->isStatic;
 
-        ilen::physics::ColliderProxy2D* escapingProxy = nullptr;
+        lynx::physics::ColliderProxy2D* escapingProxy = nullptr;
         physics::Rigidbody2D* escapingRigidbody = nullptr;
         vec2 escapeNormal{0.0f};
 
@@ -1596,7 +1611,7 @@ void PhysicsSystem2D::resolveCollision(
         // Se elimina únicamente la componente que vuelve a introducir el
         // cuerpo en el sólido. El movimiento tangencial y el movimiento hacia
         // la salida permanecen intactos.
-        const float motionIntoSolid = ilen::maths::vector::dot(
+        const float motionIntoSolid = lynx::maths::vector::dot(
             escapingProxy->motionVelocity,
             escapeNormal
         );
@@ -1605,7 +1620,7 @@ void PhysicsSystem2D::resolveCollision(
                 escapeNormal * motionIntoSolid;
         }
 
-        const float rigidbodyMotionIntoSolid = ilen::maths::vector::dot(
+        const float rigidbodyMotionIntoSolid = lynx::maths::vector::dot(
             escapingRigidbody->velocity,
             escapeNormal
         );
@@ -1627,14 +1642,14 @@ void PhysicsSystem2D::resolveCollision(
         translateProxy(proxyA, separation);
 
         const float normalMotion =
-            ilen::maths::vector::dot(proxyA.motionVelocity, manifold.normal);
+            lynx::maths::vector::dot(proxyA.motionVelocity, manifold.normal);
 
         if(normalMotion < 0.0f) {
             proxyA.motionVelocity -= manifold.normal * normalMotion;
         }
 
         const float rigidbodyNormalVelocity =
-            ilen::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
+            lynx::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
 
         if(rigidbodyNormalVelocity < 0.0f) {
             rigidbodyA->velocity -=
@@ -1656,14 +1671,14 @@ void PhysicsSystem2D::resolveCollision(
         translateProxy(proxyB, separation);
 
         const float normalMotion =
-            ilen::maths::vector::dot(proxyB.motionVelocity, normalB);
+            lynx::maths::vector::dot(proxyB.motionVelocity, normalB);
 
         if(normalMotion < 0.0f) {
             proxyB.motionVelocity -= normalB * normalMotion;
         }
 
         const float rigidbodyNormalVelocity =
-            ilen::maths::vector::dot(rigidbodyB->velocity, normalB);
+            lynx::maths::vector::dot(rigidbodyB->velocity, normalB);
 
         if(rigidbodyNormalVelocity < 0.0f) {
             rigidbodyB->velocity -= normalB * rigidbodyNormalVelocity;
@@ -1695,7 +1710,7 @@ void PhysicsSystem2D::resolveCollision(
         translateProxy(proxyA, separationA);
         translateProxy(proxyB, separationB);
 
-        const float relativeNormalVelocity = ilen::maths::vector::dot(
+        const float relativeNormalVelocity = lynx::maths::vector::dot(
             proxyA.motionVelocity - proxyB.motionVelocity,
             manifold.normal
         );
@@ -1713,7 +1728,7 @@ void PhysicsSystem2D::resolveCollision(
     // Un cinemático actúa como masa infinita frente a un dinámico: conserva
     // su movimiento solicitado y transmite al otro cuerpo la componente normal.
     if(dynamicA && dynamicB && (kinematicA != kinematicB)) {
-        const float relativeNormalVelocity = ilen::maths::vector::dot(
+        const float relativeNormalVelocity = lynx::maths::vector::dot(
             proxyA.motionVelocity - proxyB.motionVelocity,
             manifold.normal
         );
@@ -1735,7 +1750,7 @@ void PhysicsSystem2D::resolveCollision(
                 // Move/MovePosition son órdenes de este paso, no impulsos.
                 // El cuerpo empujado se desplaza ahora, pero no conserva una
                 // velocidad infinita cuando el cinemático deja de empujarlo.
-                if(std::abs(ilen::maths::vector::dot(
+                if(std::abs(lynx::maths::vector::dot(
                     proxyA.commandedVelocity,
                     manifold.normal
                 )) <= 0.0001f) {
@@ -1756,7 +1771,7 @@ void PhysicsSystem2D::resolveCollision(
 
                 proxyA.motionVelocity += transferredVelocity;
 
-                if(std::abs(ilen::maths::vector::dot(
+                if(std::abs(lynx::maths::vector::dot(
                     proxyB.commandedVelocity,
                     manifold.normal
                 )) <= 0.0001f) {
@@ -1773,7 +1788,7 @@ void PhysicsSystem2D::resolveCollision(
     if(
         dynamicA &&
         dynamicB &&
-        ilen::core::options::PhysicsOptions::solveRealisticCollision
+        p_physicsOptions->solveRealisticCollision
     ) {
         constexpr float minimumMass = 0.0001f;
         constexpr float movementEpsilon = 0.0001f;
@@ -1785,7 +1800,7 @@ void PhysicsSystem2D::resolveCollision(
 
         const float approachA = std::max(
             0.0f,
-            -ilen::maths::vector::dot(
+            -lynx::maths::vector::dot(
                 proxyA.motionVelocity,
                 manifold.normal
             )
@@ -1793,7 +1808,7 @@ void PhysicsSystem2D::resolveCollision(
 
         const float approachB = std::max(
             0.0f,
-            ilen::maths::vector::dot(
+            lynx::maths::vector::dot(
                 proxyB.motionVelocity,
                 manifold.normal
             )
@@ -1890,7 +1905,7 @@ void PhysicsSystem2D::resolveCollision(
         // un impulso inelástico y conserva el momento lineal sobre la normal.
         if(driver == CollisionDriver::A && !aCanPushB) {
             const float velocityIntoB =
-                ilen::maths::vector::dot(
+                lynx::maths::vector::dot(
                     proxyA.motionVelocity,
                     manifold.normal
                 );
@@ -1899,7 +1914,7 @@ void PhysicsSystem2D::resolveCollision(
                 proxyA.motionVelocity -= manifold.normal * velocityIntoB;
 
                 const float rigidbodyVelocityIntoB =
-                    ilen::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
+                    lynx::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
                 if(rigidbodyVelocityIntoB < 0.0f) {
                     rigidbodyA->velocity -=
                         manifold.normal * rigidbodyVelocityIntoB;
@@ -1909,7 +1924,7 @@ void PhysicsSystem2D::resolveCollision(
             const vec2 normalB = manifold.normal * -1.0f;
 
             const float velocityIntoA =
-                ilen::maths::vector::dot(
+                lynx::maths::vector::dot(
                     proxyB.motionVelocity,
                     normalB
                 );
@@ -1918,7 +1933,7 @@ void PhysicsSystem2D::resolveCollision(
                 proxyB.motionVelocity -= normalB * velocityIntoA;
 
                 const float rigidbodyVelocityIntoA =
-                    ilen::maths::vector::dot(rigidbodyB->velocity, normalB);
+                    lynx::maths::vector::dot(rigidbodyB->velocity, normalB);
                 if(rigidbodyVelocityIntoA < 0.0f) {
                     rigidbodyB->velocity -=
                         normalB * rigidbodyVelocityIntoA;
@@ -1932,7 +1947,7 @@ void PhysicsSystem2D::resolveCollision(
                 proxyA.motionVelocity - proxyB.motionVelocity;
 
             const float velocityAlongNormal =
-                ilen::maths::vector::dot(
+                lynx::maths::vector::dot(
                     relativeVelocity,
                     manifold.normal
                 );
@@ -1953,14 +1968,14 @@ void PhysicsSystem2D::resolveCollision(
 
                 const float commandedApproachA = std::max(
                     0.0f,
-                    -ilen::maths::vector::dot(
+                    -lynx::maths::vector::dot(
                         proxyA.commandedVelocity,
                         manifold.normal
                     )
                 );
                 const float commandedApproachB = std::max(
                     0.0f,
-                    ilen::maths::vector::dot(
+                    lynx::maths::vector::dot(
                         proxyB.commandedVelocity,
                         manifold.normal
                     )
@@ -1976,14 +1991,14 @@ void PhysicsSystem2D::resolveCollision(
                     manifold.usedAngularSweep;
 
                 constexpr float commandEpsilon = 0.0001f;
-                if(!transientImpulse && std::abs(ilen::maths::vector::dot(
+                if(!transientImpulse && std::abs(lynx::maths::vector::dot(
                     proxyA.commandedVelocity,
                     manifold.normal
                 )) <= commandEpsilon) {
                     rigidbodyA->velocity += velocityChangeA;
                 }
 
-                if(!transientImpulse && std::abs(ilen::maths::vector::dot(
+                if(!transientImpulse && std::abs(lynx::maths::vector::dot(
                     proxyB.commandedVelocity,
                     manifold.normal
                 )) <= commandEpsilon) {
@@ -2014,25 +2029,25 @@ void PhysicsSystem2D::resolveCollision(
         translateProxy(proxyA, separationA);
         translateProxy(proxyB, separationB);
 
-        const float velocityA = ilen::maths::vector::dot(proxyA.motionVelocity, manifold.normal);
+        const float velocityA = lynx::maths::vector::dot(proxyA.motionVelocity, manifold.normal);
         if(velocityA < 0.0f) {
             proxyA.motionVelocity -= manifold.normal * velocityA;
 
             const float rigidbodyVelocityA =
-                ilen::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
+                lynx::maths::vector::dot(rigidbodyA->velocity, manifold.normal);
             if(rigidbodyVelocityA < 0.0f) {
                 rigidbodyA->velocity -= manifold.normal * rigidbodyVelocityA;
             }
         }
 
         const vec2 normalB = manifold.normal * -1.0f;
-        const float velocityB = ilen::maths::vector::dot(proxyB.motionVelocity, normalB);
+        const float velocityB = lynx::maths::vector::dot(proxyB.motionVelocity, normalB);
 
         if(velocityB < 0.0f) {
             proxyB.motionVelocity -= normalB * velocityB;
 
             const float rigidbodyVelocityB =
-                ilen::maths::vector::dot(rigidbodyB->velocity, normalB);
+                lynx::maths::vector::dot(rigidbodyB->velocity, normalB);
             if(rigidbodyVelocityB < 0.0f) {
                 rigidbodyB->velocity -= normalB * rigidbodyVelocityB;
             }
@@ -2109,7 +2124,7 @@ void PhysicsSystem2D::writeContacts(const physics::ContactManifold2D& manifold, 
     }
 }
 
-#if ILEN_DEBUG
+#if LYNX_DEBUG
 void PhysicsSystem2D::rebuildDebugActiveVectors(
     ArrayOfComponentsUsed* componentsArray
 ) {
@@ -2121,7 +2136,7 @@ void PhysicsSystem2D::rebuildDebugActiveVectors(
         const float z = transform ? transform->position.z + 0.02f : 0.02f;
 
         const float linearLengthSquared =
-            ilen::maths::vector::dot(
+            lynx::maths::vector::dot(
                 proxy.motionVelocity,
                 proxy.motionVelocity
             );
@@ -2147,7 +2162,7 @@ void PhysicsSystem2D::rebuildDebugActiveVectors(
             for(const vec2& vertex : proxy.worldVertices) {
                 const vec2 radius = vertex - proxy.rotationPivot;
                 const float distanceSquared =
-                    ilen::maths::vector::dot(radius, radius);
+                    lynx::maths::vector::dot(radius, radius);
 
                 if(distanceSquared > maximumDistanceSquared) {
                     maximumDistanceSquared = distanceSquared;
@@ -2162,7 +2177,7 @@ void PhysicsSystem2D::rebuildDebugActiveVectors(
             };
 
             if(
-                ilen::maths::vector::dot(
+                lynx::maths::vector::dot(
                     tangentialVelocity,
                     tangentialVelocity
                 ) > vectorEpsilonSquared
@@ -2179,7 +2194,7 @@ void PhysicsSystem2D::rebuildDebugActiveVectors(
 
         const vec2 force = m_debugAppliedForces[proxy.entity];
         if(
-            ilen::maths::vector::dot(force, force) >
+            lynx::maths::vector::dot(force, force) >
             vectorEpsilonSquared
         ) {
             m_debugActiveVectors.push_back({
@@ -2194,8 +2209,8 @@ void PhysicsSystem2D::rebuildDebugActiveVectors(
 }
 
 void PhysicsSystem2D::recordDebugImpact(
-    const ilen::physics::ColliderProxy2D& proxyA,
-    const ilen::physics::ColliderProxy2D& proxyB,
+    const lynx::physics::ColliderProxy2D& proxyA,
+    const lynx::physics::ColliderProxy2D& proxyB,
     const physics::ContactManifold2D& manifold,
     ArrayOfComponentsUsed* componentsArray
 ) {
@@ -2220,7 +2235,7 @@ void PhysicsSystem2D::recordDebugImpact(
     }
 
     const auto velocityAtContact = [&manifold](
-        const ilen::physics::ColliderProxy2D& proxy
+        const lynx::physics::ColliderProxy2D& proxy
     ) {
         const vec2 radius = manifold.point - proxy.rotationPivot;
         const vec2 angularVelocity{
@@ -2236,7 +2251,7 @@ void PhysicsSystem2D::recordDebugImpact(
 
     const float closingSpeed = std::max(
         0.0f,
-        -ilen::maths::vector::dot(relativeVelocity, manifold.normal)
+        -lynx::maths::vector::dot(relativeVelocity, manifold.normal)
     );
 
     // Si el contacto ya nació penetrado, su corrección posicional también es
@@ -2313,11 +2328,11 @@ void PhysicsSystem2D::checkStaticGuard(ArrayOfComponentsUsed* componentsArray) {
             transform->rotation != guard.originalRotation ||
             transform->scale != guard.originalScale
         ) {
-            ILEN_ERROR_P("PHYSICS_2D", "La entidad estática %u modifico su Transform", guard.entity);
+            LYNX_ERROR_P("PHYSICS_2D", "La entidad estática %u modifico su Transform", guard.entity);
         }
 
         if(!rigidbody->isStatic) {
-            ILEN_ERROR_P("PHYSICS_2D", "La entidad %u fue registrada como estática y luego fue cambiado ese estado", guard.entity);
+            LYNX_ERROR_P("PHYSICS_2D", "La entidad %u fue registrada como estática y luego fue cambiado ese estado", guard.entity);
         }
     }
 }
@@ -2344,7 +2359,7 @@ void PhysicsSystem2D::reportCollisionDebugStats() {
         ? 100.0f * static_cast<float>(avoidedPairs) / static_cast<float>(m_collisionDebugStats.bruteForcePairs)
         : 0.0f;
 
- /*  ILEN_LOG_P(
+ /*  LYNX_LOG_P(
         "PHYSICS_2D_STATS",
         "Fuerza bruta=%zu | Broadphase=%zu | "
         "Descartados=%zu | Reduccion=%.2f%% | "
@@ -2360,7 +2375,7 @@ void PhysicsSystem2D::reportCollisionDebugStats() {
         m_collisionDebugStats.collisionDetected,
         m_collisionDebugStats.collisionPasses
     );
-    ILEN_LOG_P(
+    LYNX_LOG_P(
         "PHYSICS_2D_STATS",
         "Candidatos que superaron AABB=%zu",
         passedAABB

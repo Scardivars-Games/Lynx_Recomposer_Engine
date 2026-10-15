@@ -1,7 +1,7 @@
-#include <ilen/maths/AABB.h>
+#include <lynx/maths/AABB.h>
 #include <cmath>
 
-namespace ilen::maths::aabb {
+namespace lynx::maths::aabb {
     IntersectResult3D intersectAABB3D(const AABB3D& a, const AABB3D&b){
         //Vector de a hacia b, infica la distancia y la Dirección.
         vec3 diff = b.center - a.center;

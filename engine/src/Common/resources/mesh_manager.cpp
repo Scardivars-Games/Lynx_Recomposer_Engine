@@ -1,7 +1,7 @@
-#include <ilen/resources/mesh_manager.h>
-#include <ilen/core/engine_context.h>
+#include <lynx/resources/mesh_manager.h>
+#include <lynx/core/engine_context.h>
 
-namespace ilen::resources::mesh {
+namespace lynx::resources::mesh {
     MeshManager::MeshManager(EngineContext* engineContext){
         jobSystem = engineContext->p_jobSystem.get();
         renderer = engineContext->p_gameRenderer.get();
@@ -30,41 +30,41 @@ namespace ilen::resources::mesh {
         //Cargando los datos a la GPU.
         std::future<MeshGPULink> future = jobSystem->SubmitJobWithResult([this, meshObject]() -> MeshGPULink {
                 //TODO: Load binary data of mesh
-                auto loadPath = ilen::core::FileManager::fileRoute(meshObject.assetPath, ILEN_FILE_TYPE_MODEL);
-                //ILEN_LOG_P(DEBUG_PREFIX, "Mesh localizado en %s.", loadPath.c_str());
+                auto loadPath = lynx::core::FileManager::fileRoute(meshObject.assetPath, LYNX_FILE_TYPE_MODEL);
+                //LYNX_LOG_P(DEBUG_PREFIX, "Mesh localizado en %s.", loadPath.c_str());
                 
                 std::ifstream readMesh(loadPath, std::ios::binary);
                 if(!readMesh.is_open())
-                    ILEN_ERROR_P(DEBUG_PREFIX, "No se pudo abrir el mesh ubicado en %s.", loadPath.c_str());                            
+                    LYNX_ERROR_P(DEBUG_PREFIX, "No se pudo abrir el mesh ubicado en %s.", loadPath.c_str());                            
 
-                ilen::binary::headers::IlenMeshHeader meshHeader{};
+                lynx::binary::headers::LynxMeshHeader meshHeader{};
                 readMesh.read(reinterpret_cast<char*>(&meshHeader), sizeof(meshHeader));
 
                 if(std::string(meshHeader.magicNumber) != "HSEM_NELI")
-                    ILEN_ERROR_P(DEBUG_PREFIX, "La cabezera del mesh ubicado en %s no es compatible con este programa", loadPath.c_str());
+                    LYNX_ERROR_P(DEBUG_PREFIX, "La cabezera del mesh ubicado en %s no es compatible con este programa", loadPath.c_str());
 
                 MeshData mesh{};
                 mesh.vertexBufferData.resize(meshHeader.vertexCount);
                 mesh.indexBufferData.resize(meshHeader.indexCount);
 
-                readMesh.read(reinterpret_cast<char*>(mesh.vertexBufferData.data()), sizeof(ilen::render::buffers::VertexBufferData) * meshHeader.vertexCount);
+                readMesh.read(reinterpret_cast<char*>(mesh.vertexBufferData.data()), sizeof(lynx::render::buffers::VertexBufferData) * meshHeader.vertexCount);
                 readMesh.read(reinterpret_cast<char*>(mesh.indexBufferData.data()), sizeof(uint32_t) * meshHeader.indexCount);
 
                 readMesh.close();
 
                 MeshGPULink link{};
                 
-                ilen::render::IlenBufferDescriptor vertexDescriptor{};
-                vertexDescriptor.bufferType = ILEN_RENDER_GPU_BUFFER_VERTEX;
-                vertexDescriptor.bufferSize = mesh.vertexBufferData.size() * sizeof(ilen::render::buffers::VertexBufferData);
+                lynx::render::LynxBufferDescriptor vertexDescriptor{};
+                vertexDescriptor.bufferType = LYNX_RENDER_GPU_BUFFER_VERTEX;
+                vertexDescriptor.bufferSize = mesh.vertexBufferData.size() * sizeof(lynx::render::buffers::VertexBufferData);
                 //vertexDescriptor.cpuVisible = false;
                 vertexDescriptor.bufferLabelName = "Vertex Buffer for mesh ID " + std::to_string(meshObject.assetID);
                 vertexDescriptor.count = mesh.vertexBufferData.size();
 
                 link.vertexBuffer = renderer->createBuffer(vertexDescriptor, mesh.vertexBufferData.data());
 
-                ilen::render::IlenBufferDescriptor indexDescriptor{};
-                indexDescriptor.bufferType = ILEN_RENDER_GPU_BUFFER_INDEX;
+                lynx::render::LynxBufferDescriptor indexDescriptor{};
+                indexDescriptor.bufferType = LYNX_RENDER_GPU_BUFFER_INDEX;
                 indexDescriptor.bufferSize = mesh.indexBufferData.size() * sizeof(uint32_t);
                 indexDescriptor.bufferLabelName = "Index Buffer for mesh ID " + std::to_string(meshObject.assetID);
                 indexDescriptor.count = mesh.indexBufferData.size();

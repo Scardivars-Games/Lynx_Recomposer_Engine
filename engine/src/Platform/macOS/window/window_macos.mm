@@ -1,17 +1,17 @@
 
-#if defined (__APPLE__) && ILEN_MACOS
+#if defined (__APPLE__) && LYNX_MACOS
 
 #include <window/window_macos.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/input/input_buffer.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/input/input_buffer.h>
 #include <input/apple_controllers.h>
 
 #import <Cocoa/Cocoa.h>
 #import <QuartzCore/CAMetalLayer.h>
 #import <Metal/Metal.h>
 
-using namespace ilen::window;
-using namespace ilen::enumerations;
+using namespace lynx::window;
+using namespace lynx::enumerations;
 
 //Implementación del AppDelegate
 @interface AppDelegate: NSObject<NSApplicationDelegate, NSWindowDelegate>
@@ -62,14 +62,14 @@ using namespace ilen::enumerations;
         layer.drawableSize = pixelSize;
         self->_nativeWindow->_drawableSize = pixelSize;
         
-        ILEN_LOG("New resolution por resize. Logical size: %.0f x %0.f. Pixel Size: %.0f x %.0f", logicalSize.width, logicalSize.height, pixelSize.width, pixelSize.height);
+        LYNX_LOG("New resolution por resize. Logical size: %.0f x %0.f. Pixel Size: %.0f x %.0f", logicalSize.width, logicalSize.height, pixelSize.width, pixelSize.height);
         self.nativeWindow->_windowSizeChanged.store(true);
     }
 }
 
 -(void)windowDidResignKey:(NSNotification *)notification{
     //Perdio el foco, actualizar
-    ilen::input::InputBuffer::Get().ForceResetData();
+    lynx::input::InputBuffer::Get().ForceResetData();
     self.nativeWindow->isOutOfFocus = true;
 }
 
@@ -93,9 +93,9 @@ using namespace ilen::enumerations;
 - (void)mouseMoved:(NSEvent *)event {}
 @end
 
-namespace ilen::window {
+namespace lynx::window {
 
-    std::unique_ptr<IWindow> IWindow::CreateWindow(const ilen::application::ApplicationMetadata& metadata){
+    std::unique_ptr<IWindow> IWindow::CreateWindow(const lynx::application::ApplicationMetadata& metadata){
         s_width = metadata.startWidth;
         s_height = metadata.startHeight;
         
@@ -104,7 +104,7 @@ namespace ilen::window {
         return std::make_unique<IWindow>(std::move(native));
     }
     
-    WindowNativeMacOS::WindowNativeMacOS(const ilen::application::ApplicationMetadata& metadata) : _windowSizeChanged(false) {
+    WindowNativeMacOS::WindowNativeMacOS(const lynx::application::ApplicationMetadata& metadata) : _windowSizeChanged(false) {
         @autoreleasepool {
             //Iniciar la app
             
@@ -114,7 +114,7 @@ namespace ilen::window {
 
             AddGameControllerNotifications();
 
-            IlenWindowPropertiesFlags windowProperties = metadata.windowPropertiesFlags;
+            LynxWindowPropertiesFlags windowProperties = metadata.windowPropertiesFlags;
             
             [NSApplication sharedApplication];
             [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
@@ -127,11 +127,11 @@ namespace ilen::window {
             //Creación de la ventana
             NSRect frame = NSMakeRect(0, 0, width, height);
             NSUInteger styleMask = NSWindowStyleMaskTitled;
-            if(windowProperties & ILEN_WINDOW_PROPERTY_CLOSABLE)
+            if(windowProperties & LYNX_WINDOW_PROPERTY_CLOSABLE)
                 styleMask |= NSWindowStyleMaskClosable;
-            if(windowProperties & ILEN_WINDOW_PROPERTY_RESIZABLE)
+            if(windowProperties & LYNX_WINDOW_PROPERTY_RESIZABLE)
                 styleMask |= NSWindowStyleMaskResizable;
-            if(windowProperties & ILEN_WINDOW_PROPERTY_BORDERLESS)
+            if(windowProperties & LYNX_WINDOW_PROPERTY_BORDERLESS)
                 styleMask |= NSWindowStyleMaskBorderless;
             //TODO: Añadir el resto de macros de opcion de las ventanas
             nativeWindow = [[NSWindow alloc] initWithContentRect:frame styleMask:styleMask backing:NSBackingStoreBuffered defer:NO];
@@ -205,7 +205,7 @@ namespace ilen::window {
             
             [NSApp activateIgnoringOtherApps:YES];
 
-            if(windowProperties & ILEN_WINDOW_PROPERTY_FULLSCREEN){
+            if(windowProperties & LYNX_WINDOW_PROPERTY_FULLSCREEN){
                 dispatch_async(dispatch_get_main_queue(), ^{
                     [nativeWindow toggleFullScreen:nil];
                 });            
@@ -218,7 +218,7 @@ namespace ilen::window {
         @autoreleasepool {
             NSEvent* event;
             
-            auto& input = ilen::input::InputBuffer::Get();
+            auto& input = lynx::input::InputBuffer::Get();
             
             //Limpiamos los deltas anteriores
             //input.NewFrame();
@@ -227,10 +227,10 @@ namespace ilen::window {
                 NSEventType type = [event type];
                 switch (type) {
                     case NSEventTypeKeyDown:
-                        input.SetKeyState(ilen::input::TranslateNativeKey([event keyCode]), true);
+                        input.SetKeyState(lynx::input::TranslateNativeKey([event keyCode]), true);
                         break;
                     case NSEventTypeKeyUp:
-                        input.SetKeyState(ilen::input::TranslateNativeKey([event keyCode]), false);
+                        input.SetKeyState(lynx::input::TranslateNativeKey([event keyCode]), false);
                         break;
                     case NSEventTypeFlagsChanged: {
                         uint16_t k = [event keyCode];
@@ -240,14 +240,14 @@ namespace ilen::window {
                         else if (k == 59 || k == 62) p = (f & NSEventModifierFlagControl);
                         else if (k == 58 || k == 61) p = (f & NSEventModifierFlagOption);
                         else if (k == 55 || k == 54) p = (f & NSEventModifierFlagCommand);
-                        input.SetKeyState(ilen::input::TranslateNativeKey(k), p);
+                        input.SetKeyState(lynx::input::TranslateNativeKey(k), p);
                         break;
                     }
                     //Click izquierdo
                     case NSEventTypeLeftMouseUp:
                     case NSEventTypeLeftMouseDown: {
                         auto& ptr = input.GetPointer(0); //Mouse es siempre 0
-                        ptr.type = ilen::input::PointerType::Mouse;
+                        ptr.type = lynx::input::PointerType::Mouse;
                         ptr.isDown = (type == NSEventTypeLeftMouseDown);
                         break;
                     }
@@ -300,7 +300,7 @@ namespace ilen::window {
         CAMetalLayer* layer = (CAMetalLayer*)nativeView.layer;
         [layer setDrawableSize:_drawableSize];
         
-        //ILEN_LOG("Drawable Size: %i x %i. Screen bounds: %i x %i", nativeView.drawableSize.width, nativeView.drawableSize.height, nativeView.bounds.size.width, nativeView.bounds.size.height);
+        //LYNX_LOG("Drawable Size: %i x %i. Screen bounds: %i x %i", nativeView.drawableSize.width, nativeView.drawableSize.height, nativeView.bounds.size.width, nativeView.bounds.size.height);
         
         _windowSizeChanged.store(false);
         return true;
@@ -335,7 +335,7 @@ public:
 };
 
 GameWindow::GameWindow(void* metadata){
-    auto* meta = (ilen::application::ApplicationMetadata*)metadata;    
+    auto* meta = (lynx::application::ApplicationMetadata*)metadata;    
     s_width = meta->startWidth;
     s_height = meta->startHeight;
     

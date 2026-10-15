@@ -1,15 +1,15 @@
-#include <ilen/physics/collider_proxy_builder_2d.h>
-#include <ilen/physics/collider_validation_2d.h>
+#include <lynx/physics/collider_proxy_builder_2d.h>
+#include <lynx/physics/collider_validation_2d.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
 
-namespace ilen::physics {
-    using namespace ilen::ecs;
-    using namespace ilen::ecs::components;
-    using namespace ilen::ecs::components::physics;
-    using namespace ilen::maths::aabb;
-    using namespace ilen::maths::vector;
+namespace lynx::physics {
+    using namespace lynx::ecs;
+    using namespace lynx::ecs::components;
+    using namespace lynx::ecs::components::physics;
+    using namespace lynx::maths::aabb;
+    using namespace lynx::maths::vector;
 
     namespace {
         constexpr float DegreesToRadians = M_PI / 180.0f;
@@ -51,7 +51,7 @@ namespace ilen::physics {
             !std::isfinite(transform.scale.x) ||
             !std::isfinite(transform.scale.y)
         ) {
-            ILEN_ERROR_P(
+            LYNX_ERROR_P(
                 "COLLIDER_PROXY_BUILDER",
                 "La caja o su Transform contiene valores no finitos"
             );
@@ -78,7 +78,7 @@ namespace ilen::physics {
 
         ColliderProxy2D proxy{};
         proxy.entity = entity;
-        proxy.shape = ILEN_COLLIDER_SHAPE_TYPE_2D::Box;
+        proxy.shape = LYNX_COLLIDER_SHAPE_TYPE_2D::Box;
         proxy.worldVertices.reserve(4);
 
         /*
@@ -121,7 +121,7 @@ namespace ilen::physics {
         constexpr float scaleEpsilon = 0.00001f;
 
         if (collider.vertices.size() < 3) {
-            ILEN_ERROR_P("COLLIDER_PROXY_BUILDER", "Se recibio un poligono con menos de 3 vertices");
+            LYNX_ERROR_P("COLLIDER_PROXY_BUILDER", "Se recibio un poligono con menos de 3 vertices");
             return std::nullopt;
         }
 
@@ -134,7 +134,7 @@ namespace ilen::physics {
             !std::isfinite(transform.scale.x) ||
             !std::isfinite(transform.scale.y)
         ) {
-            ILEN_ERROR_P(
+            LYNX_ERROR_P(
                 "COLLIDER_PROXY_BUILDER",
                 "El poligono o su Transform contiene valores no finitos"
             );
@@ -145,7 +145,7 @@ namespace ilen::physics {
             std::abs(transform.scale.x) <= scaleEpsilon ||
             std::abs(transform.scale.y) <= scaleEpsilon
         ) {
-            ILEN_ERROR_P(
+            LYNX_ERROR_P(
                 "COLLIDER_PROXY_BUILDER",
                 "Un poligono fisico no puede tener escala cero"
             );
@@ -153,13 +153,13 @@ namespace ilen::physics {
         }
         
         if(!IsConvexCounterClockwise(collider.vertices)) {
-            ILEN_ERROR_P("COLLIDER_PROXY_BUILDER", "La figura no es convexa, o las caras no estan en el orden correcto");
+            LYNX_ERROR_P("COLLIDER_PROXY_BUILDER", "La figura no es convexa, o las caras no estan en el orden correcto");
             return std::nullopt;
         }
 
         ColliderProxy2D proxy{};
         proxy.entity = entity;
-        proxy.shape = ILEN_COLLIDER_SHAPE_TYPE_2D::ConvexPolygon;
+        proxy.shape = LYNX_COLLIDER_SHAPE_TYPE_2D::ConvexPolygon;
         proxy.worldVertices.reserve(collider.vertices.size());
 
         for(const vec2& vertex : collider.vertices) {
@@ -248,7 +248,7 @@ namespace ilen::physics {
             const vec2 difference = vertex - pivot;
             maximumRadiusSquared = std::max(
                 maximumRadiusSquared,
-                ilen::maths::vector::dot(difference, difference)
+                lynx::maths::vector::dot(difference, difference)
             );
         }
 

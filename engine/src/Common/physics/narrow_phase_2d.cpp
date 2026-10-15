@@ -1,16 +1,16 @@
 #include <cstdlib>
-#include <ilen/physics/narrow_phase_2d.h>
-#include <ilen/maths/AABB.h>
+#include <lynx/physics/narrow_phase_2d.h>
+#include <lynx/maths/AABB.h>
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <optional>
 
 
-namespace ilen::physics {
-    using ilen::ecs::components::physics::ContactManifold2D;
-    using ilen::ecs::components::physics::Containment2D;
-    using ilen::maths::vector::vec2;
+namespace lynx::physics {
+    using lynx::ecs::components::physics::ContactManifold2D;
+    using lynx::ecs::components::physics::Containment2D;
+    using lynx::maths::vector::vec2;
 
     NarrowPhase2D::Projection NarrowPhase2D::Project (
         const std::vector<vec2>& vertices,
@@ -18,11 +18,11 @@ namespace ilen::physics {
     ) {
         Projection projection{};
 
-        projection.minimum = ilen::maths::vector::dot(vertices[0], axis);
+        projection.minimum = lynx::maths::vector::dot(vertices[0], axis);
         projection.maximum = projection.minimum;
 
         for(size_t i = 1; i < vertices.size(); i++) {
-            const float value = ilen::maths::vector::dot(vertices[i], axis);
+            const float value = lynx::maths::vector::dot(vertices[i], axis);
             projection.minimum = std::min(projection.minimum, value);
             projection.maximum = std::max(projection.maximum, value);
         }
@@ -117,7 +117,7 @@ namespace ilen::physics {
             const vec2 edge =
                 vertices[(index + 1) % vertices.size()] - vertices[index];
             const float lengthSquared =
-                ilen::maths::vector::dot(edge, edge);
+                lynx::maths::vector::dot(edge, edge);
 
             if(lengthSquared <= edgeEpsilonSquared) {
                 continue;
@@ -156,14 +156,14 @@ namespace ilen::physics {
         float maximumProjection = -std::numeric_limits<float>::max();
 
         for(const vec2& vertex: vertices) {
-            maximumProjection = std::max(maximumProjection, ilen::maths::vector::dot(vertex, direction));
+            maximumProjection = std::max(maximumProjection, lynx::maths::vector::dot(vertex, direction));
         }
 
         vec2 accumulated{0.0f};
         size_t supportCount = 0;
 
         for(const vec2& vertex: vertices) {
-            const float projection = ilen::maths::vector::dot(vertex, direction);
+            const float projection = lynx::maths::vector::dot(vertex, direction);
 
             if(std::abs(projection - maximumProjection) <= supportEpsilon) {
                 accumulated += vertex;
@@ -257,7 +257,7 @@ namespace ilen::physics {
             for(size_t index = 0; index < vertices.size(); ++index) {
                 const vec2 edge =
                     vertices[(index + 1) % vertices.size()] - vertices[index];
-                const float lengthSquared = ilen::maths::vector::dot(edge, edge);
+                const float lengthSquared = lynx::maths::vector::dot(edge, edge);
 
                 if(lengthSquared <= epsilon * epsilon) {
                     continue;
@@ -338,7 +338,7 @@ namespace ilen::physics {
         );
 
         if(
-            ilen::maths::vector::dot(relativeTranslation, relativeTranslation) <=
+            lynx::maths::vector::dot(relativeTranslation, relativeTranslation) <=
                 epsilon * epsilon &&
             angularTravel <= epsilon
         ) {
@@ -399,7 +399,7 @@ namespace ilen::physics {
                 FindMaximumSeparation(poseA, poseB);
 
             const float closingSpeedBound =
-                std::abs(ilen::maths::vector::dot(
+                std::abs(lynx::maths::vector::dot(
                     relativeTranslation,
                     separation.normal
                 )) + angularTravel;
@@ -510,7 +510,7 @@ namespace ilen::physics {
                 separatedAtStart = separatedAtStart || separatedOnAxis;
 
                 const float axisVelocity =
-                    ilen::maths::vector::dot(relativeTranslation, axis);
+                    lynx::maths::vector::dot(relativeTranslation, axis);
 
                 if(std::abs(axisVelocity) <= epsilon) {
                     // No existe movimiento capaz de cerrar este eje separado.
@@ -592,7 +592,7 @@ namespace ilen::physics {
             return std::nullopt;
         }
 
-        /*if(!ilen::maths::aabb::overlapAABB2D(proxyA.bounds, proxyB.bounds)) {
+        /*if(!lynx::maths::aabb::overlapAABB2D(proxyA.bounds, proxyB.bounds)) {
             return std::nullopt;
         }*/
 

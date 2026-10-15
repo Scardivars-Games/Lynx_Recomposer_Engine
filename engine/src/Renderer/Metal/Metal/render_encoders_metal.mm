@@ -4,14 +4,14 @@
 #include <Metal/render_pipelines_metal.h>
 #include <Metal/texture_metal.h>
 #include <Metal/buffers_metal.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/render/render_constants.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/render/render_constants.h>
 #include <Metal/sampler_metal.h>
 
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-namespace ilen::render {
+namespace lynx::render {
     MetalRenderEncoder::MetalRenderEncoder(id<MTLRenderCommandEncoder> encoder) : _commandEncoder(encoder), _indexBuffer(nil), _indexType(MTLIndexTypeUInt32), _primitiveType(MTLPrimitiveTypeTriangle){
         [_commandEncoder retain];
         
@@ -19,7 +19,7 @@ namespace ilen::render {
 
     MetalRenderEncoder::~MetalRenderEncoder(){
         if(_commandEncoder){
-            ILEN_ERROR_P(DEBUG_PREFIX, "Llamado el destructor de un Render Encoder antes del encoding. ¿Mando a finalizar el encoding porque ordeno que el Parallel encoder terminar el trabajo? El endFrame del IRenderer hace automaticamente esto. Si ese no es el caso, el error es desconocido.");
+            LYNX_ERROR_P(DEBUG_PREFIX, "Llamado el destructor de un Render Encoder antes del encoding. ¿Mando a finalizar el encoding porque ordeno que el Parallel encoder terminar el trabajo? El endFrame del IRenderer hace automaticamente esto. Si ese no es el caso, el error es desconocido.");
             [_commandEncoder endEncoding];
             [_commandEncoder release];
         }
@@ -29,7 +29,7 @@ namespace ilen::render {
         MetalRenderPipeline* pipeline = static_cast<MetalRenderPipeline*>(pso);
         
         //Winding
-        if((pipeline->getPSODescriptor().renderPipelineOptionFlags & ILEN_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED) && isCullEnabled){
+        if((pipeline->getPSODescriptor().renderPipelineOptionFlags & LYNX_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED) && isCullEnabled){
             //No puede usar culling
             [_commandEncoder setCullMode:MTLCullModeNone];
             isCullEnabled = false;
@@ -50,14 +50,14 @@ namespace ilen::render {
      }
 
     void MetalRenderEncoder::SetGlobalBuffer(uint32_t slot, IGPUBuffer *buffer){
-        using namespace ilen::render::slots;
+        using namespace lynx::render::slots;
         
         MetalBuffer* nativeBuffer = static_cast<MetalBuffer*>(buffer);
         id<MTLBuffer> metalBuffer = (__bridge id<MTLBuffer>)nativeBuffer->getNativeHandle();
         
         //uint32_t metalSlot = slot + GlobalBufferSlot_Base; //Estaba bonita esta idea, pero no sirve si doy un buffer predefinido (como la cámara). Reescribir la lógica a futuro. De momento, se pasa directamente el slot, y solo se verifica que este en el rango de slots para uniform.
         if(slot < GlobalBufferSlot_Base || slot > UserBufferEnd){
-            ILEN_ERROR_P(DEBUG_PREFIX, "Buffer slot de metal fuera de rango. El valor de slot para un buffer personalizado es entre 7 y 14, valor recibido: %i", slot);
+            LYNX_ERROR_P(DEBUG_PREFIX, "Buffer slot de metal fuera de rango. El valor de slot para un buffer personalizado es entre 7 y 14, valor recibido: %i", slot);
         }
         
         [_commandEncoder setVertexBuffer:metalBuffer offset:0 atIndex:slot];
@@ -78,7 +78,7 @@ namespace ilen::render {
         auto descriptor = nativeBuffer->getDescriptor();
         
         _indexBuffer = metalBuffer;
-        _indexType = MTLIndexTypeUInt32; //Ilen solo use uint32_t para los indices de los IndexedDraw
+        _indexType = MTLIndexTypeUInt32; //Lynx solo use uint32_t para los indices de los IndexedDraw
     }
 
     void MetalRenderEncoder::SetInstancedBuffer(uint32_t slot, IGPUBuffer *buffer){
@@ -103,7 +103,7 @@ void MetalRenderEncoder::SetFragmentSampler(uint32_t slot, IGPUSampler *sampler)
 
     void MetalRenderEncoder::DrawIndexed(uint32_t indexCount){
         if(!_indexBuffer){
-            ILEN_ERROR_P(DEBUG_PREFIX, "Ilen engine necesita un Index Buffer para dibujar!!! Revisar el orden de llamadas para detectar el error.");
+            LYNX_ERROR_P(DEBUG_PREFIX, "Lynx engine necesita un Index Buffer para dibujar!!! Revisar el orden de llamadas para detectar el error.");
             return;
         }
         
@@ -116,7 +116,7 @@ void MetalRenderEncoder::SetFragmentSampler(uint32_t slot, IGPUSampler *sampler)
 
     void MetalRenderEncoder::DrawIndexedInstanced(size_t indexCount, size_t instanceCount, size_t baseInstanceOffset, size_t instanceDataSize){
         if(!_indexBuffer){
-            ILEN_ERROR_P(DEBUG_PREFIX, "Ilen engine necesita un Index Buffer para dibujar!!! Revisar el orden de llamadas para detectar el error.");
+            LYNX_ERROR_P(DEBUG_PREFIX, "Lynx engine necesita un Index Buffer para dibujar!!! Revisar el orden de llamadas para detectar el error.");
             return;
         }
         

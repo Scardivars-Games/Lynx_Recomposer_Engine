@@ -3,7 +3,7 @@
 #if defined (__APPLE__)
 
 #import <Metal/Metal.h>
-#include <ilen/render/gpu_interfaces/parallel_command_encoder.h>
+#include <lynx/render/gpu_interfaces/parallel_command_encoder.h>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -11,12 +11,12 @@
 #include <Metal/render_encoders_metal.h>
 #include <Metal/renderer_metal.h>
 
-namespace ilen::render {
+namespace lynx::render {
     class MetalParallelCommandEncoder final: public IGPUParallelCommandEncoder {
         friend class MetalRender;
 
         public:
-            MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, IlenParallelEncoderDescriptor&& descriptor);
+            MetalParallelCommandEncoder(id<MTLCommandBuffer> buffer, LynxParallelEncoderDescriptor&& descriptor);
             virtual ~MetalParallelCommandEncoder();
             
             void SetGlobalBuffers(uint32_t slot, IGPUBuffer* buffer) override;

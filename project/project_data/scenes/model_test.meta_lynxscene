@@ -1,0 +1,36 @@
+{
+    "entities": [
+        {
+            "components": {
+                "EntityMetadataComponent": {
+                    "activeStatus": true,
+                    "id": 0,
+                    "layers": 2,
+                    "name": "Object 3D",
+                    "tags": 0,
+                    "uuid": 8369883495677194716
+                },
+                "RenderComponent": {
+                    "mainTexID": 14,
+                    "meshID": 17
+                },
+                "ScriptingBridgeComponent": {
+                    "scriptName": "lynx::game::Object3D"
+                },
+                "TransformComponent": {
+                    "position": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scale": [
+                        3.0,
+                        3.0,
+                        3.0
+                    ]
+                }
+            }
+        }
+    ],
+    "scene_name": "ModelTest"
+}

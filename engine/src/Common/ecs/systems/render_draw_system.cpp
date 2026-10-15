@@ -1,16 +1,16 @@
-#include <ilen/render/render_draw_system.h>
-#include <ilen/render/render_constants.h>
-#include <ilen/core/runtime_options.h>
-#include <ilen/transform/transform_component.h>
-#include <ilen/core/engine_context.h>
-#include <ilen/render/renderer.h>
-#include <ilen/render/render_component.h>
-#include <ilen/camera/camera_system.h>
+#include <lynx/render/render_draw_system.h>
+#include <lynx/render/render_constants.h>
+//#include <lynx/core/runtime_options.h>
+#include <lynx/transform/transform_component.h>
+#include <lynx/core/engine_context.h>
+#include <lynx/render/renderer.h>
+#include <lynx/render/render_component.h>
+#include <lynx/camera/camera_system.h>
 
-namespace ilen::ecs::systems {
+namespace lynx::ecs::systems {
 
-    using namespace ilen::maths::matrix;
-    using namespace ilen::ecs::components;
+    using namespace lynx::maths::matrix;
+    using namespace lynx::ecs::components;
 
     void RenderDrawSystem::Init(const EngineContext* engineContext) {
         p_coordinator = engineContext->p_coordinator.get();
@@ -28,7 +28,7 @@ namespace ilen::ecs::systems {
         
         std::unique_ptr<IGPUParallelCommandEncoder> encoder;
         {
-            ilen::time::ScopedTimer timer("Time to get _drawable in Metal");
+            lynx::time::ScopedTimer timer("Time to get _drawable in Metal");
             //Obtener el encoder (paraleliza el trabajo)
             encoder = p_Renderer->getParallelCommandEncoder();
         }
@@ -39,16 +39,16 @@ namespace ilen::ecs::systems {
 
 
         {
-            ilen::time::ScopedTimer timer("Opaque screen rendering");
+            lynx::time::ScopedTimer timer("Opaque screen rendering");
             auto* instanceBuffer = p_Renderer->getInstanceBuffer();
             if (instanceBuffer == nullptr) {
-                ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Renderer devolvio un Instance Buffer incorrecto. La aplicación no puede continuar su ejecución");
+                LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Renderer devolvio un Instance Buffer incorrecto. La aplicación no puede continuar su ejecución");
             }
 
             //Obtener camara activa
             auto activeCamera = p_cameraSystem->getMainCamera();
             if (!activeCamera) {
-                ILEN_WARNING_P(DEBUG_PREFIX, "No se encontró una cámara activa, por lo que no se puede dibujar.");
+                LYNX_WARNING_P(DEBUG_PREFIX, "No se encontró una cámara activa, por lo que no se puede dibujar.");
                 p_Renderer->returnParallelCommandEncoder(std::move(encoder));
                 return; //Sin camara, no puedo dibujar.
             }
@@ -109,7 +109,7 @@ namespace ilen::ecs::systems {
                 size_t chunkSize = (totalEntities + numberOfThreads - 1) / numberOfThreads;
                 size_t numChunks = (totalEntities + chunkSize - 1) / chunkSize; 
 
-                ilen::job_system::JobGroup organizationalGroup;
+                lynx::job_system::JobGroup organizationalGroup;
 
                 std::vector<std::vector<RenderItem>> perThreadRenderItems(numChunks);
 
@@ -176,7 +176,7 @@ namespace ilen::ecs::systems {
             //OLD
             //std::vector<std::future<void>> futures;
 
-            ilen::job_system::JobGroup group;
+            lynx::job_system::JobGroup group;
             
             for (size_t i = 0; i < numChunks; i++) {
                 size_t chunckStart = i * chunkSize;
@@ -246,7 +246,7 @@ namespace ilen::ecs::systems {
 
                         if (totalOfInstance > m_minInstanceRenderingElements) {
                             //Instancing rendering
-                            //ILEN_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
+                            //LYNX_LOG_P(DEBUG_PREFIX, "Doing and instancing rendering dor %i elements", totalOfInstance);
                             /*if (matrixVector.size() < totalOfInstance) {
                                 matrixVector.resize(totalOfInstance);
                             }*/
@@ -269,10 +269,10 @@ namespace ilen::ecs::systems {
                                     finalUV = texLink->atlasSprites[texture->currentSpriteID];
 
                                 }else{
-                                    ILEN_ERROR_P(DEBUG_PREFIX, "Error con la textura %s, el ID %i no existe en el atlas", texLink->texture->getDescriptor().label.c_str(), texture->currentSpriteID);
+                                    LYNX_ERROR_P(DEBUG_PREFIX, "Error con la textura %s, el ID %i no existe en el atlas", texLink->texture->getDescriptor().label.c_str(), texture->currentSpriteID);
                                     finalUV = texLink->atlasSprites[0]; //Por seguridad.
                                 }
-                                //ILEN_LOG_P(DEBUG_PREFIX, "Datos del uv: %s", ilen::maths::vector::to_string(instance.uvRect).c_str());
+                                //LYNX_LOG_P(DEBUG_PREFIX, "Datos del uv: %s", lynx::maths::vector::to_string(instance.uvRect).c_str());
                                 //matrixVector[i] = transform->localToWorldMatrix;
 
                                 //Ajustando flip del sprite.
@@ -301,7 +301,7 @@ namespace ilen::ecs::systems {
 
                             cmd->DrawIndexedInstanced(indexCount, totalOfInstance, offset, sizeof(structs::InstanceData));
                         }else {
-                            //ILEN_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
+                            //LYNX_WARNING_P(DEBUG_PREFIX, "Doing a normal draw using the indexed buffer");
                             //Render en bucle
                             if (!isIntanceBufferSet) {
                                 cmd->SetInstancedBuffer(slots::RenderBufferSlot_InstanceModel, instanceBuffer->GetBuffer());
@@ -324,7 +324,7 @@ namespace ilen::ecs::systems {
                                     //El id de sprite es menor que el tamaño del atlas del sprite. Es un índice válido
                                     finalUV = texLink->atlasSprites[texture->currentSpriteID];
                                 }else{
-                                    ILEN_ERROR_P(DEBUG_PREFIX, "Error con la textura %s, el ID %i no existe en el atlas", texLink->texture->getDescriptor().label.c_str(), texture->currentSpriteID);
+                                    LYNX_ERROR_P(DEBUG_PREFIX, "Error con la textura %s, el ID %i no existe en el atlas", texLink->texture->getDescriptor().label.c_str(), texture->currentSpriteID);
                                     finalUV = texLink->atlasSprites[0]; //Por seguridad.
                                 }
 
@@ -341,8 +341,8 @@ namespace ilen::ecs::systems {
                                 
                                 instance.uvRect = finalUV;
 
-                                //ILEN_LOG_P(DEBUG_PREFIX, "Datos del uv: %s, en textura %s", ilen::maths::vector::to_string(instance.uvRect).c_str(), texLink->texture->getDescriptor().label.c_str());
-                                //ILEN_LOG_P(DEBUG_PREFIX, "Tamaño del struct %i", sizeof(structs::InstanceData));
+                                //LYNX_LOG_P(DEBUG_PREFIX, "Datos del uv: %s, en textura %s", lynx::maths::vector::to_string(instance.uvRect).c_str(), texLink->texture->getDescriptor().label.c_str());
+                                //LYNX_LOG_P(DEBUG_PREFIX, "Tamaño del struct %i", sizeof(structs::InstanceData));
 
                                 uint32_t offset = instanceBuffer->UploadInstanceData(&instance, sizeof(structs::InstanceData));
                                 auto indexCount = meshPtr->indexCount;
@@ -387,7 +387,7 @@ namespace ilen::ecs::systems {
         // Queue (8 bits): Siempre a la izquierda para separar los esquemas de dibujado
         finalKey |= (static_cast<uint64_t>(queue) & 0xFF) << 56; 
 
-        if (queue <= ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_ALPHA_TEST) {
+        if (queue <= LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_ALPHA_TEST) {
             // ---------------------------------------------------------------------
             // OBJETOS OPACOS
             // Ordenados por costo de hardware: PSO > Textura > Material > Mesh

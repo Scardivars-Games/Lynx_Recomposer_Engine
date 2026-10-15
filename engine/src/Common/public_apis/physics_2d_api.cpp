@@ -1,14 +1,14 @@
-#include <ilen_public/API/physics_2d_api.h>
-#include "ilen/core/runtime_options.h"
-#include "ilen/physics/components/specification/rigidbody_components.h"
+#include <lynx_public/API/physics_2d_api.h>
+#include <lynx/physics/components/specification/rigidbody_components.h>
 
-using namespace ilen::engine::api;
-using namespace ilen::ecs;
-using namespace ilen::ecs::components;
-using namespace ilen::ecs::components::physics;
+using namespace lynx::engine::api;
+using namespace lynx::ecs;
+using namespace lynx::ecs::components;
+using namespace lynx::ecs::components::physics;
 
-void PhysicsAPI::Init(const ilen::EngineContext* context){
+void PhysicsAPI::Init(const lynx::EngineContext* context){
     p_coordinator = context->p_coordinator.get();
+    p_runtimeOptions = context->runtimeConfiguration.get();
 
     size_t numThreads = context->p_jobSystem->AvailableThreads();
     s_threadAccumulators.resize(numThreads + 1);
@@ -16,8 +16,8 @@ void PhysicsAPI::Init(const ilen::EngineContext* context){
     p_coordinator->registerComponent<components::physics::PhysicsOrder>();
 
     for (auto& ta : s_threadAccumulators) {
-        ta.orders.resize(ilen::ecs::MAX_ENTITIES);           // pre-alocado
-        ta.touched.reserve(ilen::ecs::MAX_ENTITIES / numThreads + 1024);
+        ta.orders.resize(p_runtimeOptions->ecs.initialEntityCapacity);           // pre-alocado
+        ta.touched.reserve(p_runtimeOptions->ecs.initialEntityCapacity / numThreads + 1024);
     }
 }
 
@@ -166,7 +166,7 @@ void PhysicsAPI::ChangeObjectGravity(Entity entity, float newMultiplier) {
 }
 
 void PhysicsAPI::ChangeGlobalGravity(float newGravityValue) {
-    ilen::core::options::PhysicsOptions::gravity = newGravityValue;
+    p_runtimeOptions->physics.gravity = newGravityValue;
 }
 
 void PhysicsAPI::ChangeObjectMass(Entity entity, float newMass, bool additive) {
@@ -241,8 +241,8 @@ void PhysicsAPI::ExecuteAllAccumulatedForces() {
 
     std::vector<Entity> registeredEntities;
     std::vector<PhysicsOrder> accumulatedOrders;
-    registeredEntities.reserve(ilen::ecs::MAX_ENTITIES);
-    accumulatedOrders.reserve(ilen::ecs::MAX_ENTITIES);
+    registeredEntities.reserve(p_runtimeOptions->ecs.initialEntityCapacity);
+    accumulatedOrders.reserve(p_runtimeOptions->ecs.initialEntityCapacity);
 
 
     for (auto& ta : s_threadAccumulators) {

@@ -1,12 +1,12 @@
-#if defined (__APPLE__) && ILEN_TVOS
+#if defined (__APPLE__) && LYNX_TVOS
 #include <window/window_tvos.h>
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
-#include <ilen/headers/core.h>
+#include <lynx/headers/core.h>
 #include <input/apple_controllers.h>
 
 @interface IlenViewTV : UIView
-@property (nonatomic, assign) ilen::window::WindowNativeTVOS* owner;
+@property (nonatomic, assign) lynx::window::WindowNativeTVOS* owner;
 @end
 
 @implementation IlenViewTV
@@ -41,7 +41,7 @@
         // Sincronizar el tamaño del buffer de Metal
         metalLayer.drawableSize = CGSizeMake(newWidth, newHeight);
         
-        if(newWidth != ilen::window::IWindow::getWidth() || newHeight != ilen::window::IWindow::getHeight()) {
+        if(newWidth != lynx::window::IWindow::getWidth() || newHeight != lynx::window::IWindow::getHeight()) {
             self.owner->actualWidth = newWidth;
             self.owner->actualHeight = newHeight;
             self.owner->_windowChanged.store(true);
@@ -50,9 +50,9 @@
 }
 @end
 
-namespace ilen::window {
+namespace lynx::window {
     
-    std::unique_ptr<IWindow> IWindow::CreateWindow(const ilen::application::ApplicationMetadata& metadata) {
+    std::unique_ptr<IWindow> IWindow::CreateWindow(const lynx::application::ApplicationMetadata& metadata) {
         auto native = std::make_unique<WindowNativeTVOS>(metadata);
         
         s_width = native->actualWidth;
@@ -61,7 +61,7 @@ namespace ilen::window {
         return std::make_unique<IWindow>(std::move(native));
     }
 
-    WindowNativeTVOS::WindowNativeTVOS(const ilen::application::ApplicationMetadata& metadata) {
+    WindowNativeTVOS::WindowNativeTVOS(const lynx::application::ApplicationMetadata& metadata) {
         actualWidth = 0;
         actualHeight = 0;
         _windowChanged.store(false);
@@ -74,16 +74,16 @@ namespace ilen::window {
         CGFloat screenScale = mainScreen.nativeScale;
         CGRect frame = mainScreen.bounds;
         
-        IlenViewTV* ilenView = [[IlenViewTV alloc] initWithFrame:frame];
-        ilenView.layer.contentsScale = screenScale;
-        ilenView.owner = this;
+        IlenViewTV* lynxView = [[IlenViewTV alloc] initWithFrame:frame];
+        lynxView.layer.contentsScale = screenScale;
+        lynxView.owner = this;
         
-        nativeView = ilenView;
+        nativeView = lynxView;
         
         // Importante en tvOS para que la vista llene siempre la pantalla
         nativeView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         
-        ((CAMetalLayer *)ilenView.layer).drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
+        ((CAMetalLayer *)lynxView.layer).drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
         
         rootViewController = [[UIViewController alloc] init];
         rootViewController.view = nativeView;
@@ -92,7 +92,7 @@ namespace ilen::window {
         // makeKeyAndVisible es vital en tvOS para el sistema de Focus
         [nativeWindow makeKeyAndVisible];
         
-        CGSize initialPixelSize = ((CAMetalLayer *)ilenView.layer).drawableSize;
+        CGSize initialPixelSize = ((CAMetalLayer *)lynxView.layer).drawableSize;
         actualWidth = (uint32_t)initialPixelSize.width;
         actualHeight = (uint32_t)initialPixelSize.height;
         _windowChanged.store(true);

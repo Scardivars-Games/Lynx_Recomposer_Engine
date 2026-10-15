@@ -1,13 +1,13 @@
-#if defined (__APPLE__) && ILEN_IOS
+#if defined (__APPLE__) && LYNX_IOS
 #include <window/window_ios.h>
 #import <UIKit/UIKit.h>
 #import <QuartzCore/QuartzCore.h>
-#include <ilen/headers/core.h>
-#include <ilen/input/input_buffer.h>
+#include <lynx/headers/core.h>
+#include <lynx/input/input_buffer.h>
 #include <input/apple_controllers.h>
 
 @interface IlenView : UIView
-@property (nonatomic, assign) ilen::window::WindowNativeIOS* owner;
+@property (nonatomic, assign) lynx::window::WindowNativeIOS* owner;
 @end
 
 @implementation IlenView
@@ -38,7 +38,7 @@
         uint32_t newHeight = (uint32_t)(size.height * scale);
         // Keep CAMetalLayer's drawableSize in sync as well
         metalLayer.drawableSize = CGSizeMake(newWidth, newHeight);
-        if(newWidth != ilen::window::IWindow::getWidth() || newHeight != ilen::window::IWindow::getHeight()){
+        if(newWidth != lynx::window::IWindow::getWidth() || newHeight != lynx::window::IWindow::getHeight()){
             self.owner->actualWidth = newWidth;
             self.owner->actualHeight = newHeight;
             self.owner->_windowChanged.store(true);
@@ -48,7 +48,7 @@
 
 //Capturar cuando un dedo toca la pantalla
 -(void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
-    auto& input =ilen::input::InputBuffer::Get();
+    auto& input =lynx::input::InputBuffer::Get();
     
     for(UITouch *touch in touches) {
         int slot = input.GetFreePointerSlot();
@@ -59,7 +59,7 @@
             auto& ptr = input.GetPointer(slot);
             ptr.isDown = true;
             ptr.previousIsDown = false;
-            ptr.type = ilen::input::PointerType::Touch;
+            ptr.type = lynx::input::PointerType::Touch;
             
             CGPoint loc = [touch locationInView:self];
             float scale = self.contentScaleFactor;
@@ -73,7 +73,7 @@
 }
 
 -(void)touchesMoved:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event{
-    auto& input = ilen::input::InputBuffer::Get();
+    auto& input = lynx::input::InputBuffer::Get();
     
     for(UITouch *touch in touches) {
         if(input.PointerSlotIsActive((uintptr_t)touch)) {
@@ -90,7 +90,7 @@
 }
 
 -(void)touchesEnded:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    auto& input = ilen::input::InputBuffer::Get();
+    auto& input = lynx::input::InputBuffer::Get();
     
     for(UITouch *touch in touches) {
         if(input.PointerSlotIsActive((uintptr_t)touch)){
@@ -120,8 +120,8 @@
 }
 @end
 
-namespace ilen::window{
-    std::unique_ptr<IWindow> IWindow::CreateWindow(const ilen::application::ApplicationMetadata& metadata){
+namespace lynx::window{
+    std::unique_ptr<IWindow> IWindow::CreateWindow(const lynx::application::ApplicationMetadata& metadata){
         auto native = std::make_unique<WindowNativeIOS>(metadata);
         
         s_width = native->actualWidth;
@@ -131,7 +131,7 @@ namespace ilen::window{
     }
 
 
-    WindowNativeIOS::WindowNativeIOS(const ilen::application::ApplicationMetadata& metadata){
+    WindowNativeIOS::WindowNativeIOS(const lynx::application::ApplicationMetadata& metadata){
         actualWidth = 0;
         actualHeight = 0;
         _windowChanged.store(false);
@@ -142,23 +142,23 @@ namespace ilen::window{
         
         /*
         CGRect frame = [[UIScreen mainScreen] bounds];
-        IlenMTKView* ilenView = [[IlenMTKView alloc] initWithFrame:frame];
-        ilenView.owner = this;*/
+        IlenMTKView* lynxView = [[IlenMTKView alloc] initWithFrame:frame];
+        lynxView.owner = this;*/
         
         UIScreen *mainScreen = [UIScreen mainScreen];
         CGFloat screenScale = mainScreen.nativeScale;
         CGRect frame = mainScreen.bounds;
         
-        //IlenMTKView* ilenView = [[IlenMTKView alloc] initWithFrame:frame];
-        IlenView* ilenView = [[IlenView alloc] initWithFrame:frame];
-        ilenView.layer.contentsScale = screenScale;
-        ilenView.owner = this;
+        //IlenMTKView* lynxView = [[IlenMTKView alloc] initWithFrame:frame];
+        IlenView* lynxView = [[IlenView alloc] initWithFrame:frame];
+        lynxView.layer.contentsScale = screenScale;
+        lynxView.owner = this;
         
-        nativeView = ilenView;
+        nativeView = lynxView;
         
         nativeView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
         
-        ((CAMetalLayer *)ilenView.layer).drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
+        ((CAMetalLayer *)lynxView.layer).drawableSize = CGSizeMake(frame.size.width * screenScale, frame.size.height * screenScale);
         
         //rootViewController = [[UIViewController alloc] init];
         //rootViewController.view = nativeView;
@@ -171,7 +171,7 @@ namespace ilen::window{
         nativeWindow.rootViewController = rootViewController;
         [nativeWindow makeKeyAndVisible];
 
-        CGSize initialPixelSize = ((CAMetalLayer *)ilenView.layer).drawableSize;
+        CGSize initialPixelSize = ((CAMetalLayer *)lynxView.layer).drawableSize;
         actualWidth = (uint32_t)initialPixelSize.width;
         actualHeight = (uint32_t)initialPixelSize.height;
         _windowChanged.store(true); //Para que en el primer frame actualiz
@@ -199,7 +199,7 @@ namespace ilen::window{
 
 /*
 GameWindow::GameWindow(void* metadata){
-    auto* meta = (ilen::application::ApplicationMetadata*)metadata;
+    auto* meta = (lynx::application::ApplicationMetadata*)metadata;
     
     s_pNative = new WindowNative_iOS(meta->iOSUIWindow);
 }*/

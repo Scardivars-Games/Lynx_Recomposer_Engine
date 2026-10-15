@@ -1,15 +1,17 @@
+#include "lynx/core/runtime_configuration.h"
 #if defined (__APPLE__)
 #pragma once
 
-#include <ilen/render/renderer.h>
+#include <lynx/render/renderer.h>
 #include <memory>
-#include <ilen/render/gpu_interfaces/parallel_command_encoder.h>
+#include <lynx/render/gpu_interfaces/parallel_command_encoder.h>
 #include <Metal_Common/common_structures_metal.h>
 #include <dispatch/dispatch.h>
+#include <lynx/core/runtime_configuration.h>
 
-#if defined ILEN_MACOS
+#if defined LYNX_MACOS
 #import <Cocoa/Cocoa.h>
-#elif defined ILEN_IOS || ILEN_TVOS
+#elif defined LYNX_IOS || LYNX_TVOS
 #import <UIKit/UIKit.h>
 #endif
 
@@ -23,15 +25,15 @@
 @protocol CAMetalDrawable;
 @protocol MTLTexture;
 
-namespace ilen::render {
+namespace lynx::render {
     class MetalRender final: public IRenderer {
         public:
             id<MTLDevice> _device;
             id<MTLCommandQueue> _commandQueue;
-            id<MTLLibrary> _ilenMetalLibrary;
-#ifdef ILEN_MACOS
+            id<MTLLibrary> _lynxMetalLibrary;
+#ifdef LYNX_MACOS
             NSView* _metalView;
-#elif defined ILEN_IOS || ILEN_TVOS
+#elif defined LYNX_IOS || LYNX_TVOS
             UIView* _metalView;
 #endif
             CAMetalLayer* _metalLayer;
@@ -49,15 +51,15 @@ namespace ilen::render {
         
             bool acquireDrawable();
 
-            std::shared_ptr<IGPUBuffer> createBuffer(const IlenBufferDescriptor& descriptor, const void* data = nullptr) override;
+            std::shared_ptr<IGPUBuffer> createBuffer(const LynxBufferDescriptor& descriptor, const void* data = nullptr) override;
             std::unique_ptr<IGPUInstanceBuffer> createInstanceBuffer(size_t bufferSize, std::string bufferName) override;
-            std::shared_ptr<IShader> createShader(const ilen::graphics::IlenShader& shaderDescriptor) override;
-            std::shared_ptr<IGPURenderPipeline> createRenderPipeline(const ilen::render::IlenRenderPipelineDescriptor& pipelineDescriptor, ilen::resources::shaders::ShaderManager* shaderManager) override;
+            std::shared_ptr<IShader> createShader(const lynx::graphics::LynxShader& shaderDescriptor) override;
+            std::shared_ptr<IGPURenderPipeline> createRenderPipeline(const lynx::render::LynxRenderPipelineDescriptor& pipelineDescriptor, lynx::resources::shaders::ShaderManager* shaderManager) override;
             std::unique_ptr<IGPUParallelCommandEncoder> getParallelCommandEncoder() override;
-            std::unique_ptr<IGPUParallelCommandEncoder> createNewParallelCommandEncoder(IlenParallelEncoderDescriptor&& descriptor) override;
-            std::unique_ptr<IGPUTexture> createNewPlatformTexture(const IlenGPUTextureDescriptor& descriptor) override;
-            std::shared_ptr<IGPUTexture> createTexture(const IlenGPUTextureDescriptor& descriptor, const void* initialData = nullptr) override;
-            std::shared_ptr<IGPUSampler> createSampler(const IlenGPUSamplerDescriptor& descriptor) override;
+            std::unique_ptr<IGPUParallelCommandEncoder> createNewParallelCommandEncoder(LynxParallelEncoderDescriptor&& descriptor) override;
+            std::unique_ptr<IGPUTexture> createNewPlatformTexture(const LynxGPUTextureDescriptor& descriptor) override;
+            std::shared_ptr<IGPUTexture> createTexture(const LynxGPUTextureDescriptor& descriptor, const void* initialData = nullptr) override;
+            std::shared_ptr<IGPUSampler> createSampler(const LynxGPUSamplerDescriptor& descriptor) override;
 
             IGPUTexture* getDrawableTexturePtr() override;
             std::vector<IGPUTexture*> getAllSceneTexturesPtr() override;
@@ -82,9 +84,11 @@ namespace ilen::render {
             void generateFrameTextures();
         
             //MTLClearColor _renderingClearColor;
-            ilen::render::utils::metal::MetalViewPredefinedValues _predefinedValues;
+            lynx::render::utils::metal::MetalViewPredefinedValues _predefinedValues;
 
             bool _drawableAcquired;
+
+            core::RuntimeConfiguration* p_runtimeConfiguration;
     };
 }
 

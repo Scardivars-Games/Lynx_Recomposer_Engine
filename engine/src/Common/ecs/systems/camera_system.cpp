@@ -1,15 +1,15 @@
-#include <ilen/camera/camera_system.h>
-#include <ilen/transform/transform_system.h>
-#include <ilen/camera/camera_components.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/core/engine_context.h>
-#include <ilen/render/render_constants.h>
-#include <ilen/render/renderer.h>
-#include <ilen/window/window.h>
+#include <lynx/camera/camera_system.h>
+#include <lynx/transform/transform_system.h>
+#include <lynx/camera/camera_components.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/core/engine_context.h>
+#include <lynx/render/render_constants.h>
+#include <lynx/render/renderer.h>
+#include <lynx/window/window.h>
 
 
-namespace ilen::ecs::systems {
-    using namespace ilen::ecs::components;
+namespace lynx::ecs::systems {
+    using namespace lynx::ecs::components;
 
     void CameraSystem::Init(const EngineContext* engineContext) {
         p_coordinator = engineContext->p_coordinator.get();
@@ -39,12 +39,12 @@ namespace ilen::ecs::systems {
             return !entities.contains(entry.first);
         });
         {
-            ilen::time::ScopedTimer timer("Camera system update");
+            lynx::time::ScopedTimer timer("Camera system update");
 
-            auto actualGraphicsAPI = ilen::render::IRenderer::getActualGraphicsAPI();
+            auto actualGraphicsAPI = lynx::render::IRenderer::getActualGraphicsAPI();
             
-            auto viewportHeight = ilen::window::IWindow::getHeight();
-            auto viewportWidth = ilen::window::IWindow::getWidth();
+            auto viewportHeight = lynx::window::IWindow::getHeight();
+            auto viewportWidth = lynx::window::IWindow::getWidth();
             if (viewportHeight == 0|| viewportWidth == 0) {
                 return; //Si el tamaño de la ventana es 0, no se puede hacer ningún calculo para la cámara.
             }
@@ -66,7 +66,7 @@ namespace ilen::ecs::systems {
                 if (cameraComponent->isPrimary == true) {
                     m_mainCamera = cameraComponent;
                 }
-                //ILEN_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
+                //LYNX_LOG_P("A", matrix::to_string(transformComponent->getWorldMatrix()).c_str());
                 //Esto es temporal, a futuro habra un sistema de cámara especiales que hara esta chamba, ejecutandose antes del transform system, para que no se tenga que recalcular la matriz
                 /*if(cameraComponent->toFollowEntity != NULL_ENTITY) {
                     //Necesita seguir a un objeto
@@ -89,9 +89,9 @@ namespace ilen::ecs::systems {
                 }*/
 
                 cameraComponent->viewMatrix = matrix::inverse(transformComponent->localToWorldMatrix);
-                //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewMatrix).c_str());
+                //LYNX_LOG_P("A", matrix::to_string(cameraComponent->viewMatrix).c_str());
 
-                if (cameraComponent->projectionType == ILEN_CAMERA_PROJECTION_TYPE::ILEN_CAMERA_PROJECTION_PERSPECTIVE) {
+                if (cameraComponent->projectionType == LYNX_CAMERA_PROJECTION_TYPE::LYNX_CAMERA_PROJECTION_PERSPECTIVE) {
                     cameraComponent->projectionMatrix = matrix::perspective(Degrees(cameraComponent->fovDegrees), aspectRatio, cameraComponent->nearClip, cameraComponent->farClip, actualGraphicsAPI);
                 }else {
                     float halfWidth = (cameraComponent->orthoSize * aspectRatio) * 0.5f;
@@ -103,7 +103,7 @@ namespace ilen::ecs::systems {
                 auto viewProjectionMatrix = cameraComponent->projectionMatrix * cameraComponent->viewMatrix;
                 auto previousProjectionMatrix = cameraComponent->viewProjectionMatrix;
                 cameraComponent->viewProjectionMatrix = viewProjectionMatrix;
-                //ILEN_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
+                //LYNX_LOG_P("A", matrix::to_string(cameraComponent->viewProjectionMatrix).c_str());
 
                 // PreRender solo prepara CPU: la GPU puede seguir leyendo el frame anterior.
                 auto& cameraData = m_frameData[entity].data;
@@ -123,10 +123,10 @@ namespace ilen::ecs::systems {
             if (state.buffers.empty()) {
                 state.buffers.resize(frameCount);
                 for (size_t slot = 0; slot < frameCount; ++slot) {
-                    render::IlenBufferDescriptor descriptor{};
+                    render::LynxBufferDescriptor descriptor{};
                     descriptor.bufferLabelName = "Camera " + std::to_string(entity) + " frame " + std::to_string(slot);
                     descriptor.bufferSize = sizeof(render::structs::CameraData);
-                    descriptor.bufferType = ILEN_RENDER_GPU_BUFFER_UNIFORM;
+                    descriptor.bufferType = LYNX_RENDER_GPU_BUFFER_UNIFORM;
                     descriptor.count = 1;
                     state.buffers[slot] = p_Renderer->createBuffer(descriptor, nullptr);
                 }

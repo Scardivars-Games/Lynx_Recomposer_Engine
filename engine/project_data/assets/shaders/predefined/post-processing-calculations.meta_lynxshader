@@ -1,0 +1,5 @@
+{
+    "shader-file-name": "post_processing_calculations",
+    "shader-dir" : "predefined/post_processing_calculations",
+    "shader-name" : "Post Process Shader - Calculations"
+}

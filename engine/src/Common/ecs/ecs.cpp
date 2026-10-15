@@ -1,14 +1,19 @@
-#include <ilen/headers/ecs.h>
-#ifdef ILEN_DEBUG
+#include <lynx/headers/ecs.h>
+#ifdef LYNX_DEBUG
 #include <sstream>
 #endif
 
-using namespace ilen::ecs;
+using namespace lynx::ecs;
 
 //Coordinator
-void ECSCoordinator::init(const ilen::EngineContext* engineContext) {
-    entityManager = std::make_unique<EntityManager>();
-    componentManager = std::make_unique<ComponentManager>();
+void ECSCoordinator::init(const lynx::EngineContext* engineContext) {
+    const Entity maxEntities = engineContext->runtimeConfiguration->ecs.initialEntityCapacity;
+
+    if(maxEntities == 0)
+        LYNX_EXECUTE_ERROR_P("ECS_CORE", "No se puede ejecutar un juego con un tamaño máximo de 0 entidades. Revise las opciones del proyecto, ajuste el valor y recompile el juego. En caso contrario, contacte al desarrollador por soporte.");
+    
+    entityManager = std::make_unique<EntityManager>(maxEntities);
+    componentManager = std::make_unique<ComponentManager>(maxEntities);
     systemManager = std::make_unique<SystemManager>();
 
     p_commandDispatcher = engineContext->p_commandDispatcher.get();
@@ -42,7 +47,7 @@ Entity ECSCoordinator::getEntityByName(std::string name){
         return m_nameToEntityMap[name];
     }
 
-    ILEN_ERROR_P("ENTITY_API", "No existe una entidad con el nombre %s en la escena actual del motor", name.c_str());
+    LYNX_ERROR_P("ENTITY_API", "No existe una entidad con el nombre %s en la escena actual del motor", name.c_str());
     return NULL_ENTITY;
 }
 
@@ -53,46 +58,54 @@ void ECSCoordinator::destroyEntity(Entity entity){
 }
 
 //Entity Manager
-EntityManager::EntityManager() {
-    //Rellenar toda la cola con todos los posibles IDs
-    for(Entity entity = 0; entity < MAX_ENTITIES; ++entity) {
-        avalaiblesEntities.push(entity);
+EntityManager::EntityManager(Entity maxEntities) : m_maxEntities(maxEntities), m_signatures(maxEntities) {
+    if(m_maxEntities == 0) {
+        LYNX_EXECUTE_ERROR_P("ECS_CORE", "No se puede ejecutar un juego con un tamaño máximo de 0 entidades. Revise las opciones del proyecto, ajuste el valor y recompile el juego. En caso contrario, contacte al desarrollador por soporte.");
+    }
+
+    for(Entity entity = 0;entity < m_maxEntities; entity++) {
+        m_avalaiblesEntities.push(entity);
+    }
+}
+
+void EntityManager::validateEntity(Entity entity) const {
+    if(entity >= m_maxEntities) {
+        LYNX_EXECUTE_ERROR_P("ECS_CORE","Entidad con ID %u mayor que el ID máximo: %u", entity, m_maxEntities);
     }
 }
 
 Entity EntityManager::createEntity(){
-    if (livingEntitiesCount > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Demasiadas entidades en el sistema");
+    if (m_livingEntitiesCount >= m_maxEntities) LYNX_EXECUTE_ERROR_P("ECS_CORE", "Demasiadas entidades en el sistema");
 
-    Entity id = avalaiblesEntities.front();
-    avalaiblesEntities.pop();
-    livingEntitiesCount++;
-#ifdef ILEN_DEBUG
-    liveEntities.insert(id);
+    const Entity id = m_avalaiblesEntities.front();
+    m_avalaiblesEntities.pop();
+    m_livingEntitiesCount++;
+#ifdef LYNX_DEBUG
+    m_liveEntities.insert(id);
 #endif
     return id;
 }
 
 void EntityManager::destroyEntity(Entity entity) {
-    if (entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Entidad fuera del rango");
+    validateEntity(entity);
 
-    signatures[entity].reset();
-    avalaiblesEntities.push(entity);
-    livingEntitiesCount--;
-#ifdef ILEN_DEBUG
-    liveEntities.erase(entity);
+    m_signatures[entity].reset();
+    m_avalaiblesEntities.push(entity);
+    m_livingEntitiesCount--;
+#ifdef LYNX_DEBUG
+    m_liveEntities.erase(entity);
 #endif
 }
 
 void EntityManager::setSignature(Entity entity, Signature signature){
-    if (entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Entidad fuera del rango");
+    validateEntity(entity);
 
-    signatures[entity] = signature;
+    m_signatures[entity] = signature;
 }
 
 Signature EntityManager::getSignature(Entity entity){
-    if (entity > MAX_ENTITIES) ILEN_EXECUTE_ERROR_P("ECS_CORE", "Entidad fuera del rango");
-
-    return signatures[entity];
+    validateEntity(entity);
+    return m_signatures[entity];
 }
 
 //ComponentManager
@@ -151,7 +164,7 @@ std::vector<std::shared_ptr<ISystem>> SystemManager::getSystemByPhase(SystemPhas
     return result;
 }
 
-void ECSCoordinator::UpdateEntityName(ilen::ecs::Entity entity, const std::string& oldName, const std::string& newName){
+void ECSCoordinator::UpdateEntityName(lynx::ecs::Entity entity, const std::string& oldName, const std::string& newName){
     if(oldName == newName) return;
 
     auto it = m_nameToEntityMap.find(oldName);
@@ -168,8 +181,8 @@ void ECSCoordinator::UpdateEntityName(ilen::ecs::Entity entity, const std::strin
 
 
 //debug
-#ifdef ILEN_DEBUG
-using namespace ilen::ecs::debug;
+#ifdef LYNX_DEBUG
+using namespace lynx::ecs::debug;
 std::string EntityDebugInfo::toString() const {
     std::ostringstream ss;
     ss << "[Entity "<< id << "] name='" << name << "'"

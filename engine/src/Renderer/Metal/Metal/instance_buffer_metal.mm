@@ -1,12 +1,12 @@
 #if defined (__APPLE__)
 #include <Metal/instance_buffer_metal.h>
-#include <ilen/headers/ilen_logs.h>
+#include <lynx/headers/lynx_logs.h>
 #import <Metal/Metal.h>
 
-namespace ilen::render {
+namespace lynx::render {
     MetalInstanceBuffer::MetalInstanceBuffer(id<MTLDevice> device, size_t bufferSize, const std::string& bufferName) : _currentOffset(0), _totalSize(bufferSize){
-        IlenBufferDescriptor descriptor;
-        descriptor.bufferType = enumerations::ILEN_RENDER_GPU_BUFFER_TYPE::ILEN_RENDER_GPU_BUFFER_UNIFORM;
+        LynxBufferDescriptor descriptor;
+        descriptor.bufferType = enumerations::LYNX_RENDER_GPU_BUFFER_TYPE::LYNX_RENDER_GPU_BUFFER_UNIFORM;
         descriptor.bufferSize = bufferSize;
         descriptor.bufferLabelName = bufferName;
         
@@ -28,7 +28,7 @@ namespace ilen::render {
         
         const size_t offset = _currentOffset.fetch_add(alignedSize, std::memory_order_relaxed);
         if(offset + alignedSize > _totalSize){
-            ILEN_ERROR_P(DEBUG_PREFIX, "Instance buffer sobrepasado. Favor de aumentar el tamaño en las opciones del motor, o actualizar la lógica de renderizado");
+            LYNX_ERROR_P(DEBUG_PREFIX, "Instance buffer sobrepasado. Favor de aumentar el tamaño en las opciones del motor, o actualizar la lógica de renderizado");
             return static_cast<uint32_t>(offset);
         }
         

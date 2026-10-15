@@ -1,30 +1,40 @@
-#include <ilen/resources/scene_manager.h>
-#include <ilen/headers/ecs_components.h>
-#include <ilen/core/filemanager.h>
-#include <manifests/generated_serializers.inl>
+#include <lynx/resources/scene_manager.h>
+#include <lynx/headers/ecs_components.h>
+#include <lynx/core/filemanager.h>
+//#include <manifests/generated_serializers.inl>
 #include <fstream>
 #include <algorithm>
 #include <thread>
 #include <stdexcept>
 #include <unordered_set>
+#include <lynx/core/application.h>
+#include <utility>
 
-using namespace ilen::resources::scene;
+using namespace lynx::resources::scene;
 
 SceneManager::SceneManager(EngineContext* context) : p_context(context) {
     LoadManifest();
-    AutoRegisterDeserializers(this, p_context);
+    //AutoRegisterDeserializers(this, p_context);
+}
+
+void SceneManager::RegisterDeserializer(std::uint32_t componentHash, DeserializationCallback callback) {
+    if(!callback) {
+        LYNX_EXECUTE_ERROR_P("SCENE_MANAGER", "No se puede registrar un deserializador vacío. ENGINE ERROR");
+    }
+
+    m_deserializers.insert_or_assign(componentHash, std::move(callback));
 }
 
 void SceneManager::LoadManifest() {
-    auto sceneManifestPath = ilen::core::FileManager::fileRoute("scenes.ilenmanifest", ILEN_FILE_TYPE::ILEN_FILE_TYPE_ASSETS_MANIFEST);
+    auto sceneManifestPath = lynx::core::FileManager::fileRoute("scenes.lynxmanifest", LYNX_FILE_TYPE::LYNX_FILE_TYPE_ASSETS_MANIFEST);
 
     std::ifstream file(sceneManifestPath, std::ios::binary);
     if(!file.is_open()){
-        ILEN_WARNING_P(DEBUG_PREFIX, "No se logro encontrar un manifiesto de escenas");
+        LYNX_WARNING_P(DEBUG_PREFIX, "No se logro encontrar un manifiesto de escenas");
         return;
     }
 
-    ilen::binary::headers::IlenManifestHeader header{};
+    lynx::binary::headers::LynxManifestHeader header{};
     file.read(reinterpret_cast<char*>(&header), sizeof(header));
 
     std::vector<std::string> orderedName(header.totalOfNamesToID);
@@ -71,9 +81,9 @@ SceneManager::ParsedScene SceneManager::ReadSceneFile(const std::string& path) {
         if (bytes && !file.read(static_cast<char*>(destination), bytes)) throw std::runtime_error("Error leyendo escena: " + path);
         remaining -= static_cast<std::streamoff>(bytes);
     };
-    ilen::binary::headers::IlenSceneHeader header{};
+    lynx::binary::headers::LynxSceneHeader header{};
     read(&header, sizeof(header));
-    if (std::string_view(header.magicNumber, 10) != "ENECS_NELI" || header.version != 1 || header.totalEntities > MAX_ENTITIES)
+    if (std::string_view(header.magicNumber, 10) != "ENECS_NELI" || header.version != 1 || header.totalEntities > application::Application::getEngineContext()->runtimeConfiguration->ecs.initialEntityCapacity)
         throw std::runtime_error("Cabecera de escena inválida: " + path);
     ParsedScene scene;
     scene.uuids.resize(header.totalEntities);
@@ -123,7 +133,7 @@ std::vector<Entity> SceneManager::ParseSceneFile(const std::string& path) {
         auto scene = ReadSceneFile(path);
         return InstantiateScene(scene);
     } catch (const std::exception& error) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "Error cargando prefab: %s", error.what());
+        LYNX_ERROR_P(DEBUG_PREFIX, "Error cargando prefab: %s", error.what());
         return {};
     }
 }
@@ -136,8 +146,8 @@ void SceneManager::DontDestroyOnLoad(Entity entity){
 }
 
 void SceneManager::LoadScene(SceneID id, LoadSceneMode mode) {
-    if (!ilen::core::threading::t_IsMainThread) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "LoadScene síncrono requiere el hilo principal; use LoadSceneAsync");
+    if (!lynx::core::threading::t_IsMainThread) {
+        LYNX_ERROR_P(DEBUG_PREFIX, "LoadScene síncrono requiere el hilo principal; use LoadSceneAsync");
         return;
     }
     AsyncOperationPtr op = LoadSceneAsync(id, mode);
@@ -146,26 +156,26 @@ void SceneManager::LoadScene(SceneID id, LoadSceneMode mode) {
     while (!op->isDone())
     {
         //Al no ser una carga asyncrona, bloqueamos este hilo hasta cargar los datos
-        Update(ilen::time::Time::getDeltaTime());
+        Update(lynx::time::Time::getDeltaTime());
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
 AsyncOperationPtr SceneManager::LoadSceneAsync(SceneID id, LoadSceneMode mode) {
     if(!m_idToPath.contains(id)) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "ID de escena no encontrado: %u", id);
+        LYNX_ERROR_P(DEBUG_PREFIX, "ID de escena no encontrado: %u", id);
         return nullptr;
     }
 
     if(id == 0) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "ID 0 es exclusivo de un prefab. Use la función LoadPrefab para cargar un prefab desde la función interna, o desde EntityAPI::LoadPrefab si estas en la API pública");
+        LYNX_ERROR_P(DEBUG_PREFIX, "ID 0 es exclusivo de un prefab. Use la función LoadPrefab para cargar un prefab desde la función interna, o desde EntityAPI::LoadPrefab si estas en la API pública");
         return nullptr;
     }
 
     auto operation = std::make_shared<AsyncOperation>();
     operation->phase = AsyncLoadingPhase::ReadingDisk;
-    if (!ilen::core::threading::t_IsMainThread) {
-        p_context->p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex).push(
+    if (!lynx::core::threading::t_IsMainThread) {
+        p_context->p_commandDispatcher->getBuffer(lynx::core::threading::t_ThreadIndex).push(
             [this, id, mode, operation] { BeginLoad(id, mode, operation); });
     } else {
         BeginLoad(id, mode, operation);
@@ -175,7 +185,7 @@ AsyncOperationPtr SceneManager::LoadSceneAsync(SceneID id, LoadSceneMode mode) {
 
 void SceneManager::BeginLoad(SceneID id, LoadSceneMode mode, AsyncOperationPtr operation) {
     if (m_currentAsyncOp) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "Ya hay una carga de escena en curso");
+        LYNX_ERROR_P(DEBUG_PREFIX, "Ya hay una carga de escena en curso");
         operation->phase = AsyncLoadingPhase::Failed;
         return;
     }
@@ -184,7 +194,7 @@ void SceneManager::BeginLoad(SceneID id, LoadSceneMode mode, AsyncOperationPtr o
     m_currentAsyncOp = operation;
     auto promise = std::make_shared<std::promise<ParsedScene>>();
     m_pendingScene = promise->get_future();
-    auto path = ilen::core::FileManager::fileRoute(m_idToPath.at(id), ILEN_FILE_TYPE_SCENE);
+    auto path = lynx::core::FileManager::fileRoute(m_idToPath.at(id), LYNX_FILE_TYPE_SCENE);
     // El trabajador solo lee datos. No toca entidades, componentes ni colas del ECS.
     p_context->p_jobSystem->SubmitJob([path, promise] {
         try { promise->set_value(ReadSceneFile(path)); }
@@ -193,7 +203,7 @@ void SceneManager::BeginLoad(SceneID id, LoadSceneMode mode, AsyncOperationPtr o
 }
 
 void SceneManager::Update(float dt) {
-    if (!ilen::core::threading::t_IsMainThread) return;
+    if (!lynx::core::threading::t_IsMainThread) return;
     p_context->p_commandDispatcher->ExecuteAll();
     if (!m_currentAsyncOp) return;
     if (m_currentAsyncOp->phase == AsyncLoadingPhase::ReadingDisk) {
@@ -214,7 +224,7 @@ void SceneManager::Update(float dt) {
             m_pendingEntities = InstantiateScene(scene);
             m_currentAsyncOp->phase = AsyncLoadingPhase::WaitingForSystems;
         } catch (const std::exception& error) {
-            ILEN_ERROR_P(DEBUG_PREFIX, "Error cargando escena: %s", error.what());
+            LYNX_ERROR_P(DEBUG_PREFIX, "Error cargando escena: %s", error.what());
             m_currentAsyncOp->phase = AsyncLoadingPhase::Failed;
             m_currentAsyncOp.reset();
             return;
@@ -248,7 +258,7 @@ void SceneManager::Update(float dt) {
             m_currentAsyncOp->phase = AsyncLoadingPhase::Done;
             m_currentAsyncOp = nullptr;
 
-            ILEN_LOG_P(DEBUG_PREFIX, "Escena instanciada y activa");
+            LYNX_LOG_P(DEBUG_PREFIX, "Escena instanciada y activa");
         }
     }
 }
@@ -270,7 +280,7 @@ void SceneManager::UnloadScene(SceneID id) {
 
 void SceneManager::LoadScene(const std::string& name, LoadSceneMode mode) {
     if(!m_nameToID.contains(name)) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "Escena no encontrada: %s", name.c_str());
+        LYNX_ERROR_P(DEBUG_PREFIX, "Escena no encontrada: %s", name.c_str());
         return;
     }
     LoadScene(m_nameToID[name], mode);
@@ -278,7 +288,7 @@ void SceneManager::LoadScene(const std::string& name, LoadSceneMode mode) {
 
 AsyncOperationPtr SceneManager::LoadSceneAsync(const std::string& name, LoadSceneMode mode) {
     if(!m_nameToID.contains(name)){
-        ILEN_ERROR_P(DEBUG_PREFIX, "Escena no encontrada: %s", name.c_str());
+        LYNX_ERROR_P(DEBUG_PREFIX, "Escena no encontrada: %s", name.c_str());
         return nullptr;
     }
     return LoadSceneAsync(m_nameToID[name], mode);
@@ -291,22 +301,22 @@ void SceneManager::UnloadScene(const std::string& name) {
 }
 
 std::vector<Entity> SceneManager::LoadPrefab(const std::string& name) {
-    if (!ilen::core::threading::t_IsMainThread) {
-        p_context->p_commandDispatcher->getBuffer(ilen::core::threading::t_ThreadIndex).push(
+    if (!lynx::core::threading::t_IsMainThread) {
+        p_context->p_commandDispatcher->getBuffer(lynx::core::threading::t_ThreadIndex).push(
             [this, name] { LoadPrefab(name); });
         return {}; // Desde scripts trabajadores se instancia al vaciar la cola principal.
     }
     if(!m_prefabNameToPath.contains(name)) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "Prefab no encontrado en el manifiesto: %s", name.c_str());
+        LYNX_ERROR_P(DEBUG_PREFIX, "Prefab no encontrado en el manifiesto: %s", name.c_str());
         return {};
     }
     
     if (m_activeSceneID == 0) {
-        ILEN_ERROR_P(DEBUG_PREFIX, "Intento de instanciar el prefab '%s' sin una escena activa. Abortando para evitar memory leaks.", name.c_str());
+        LYNX_ERROR_P(DEBUG_PREFIX, "Intento de instanciar el prefab '%s' sin una escena activa. Abortando para evitar memory leaks.", name.c_str());
         return {};
     }
 
-    std::string prefabPath = ilen::core::FileManager::fileRoute(m_prefabNameToPath[name], ILEN_FILE_TYPE_PREFAB);
+    std::string prefabPath = lynx::core::FileManager::fileRoute(m_prefabNameToPath[name], LYNX_FILE_TYPE_PREFAB);
 
     std::vector<Entity> instancedEntities = ParseSceneFile(prefabPath);
 
@@ -318,10 +328,10 @@ std::vector<Entity> SceneManager::LoadPrefab(const std::string& name) {
     return instancedEntities;
 }
 
-std::vector<Entity> SceneManager::LoadPrefab(const std::string& name, ilen::maths::vector::vec3 prefabPosition) {
-    if(!ilen::core::threading::t_IsMainThread) {
+std::vector<Entity> SceneManager::LoadPrefab(const std::string& name, lynx::maths::vector::vec3 prefabPosition) {
+    if(!lynx::core::threading::t_IsMainThread) {
         auto& buffer = p_context->p_commandDispatcher->getBuffer(
-            ilen::core::threading::t_ThreadIndex
+            lynx::core::threading::t_ThreadIndex
         );
 
         buffer.push([this, name, prefabPosition] {
@@ -333,7 +343,7 @@ std::vector<Entity> SceneManager::LoadPrefab(const std::string& name, ilen::math
     auto entities = LoadPrefab(name);
 
     for(Entity entity: entities) {
-        auto* transform = p_context->p_coordinator->getComponent<ilen::ecs::components::TransformComponent>(entity);
+        auto* transform = p_context->p_coordinator->getComponent<lynx::ecs::components::TransformComponent>(entity);
 
         if(!transform){
             continue;
@@ -354,7 +364,7 @@ void SceneManager::SetActiveScene(SceneID id) {
     if (m_loadedScenes.contains(id)) {
         m_activeSceneID = id;
     } else {
-        ILEN_WARNING_P(DEBUG_PREFIX, "No se puede establecer como principal la escena %u porque no esta cargada.", id);
+        LYNX_WARNING_P(DEBUG_PREFIX, "No se puede establecer como principal la escena %u porque no esta cargada.", id);
     }
 }
 
@@ -362,6 +372,6 @@ void SceneManager::SetActiveScene(const std::string& name) {
     if (m_nameToID.contains(name)) {
         SetActiveScene(m_nameToID[name]);
     } else {
-        ILEN_WARNING_P(DEBUG_PREFIX, "Escena no encontrada para hacerla principal: %s", name.c_str());
+        LYNX_WARNING_P(DEBUG_PREFIX, "Escena no encontrada para hacerla principal: %s", name.c_str());
     }
 }

@@ -1,7 +1,7 @@
-#include <ilen/render/render_system.h>
-#include <ilen/core/engine_context.h>
+#include <lynx/render/render_system.h>
+#include <lynx/core/engine_context.h>
 
-namespace ilen::ecs::systems {
+namespace lynx::ecs::systems {
     void RenderSystem::Init(const EngineContext *engineContext) {
         p_jobSystem = engineContext->p_jobSystem.get();
         p_meshManager = engineContext->p_meshManager.get();
@@ -10,6 +10,7 @@ namespace ilen::ecs::systems {
         p_materialManager = engineContext->p_materialManager.get();
         p_commandDispatcher = engineContext->p_commandDispatcher.get();
         p_textureManager = engineContext->p_textureManager.get();
+        m_predefinedAssets = engineContext->runtimeConfiguration->predefinedAssets;
 
         //Registramos los componentes que requiere esta cosa
         p_coordinator->registerComponent<VisibilityComponent>();
@@ -20,7 +21,7 @@ namespace ilen::ecs::systems {
 
     void RenderSystem::Update() {
         {
-            ilen::time::ScopedTimer timer("Prep for Rendering System");
+            lynx::time::ScopedTimer timer("Prep for Rendering System");
             //Actualizando el estado de los elementos cargados en paralelo
             p_meshManager->UpdateProcess();
             p_renderPipelineManager->UpdatePipelineWorks();
@@ -41,7 +42,7 @@ namespace ilen::ecs::systems {
             auto* staticTexRenderDataArray = p_coordinator->getComponentArray<StaticTextureRenderingData>();
             auto* metadataDataArray = p_coordinator->getComponentArray<EntityMetadataComponent>();
 
-            ilen::job_system::JobGroup group;
+            lynx::job_system::JobGroup group;
 
             for(size_t i = 0; i < numChunks; i++){
                 size_t start = i * chunkSize;
@@ -112,11 +113,13 @@ namespace ilen::ecs::systems {
 
         if(staticMeshData == nullptr){
             //Solicitar la carga de estos datos
-            auto solitudeResult = p_meshManager->getMeshHandlers(render.meshID);
-            auto runtimeID = p_meshManager->getMeshRuntimeID(render.meshID);
+            const auto meshID = ResolveAssetID(render.meshID, m_predefinedAssets.quadMesh);
+
+            auto solitudeResult = p_meshManager->getMeshHandlers(meshID);
+            auto runtimeID = p_meshManager->getMeshRuntimeID(meshID);
 
             if(solitudeResult.lock() != nullptr && runtimeID != 0){
-                //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
+                //LYNX_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
                 StaticRenderingData data{solitudeResult, runtimeID};
                 componentArray->updateData(entity, std::move(data));
                 //p_coordinator->setComponent(entity, std::move(data));
@@ -144,15 +147,17 @@ namespace ilen::ecs::systems {
         }
 
         if (staticMaterialData == nullptr) {
-            auto material = p_materialManager->getMaterial(render.materialID);
+            const auto materialID = ResolveAssetID(render.materialID, m_predefinedAssets.defaultUnlitOpaqueMaterial);
 
-            auto descriptor = IlenRenderPipelineDescriptor(material);
+            auto material = p_materialManager->getMaterial(materialID);
+
+            auto descriptor = LynxRenderPipelineDescriptor(material);
 
             auto psoSolicitude = p_renderPipelineManager->getRenderPipeline(descriptor);
-            auto runtimeID = p_materialManager->getRuntimeMaterial(render.materialID);
+            auto runtimeID = p_materialManager->getRuntimeMaterial(materialID);
 
             if (psoSolicitude.lock() != nullptr && runtimeID != 0) {
-                //ILEN_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
+                //LYNX_LOG_P(DEBUG_PREFIX, "Added PSO with runtime material ID %i and MatID %i", runtimeID, render.materialID);
                 StaticMaterialRenderingData data{psoSolicitude, runtimeID};
                 componentArray->updateData(entity, std::move(data));
                 //p_coordinator->setComponent(entity, std::move(data));
@@ -169,11 +174,12 @@ namespace ilen::ecs::systems {
 
         if(staticTexData == nullptr){
             //Solicitar la carga de estos datos
-            auto solitudeResult = p_textureManager->getTextureHandler(render.mainTexID);
-            auto runtimeID = p_textureManager->getTextureRuntimeID(render.mainTexID);
+            const auto textureID = ResolveAssetID(render.mainTexID, m_predefinedAssets.defaultTexture);
+            auto solitudeResult = p_textureManager->getTextureHandler(textureID);
+            auto runtimeID = p_textureManager->getTextureRuntimeID(textureID);
 
             if(solitudeResult.lock() != nullptr && runtimeID != 0){
-                //ILEN_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
+                //LYNX_LOG_P(DEBUG_PREFIX, "Added Mesh with runtime mesh ID %i and meshID %i", runtimeID, render.meshID);
                 StaticTextureRenderingData data{solitudeResult, runtimeID, render.defaultSpriteInTextureID};
                 componentArray->updateData(entity, std::move(data));
                 //p_coordinator->setComponent(entity, std::move(data));

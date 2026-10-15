@@ -1,23 +1,24 @@
-#include <ilen_public/API/transform_api.h>
-#include <ilen_public/API/physics_2d_api.h>
-#include <ilen/physics/components/specification/rigidbody_components.h>
-#include <ilen/transform/transform_system.h>
+#include <lynx_public/API/transform_api.h>
+#include <lynx_public/API/physics_2d_api.h>
+#include <lynx/physics/components/specification/rigidbody_components.h>
+#include <lynx/transform/transform_system.h>
 
-using namespace ilen::engine::api;
-using namespace ilen::ecs::components;
+using namespace lynx::engine::api;
+using namespace lynx::ecs::components;
 
 // transform.cpp
-void TransformAPI::Init(const ilen::EngineContext* context) {
+void TransformAPI::Init(const lynx::EngineContext* context) {
     p_coordinator = context->p_coordinator.get();
     size_t numThreads = context->p_jobSystem->AvailableThreads();
     s_threadAccumulators.resize(numThreads + 1);
+    p_runtimeConfig = context->runtimeConfiguration.get();
     
     p_coordinator->registerComponent<components::TransformOrder>();
     p_transformSys = p_coordinator->getSystem<systems::TransformSystem>().get();
 
     for (auto& ta : s_threadAccumulators) {
-        ta.orders.resize(ilen::ecs::MAX_ENTITIES);           // pre-alocado
-        ta.touched.reserve(ilen::ecs::MAX_ENTITIES / numThreads + 1024);
+        ta.orders.resize(p_runtimeConfig->ecs.initialEntityCapacity);           // pre-alocado
+        ta.touched.reserve(p_runtimeConfig->ecs.initialEntityCapacity / numThreads + 1024);
     }
 }
 
@@ -187,8 +188,8 @@ void TransformAPI::ExecuteAllAccumulatedTransform() {
 
     std::vector<Entity> registeredEntities;
     std::vector<TransformOrder> accumulatedOrders;
-    registeredEntities.reserve(ilen::ecs::MAX_ENTITIES);
-    accumulatedOrders.reserve(ilen::ecs::MAX_ENTITIES);
+    registeredEntities.reserve(p_runtimeConfig->ecs.initialEntityCapacity);
+    accumulatedOrders.reserve(p_runtimeConfig->ecs.initialEntityCapacity);
 
 
     for (auto& ta : s_threadAccumulators) {

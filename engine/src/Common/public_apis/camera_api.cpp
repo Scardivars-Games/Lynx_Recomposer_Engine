@@ -1,16 +1,16 @@
-#include <ilen_public/API/camera_api.h>
-#include <ilen/window/window.h>
-#include <ilen/transform/transform_component.h>
-#include <ilen_public/API/transform_api.h>
+#include <lynx_public/API/camera_api.h>
+#include <lynx/window/window.h>
+#include <lynx/transform/transform_component.h>
+#include <lynx_public/API/transform_api.h>
 
-using namespace ilen::ecs;
-using namespace ilen::engine::api;
-using namespace ilen::maths;
-using namespace ilen::ecs::components;
+using namespace lynx::ecs;
+using namespace lynx::engine::api;
+using namespace lynx::maths;
+using namespace lynx::ecs::components;
 
-void CameraAPI::Init(const ilen::EngineContext* context) {
+void CameraAPI::Init(const lynx::EngineContext* context) {
     p_coordinator = context->p_coordinator.get();
-    p_cameraSystem = p_coordinator->getSystem<ilen::ecs::systems::CameraSystem>().get();
+    p_cameraSystem = p_coordinator->getSystem<lynx::ecs::systems::CameraSystem>().get();
 }
 
 //Necesita ejecutarse antes que cualquier script que lo consulte.
@@ -28,7 +28,7 @@ void CameraAPI::ResetMainCameraPointer() {
 //Toma la screenPos, y la normaliza a [-1, 1]
 vec2 CameraAPI::ScreenToNDC(const vec2& screenPos){
     //Obtener tamaño de la ventana
-    auto screenSize = vec2(ilen::window::IWindow::getWidth(), ilen::window::IWindow::getHeight());
+    auto screenSize = vec2(lynx::window::IWindow::getWidth(), lynx::window::IWindow::getHeight());
     return vec2(
         (2.0f * screenPos.x / screenSize.x) - 1.0f, 
         (2.0f * screenPos.y / screenSize.y) - 1.0f
@@ -67,11 +67,11 @@ vec2 CameraAPI::ConvertScreenToNDC(const vec2& screenPos){
     return ScreenToNDC(screenPos);
 }
 
-vec3 CameraAPI::ConvertNDCToWorld(const ilen::ecs::components::CameraComponent* camera, const vec2& ndcPos){
+vec3 CameraAPI::ConvertNDCToWorld(const lynx::ecs::components::CameraComponent* camera, const vec2& ndcPos){
     return NDCToWorld(camera, ndcPos);
 }
 
-vec3 CameraAPI::ConvertScreenToWorld(const ilen::ecs::components::CameraComponent* camera, const vec2& screenPos){
+vec3 CameraAPI::ConvertScreenToWorld(const lynx::ecs::components::CameraComponent* camera, const vec2& screenPos){
     return NDCToWorld(camera, ScreenToNDC(screenPos));
 }
 

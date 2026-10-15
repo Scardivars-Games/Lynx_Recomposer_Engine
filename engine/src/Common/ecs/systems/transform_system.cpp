@@ -1,17 +1,17 @@
-#include <ilen/transform/transform_system.h>
-#include <ilen/core/time.h>
+#include <lynx/transform/transform_system.h>
+#include <lynx/core/time.h>
 
-namespace ilen::ecs::systems {
-    void TransformSystem::Init(const ilen::EngineContext *engineContext) {
+namespace lynx::ecs::systems {
+    void TransformSystem::Init(const lynx::EngineContext *engineContext) {
         p_coordinator = engineContext->p_coordinator.get();
         p_jobSystem = engineContext->p_jobSystem.get();
         p_commandDispatcher = engineContext->p_commandDispatcher.get();
 
-        ilen::engine::api::TransformAPI::Init(engineContext);
+        lynx::engine::api::TransformAPI::Init(engineContext);
     }
 
     void TransformSystem::Update() {
-        ilen::time::ScopedTimer timer("Transform system");
+        lynx::time::ScopedTimer timer("Transform system");
 
         std::vector<Entity> entityList(entities.begin(), entities.end());
         size_t total = entityList.size();
@@ -29,7 +29,7 @@ namespace ilen::ecs::systems {
         ExecuteTransformOrders();
 
         {
-            ilen::time::ScopedTimer timer("Transform system -- Fase 2");
+            lynx::time::ScopedTimer timer("Transform system -- Fase 2");
 
             std::vector<Entity> rootEntities;
             rootEntities.reserve(total);
@@ -47,7 +47,7 @@ namespace ilen::ecs::systems {
 
             size_t rootChunkSize = std::max(size_t(1), (rootTotal + numThreads - 1) / numThreads);
             size_t rootNumChunks = std::max(size_t(1), (rootTotal + rootChunkSize - 1) / rootChunkSize);
-            ilen::job_system::JobGroup phase2;
+            lynx::job_system::JobGroup phase2;
 
             for(size_t i = 0; i < rootNumChunks; i++){
                 size_t start = i * rootChunkSize;
@@ -65,7 +65,7 @@ namespace ilen::ecs::systems {
 
         //OLD
         /*{
-            ilen::time::ScopedTimer timer("Transform system");
+            lynx::time::ScopedTimer timer("Transform system");
 
             //Hacemos copia del vector de entidades, para hacerlo cache-friendly
             std::vector<Entity> entityList(entities.begin(), entities.end());
@@ -81,8 +81,8 @@ namespace ilen::ecs::systems {
             std::vector<std::vector<Entity>> removeScale(numChuncks);
 
             {
-                ilen::time::ScopedTimer timer("Transform system Phase 1");
-                ilen::job_system::JobGroup phase1;
+                lynx::time::ScopedTimer timer("Transform system Phase 1");
+                lynx::job_system::JobGroup phase1;
 
                 for(size_t i = 0; i < numChuncks; i++){
                     size_t start = i * chunckSize;
@@ -127,7 +127,7 @@ namespace ilen::ecs::systems {
 
 
             {
-                ilen::time::ScopedTimer timer("Transform system Phase 2");
+                lynx::time::ScopedTimer timer("Transform system Phase 2");
                 //Fase 2. Calculo de las matrices en paralelo, desde las raices.
                 std::vector<Entity> rootEntities;
                 rootEntities.reserve(total);
@@ -141,7 +141,7 @@ namespace ilen::ecs::systems {
                 size_t rootTotal = rootEntities.size();
                 size_t rootChunkSize = std::max(size_t(1), (rootTotal + numThreads - 1)/ numThreads);
 
-                ilen::job_system::JobGroup phase2;
+                lynx::job_system::JobGroup phase2;
                 for(size_t i = 0; i < numChuncks; i++){
                     size_t start = i * rootChunkSize;
                     size_t end = std::min(start + rootChunkSize, rootTotal);
@@ -160,8 +160,8 @@ namespace ilen::ecs::systems {
 
     void TransformSystem::ExecuteTransformOrders(){
         {
-            ilen::time::ScopedTimer timer("Transform system -- Fase 1");
-            ilen::job_system::JobGroup phase1;
+            lynx::time::ScopedTimer timer("Transform system -- Fase 1");
+            lynx::job_system::JobGroup phase1;
 
             std::vector<Entity> entityList(entities.begin(), entities.end());
             size_t total = entityList.size();        if(total == 0) return;
@@ -226,7 +226,7 @@ namespace ilen::ecs::systems {
         }        
     }
 
-    void TransformSystem::calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, ilen::job_system::JobGroup* group, ComponentArray<TransformComponent>* componentArray){
+    void TransformSystem::calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, lynx::job_system::JobGroup* group, ComponentArray<TransformComponent>* componentArray){
         auto* transform = componentArray->getData(entity);
         if(!transform) return;
 

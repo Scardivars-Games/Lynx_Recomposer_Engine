@@ -2,12 +2,12 @@
 
 #if defined(__APPLE__)
 
-#include <ilen/render/gpu_interfaces/instance_buffer.h>
+#include <lynx/render/gpu_interfaces/instance_buffer.h>
 #include <memory>
 #include <atomic>
 #include <Metal/buffers_metal.h>
 
-namespace ilen::render {
+namespace lynx::render {
     class MetalInstanceBuffer final : public IGPUInstanceBuffer {
     public:
         MetalInstanceBuffer(id<MTLDevice> device, size_t bufferSize, const std::string& bufferName);

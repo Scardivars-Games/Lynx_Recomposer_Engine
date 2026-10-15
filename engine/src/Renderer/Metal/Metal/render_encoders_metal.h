@@ -1,13 +1,13 @@
 #pragma once
 #if defined (__APPLE__)
 
-#include <ilen/render/gpu_interfaces/render_encoders.h>
+#include <lynx/render/gpu_interfaces/render_encoders.h>
 #import <Metal/Metal.h>
 
 @protocol MTLRenderCommandEncoder;
 @protocol MTLBuffer;
 
-namespace ilen::render {
+namespace lynx::render {
     class MetalRenderEncoder final: public IGPURenderEncoder {
         public:
             MetalRenderEncoder(id<MTLRenderCommandEncoder> encoder);

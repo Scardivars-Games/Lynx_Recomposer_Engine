@@ -2,19 +2,19 @@
 #include <Metal/render_pipelines_metal.h>
 #include <Metal/shaders_metal.h>
 #include <Metal_Common/engine_to_native_converters.h>
-#include <ilen/headers/ilen_logs.h>
+#include <lynx/headers/lynx_logs.h>
 
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
 
-namespace ilen::render {
+namespace lynx::render {
     std::map<VertexBufferLayout, void*> MetalRenderPipeline::m_vertexBufferDescriptors;
     std::mutex MetalRenderPipeline::_psoMutex;
     std::vector<CachedDepthState> MetalRenderPipeline::_depthStencilStateCache;
     std::mutex MetalRenderPipeline::_depthStencilCacheMutex;
 
-    MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const ilen::render::IlenRenderPipelineDescriptor& descriptor, ilen::resources::shaders::ShaderManager* shaderManager, IlenParallelEncoderDescriptor inUseGeneralEncoder, MetalViewPredefinedValues predefinedVal) : _pso(nil){
-        using namespace ilen::render::utils::metal;
+    MetalRenderPipeline::MetalRenderPipeline(id<MTLDevice> device, const lynx::render::LynxRenderPipelineDescriptor& descriptor, lynx::resources::shaders::ShaderManager* shaderManager, LynxParallelEncoderDescriptor inUseGeneralEncoder, MetalViewPredefinedValues predefinedVal) : _pso(nil){
+        using namespace lynx::render::utils::metal;
         @autoreleasepool {
             
             MTLRenderPipelineDescriptor* pipelineDescriptor = [MTLRenderPipelineDescriptor new];
@@ -22,8 +22,10 @@ namespace ilen::render {
             auto vertexPtr = shaderManager->getShaderData(descriptor.vertexShaderID).lock();
             auto fragmentPtr = shaderManager->getShaderData(descriptor.fragmentShaderID).lock();
             
+            auto engineContext = application::Application::getEngineContext();
+
             if(!vertexPtr || !fragmentPtr){
-                ILEN_ERROR_P(DEBUG_PREFIX, "No fue posible obtener los shader con ID %i(vertex) y %i(fragment). Nombre de la Pipeline: %s", descriptor.vertexShaderID, descriptor.fragmentShaderID, descriptor.pipelineName.c_str());
+                LYNX_ERROR_P(DEBUG_PREFIX, "No fue posible obtener los shader con ID %i(vertex) y %i(fragment). Nombre de la Pipeline: %s", descriptor.vertexShaderID, descriptor.fragmentShaderID, descriptor.pipelineName.c_str());
                 return;
             }
             
@@ -39,7 +41,7 @@ namespace ilen::render {
 
             
             if(!vertexFunction || !fragmentFunction){
-                ILEN_ERROR_P(DEBUG_PREFIX, "Las funciones %s y %s no fueron encontradas en su respectivo shader!!!.", descriptor.vertexFunctionName.c_str(), descriptor.fragmentFunctionName.c_str());
+                LYNX_ERROR_P(DEBUG_PREFIX, "Las funciones %s y %s no fueron encontradas en su respectivo shader!!!.", descriptor.vertexFunctionName.c_str(), descriptor.fragmentFunctionName.c_str());
                 return;
             }
             
@@ -51,20 +53,20 @@ namespace ilen::render {
             VertexBufferLayout layout;
             
             switch(descriptor.vertexLayout){
-                case enumerations::ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_GLOBAL:
-                    layout = ILEN_GLOBAL_VERTEX_LAYOUT;
+                case enumerations::LYNX_VERTEX_LAYOUT_TYPE::LYNX_VERTEX_LAYOUT_GLOBAL:
+                    layout = LYNX_GLOBAL_VERTEX_LAYOUT;
                     break;
-                case enumerations::ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_VERTEXLESS:
-                    layout = ILEN_VERTEXLESS_LAYOUT;
+                case enumerations::LYNX_VERTEX_LAYOUT_TYPE::LYNX_VERTEX_LAYOUT_VERTEXLESS:
+                    layout = LYNX_VERTEXLESS_LAYOUT;
                     break;
                 default:
-                    layout = ILEN_GLOBAL_VERTEX_LAYOUT;
+                    layout = LYNX_GLOBAL_VERTEX_LAYOUT;
                     break;
             }
 
 
             void* cachedVertexDescriptor = nullptr;
-            if(descriptor.vertexLayout != enumerations::ILEN_VERTEX_LAYOUT_TYPE::ILEN_VERTEX_LAYOUT_VERTEXLESS) {
+            if(descriptor.vertexLayout != enumerations::LYNX_VERTEX_LAYOUT_TYPE::LYNX_VERTEX_LAYOUT_VERTEXLESS) {
                 std::lock_guard lock(_psoMutex);
                 
                 auto it = m_vertexBufferDescriptors.find(layout);
@@ -83,12 +85,12 @@ namespace ilen::render {
             
             //Blend operations segun el render pass.
             switch (descriptor.renderQueue) {
-                case enumerations::ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OPAQUE:
-                case enumerations::ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_ALPHA_TEST:
+                case enumerations::LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_OPAQUE:
+                case enumerations::LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_ALPHA_TEST:
                     colorAttach.blendingEnabled = NO;
                     break;
-                case enumerations::ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_TRANSPARENT:
-                case enumerations::ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OVERLAY:
+                case enumerations::LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_TRANSPARENT:
+                case enumerations::LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_OVERLAY:
                     colorAttach.blendingEnabled = YES;
                     colorAttach.rgbBlendOperation = MTLBlendOperationAdd;
                     colorAttach.alphaBlendOperation = MTLBlendOperationAdd;
@@ -104,7 +106,7 @@ namespace ilen::render {
             auto encoderDesc = descriptor.encoderDescriptor;
             if(descriptor.encoderDescriptor == nullptr){
                 encoderDesc = &inUseGeneralEncoder;
-                //ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Solicitud de creación de un PSO especial sin el descriptor con los datos del encoder.");
+                //LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Solicitud de creación de un PSO especial sin el descriptor con los datos del encoder.");
             }
             if(encoderDesc->colorAttachments.size() > 0){
                 colorAttach.pixelFormat = transformEngineToNativePixelFormat(encoderDesc->colorAttachments[0]->texture->getDescriptor().pixelFormat, predefinedVal.screenPixelFormat);
@@ -112,13 +114,13 @@ namespace ilen::render {
                 colorAttach.pixelFormat = MTLPixelFormatBGRA8Unorm; //Esto debería ser invalid, pero el simulador de iOS no le gusta
             }
             
-            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH && !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER )){
+            if(engineContext->runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_DEPTH && !(descriptor.renderPipelineOptionFlags & LYNX_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER )){
                 pipelineDescriptor.depthAttachmentPixelFormat = predefinedVal.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.depthAttachmentPixelFormat = MTLPixelFormatInvalid;
             }
             
-            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL && !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER)){
+            if(engineContext->runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_STENCIL && !(descriptor.renderPipelineOptionFlags & LYNX_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER)){
                 pipelineDescriptor.stencilAttachmentPixelFormat = predefinedVal.depthStencilPixelFormat;
             }else{
                 pipelineDescriptor.stencilAttachmentPixelFormat = MTLPixelFormatInvalid;
@@ -128,7 +130,7 @@ namespace ilen::render {
                 
             }*/
             
-            if(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE){
+            if(descriptor.renderPipelineOptionFlags & LYNX_RENDER_PIPELINES_OPTIONS_DONT_WRITE_SCREEN_TEXTURE){
                 //Special Pipelines son aquellos que no escriben en el buffer 0 (dibujado normal) Esto es principalmente para PSO de Post-Procesado
                 pipelineDescriptor.colorAttachments[0].writeMask = MTLColorWriteMaskNone;
             }
@@ -153,13 +155,13 @@ namespace ilen::render {
             [pipelineDescriptor release];
             
             if(!_pso){
-                ILEN_ERROR_P(DEBUG_PREFIX, "Error al crear el MTLRenderPipelineState. Error: %s.", [error.localizedDescription UTF8String]);
+                LYNX_ERROR_P(DEBUG_PREFIX, "Error al crear el MTLRenderPipelineState. Error: %s.", [error.localizedDescription UTF8String]);
             }
             
             //Generando el DepthStateStencil correspondiente
-            if(ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_DEPTH || ilen::core::options::GraphicsOptions::graphicsOptionsFlags & ILEN_GRAPHICS_OPTIONS_USE_STENCIL){
-                if(!(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER) || !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER)){
-                    bool depthWrite = !(descriptor.renderPipelineOptionFlags & ILEN_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER);
+            if(engineContext->runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_DEPTH || engineContext->runtimeConfiguration->graphics.flags & LYNX_GRAPHICS_OPTIONS_USE_STENCIL){
+                if(!(descriptor.renderPipelineOptionFlags & LYNX_RENDER_PIPELINES_OPTIONS_DONT_USES_DEPTH_BUFFER) || !(descriptor.renderPipelineOptionFlags & LYNX_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER)){
+                    bool depthWrite = !(descriptor.renderPipelineOptionFlags & LYNX_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER);
                     _depthStencilState = getOrCreateDepthStencilState(device, depthWrite, descriptor.depthCompareFunction);
                 }
             }
@@ -186,7 +188,7 @@ namespace ilen::render {
                 //size_t formatSize = MetalRenderPipeline::getFormatSize(actualAttribute);
                 
                 if(mtlFormat == MTLVertexFormatInvalid){
-                    ILEN_ERROR_P(MetalRenderPipeline::DEBUG_PREFIX, "El atributo con índice %i no es válido para el layout dado.", i);
+                    LYNX_ERROR_P(MetalRenderPipeline::DEBUG_PREFIX, "El atributo con índice %i no es válido para el layout dado.", i);
                     continue;
                 }
                 
@@ -202,29 +204,29 @@ namespace ilen::render {
         }
     }
 
-    size_t MetalRenderPipeline::getFormatSize(ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE format){
+    size_t MetalRenderPipeline::getFormatSize(LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE format){
         switch(format){
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_INT: return sizeof(int);
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT: return sizeof(float);
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT2: return sizeof(float) * 2;
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT3: return sizeof(float) * 3;
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT4: return sizeof(float) * 4;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_INT: return sizeof(int);
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT: return sizeof(float);
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT2: return sizeof(float) * 2;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT3: return sizeof(float) * 3;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT4: return sizeof(float) * 4;
             default: return 0;
         }
     }
 
-    MTLVertexFormat MetalRenderPipeline::getMTLFormat(ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE format){
+    MTLVertexFormat MetalRenderPipeline::getMTLFormat(LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE format){
         switch(format){
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_INT: return MTLVertexFormatInt;
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT: return MTLVertexFormatFloat;
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT2: return MTLVertexFormatFloat2;
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT3: return MTLVertexFormatFloat3;
-            case ILEN_GPU_VERTEX_BUFFER_FORMATS_TYPE::ILEN_GPU_VERTEX_BUFFER_FORMAT_FLOAT4: return MTLVertexFormatFloat4;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_INT: return MTLVertexFormatInt;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT: return MTLVertexFormatFloat;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT2: return MTLVertexFormatFloat2;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT3: return MTLVertexFormatFloat3;
+            case LYNX_GPU_VERTEX_BUFFER_FORMATS_TYPE::LYNX_GPU_VERTEX_BUFFER_FORMAT_FLOAT4: return MTLVertexFormatFloat4;
             default: return MTLVertexFormatInvalid;
         }
     }
 
-    inline id<MTLDepthStencilState> MetalRenderPipeline::getOrCreateDepthStencilState(id<MTLDevice> device, bool writeEnabled, ILEN_GPU_COMPARE_FUNCTION compareFunction){
+    inline id<MTLDepthStencilState> MetalRenderPipeline::getOrCreateDepthStencilState(id<MTLDevice> device, bool writeEnabled, LYNX_GPU_COMPARE_FUNCTION compareFunction){
         std::lock_guard<std::mutex> lock(_depthStencilCacheMutex);
         
         for(const auto& cached: _depthStencilStateCache) {
@@ -243,7 +245,7 @@ namespace ilen::render {
             [descriptor release];
             
             if(!newState){
-                ILEN_ERROR_P(DEBUG_PREFIX, "No se pudo crear el MTLDepthStencilState.");
+                LYNX_ERROR_P(DEBUG_PREFIX, "No se pudo crear el MTLDepthStencilState.");
                 return nil;
             }
             

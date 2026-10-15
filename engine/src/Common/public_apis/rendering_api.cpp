@@ -1,11 +1,11 @@
-#include <ilen_public/API/rendering_api.h>
+#include <lynx_public/API/rendering_api.h>
 
-using namespace ilen::ecs;
-using namespace ilen::engine::api;
-using namespace ilen::maths;
-using namespace ilen::ecs::components;
+using namespace lynx::ecs;
+using namespace lynx::engine::api;
+using namespace lynx::maths;
+using namespace lynx::ecs::components;
 
-void RenderingAPI::Init(const ilen::EngineContext* context) {
+void RenderingAPI::Init(const lynx::EngineContext* context) {
     p_coordinator = context->p_coordinator.get();
     GetComponentPointers();
 }
@@ -32,7 +32,7 @@ void RenderingAPI::FlipSpriteInX(Entity e, bool value){
 
     auto* component = components.staticTextureArray->getData(e);
     if(component == nullptr){
-        ILEN_ERROR_P(DEBUG_PREFIX, "El component con ID %e no contiene un componente de textura. No se puede modificar el Flip.", e);
+        LYNX_ERROR_P(DEBUG_PREFIX, "El component con ID %e no contiene un componente de textura. No se puede modificar el Flip.", e);
         return;
     }
 
@@ -46,7 +46,7 @@ void RenderingAPI::FlipSpriteInY(Entity e, bool value){
 
     auto* component = components.staticTextureArray->getData(e);
     if(component == nullptr){
-        ILEN_ERROR_P(DEBUG_PREFIX, "El component con ID %e no contiene un componente de textura. No se puede modificar el Flip.", e);
+        LYNX_ERROR_P(DEBUG_PREFIX, "El component con ID %e no contiene un componente de textura. No se puede modificar el Flip.", e);
         return;
     }
 
@@ -60,7 +60,7 @@ void RenderingAPI::ChangeSpriteIndex(Entity e, int index){
 
     auto* component = components.staticTextureArray->getData(e);
     if(component == nullptr){
-        ILEN_ERROR_P(DEBUG_PREFIX, "El component con ID %e no contiene un componente de textura. No se puede cambiar el indice.", e);
+        LYNX_ERROR_P(DEBUG_PREFIX, "El component con ID %e no contiene un componente de textura. No se puede cambiar el indice.", e);
         return;
     }
 

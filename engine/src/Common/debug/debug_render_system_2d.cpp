@@ -1,40 +1,39 @@
-#include <cstdint>
-#include <cstdlib>
-#include <ilen/debug/debug_render_system_2d.h>
-#include "ilen/debug/debug_draw_2d.h"
-#include "ilen/ecs/types.h"
-#include "ilen/graphics/color.h"
-#include "ilen/graphics/meshes.h"
-#include "ilen/physics/components/specification/collider_components.h"
+#if LYNX_DEBUG
 
-#if ILEN_DEBUG
-
-#include <ilen/camera/camera_system.h>
-#include <ilen/core/engine_context.h>
-#include <ilen/core/runtime_options.h>
-#include <ilen/core/time.h>
-#include <ilen/ecs/ecs.h>
-#include <ilen/physics/components/physics_components.h>
-#include <ilen/physics/physics_2d_system.h>
-#include <ilen/render/render_constants.h>
-#include <ilen/resources/materials_manager.h>
-#include <ilen/resources/texture_manager.h>
-#include <ilen/transform/transform_component.h>
-#include <ilen/physics/collider_proxy_builder_2d.h>
+#include <lynx/camera/camera_system.h>
+#include <lynx/core/engine_context.h>
+#include <lynx/core/time.h>
+#include <lynx/ecs/ecs.h>
+#include <lynx/physics/components/physics_components.h>
+#include <lynx/physics/physics_2d_system.h>
+#include <lynx/render/render_constants.h>
+#include <lynx/resources/materials_manager.h>
+#include <lynx/resources/texture_manager.h>
+#include <lynx/transform/transform_component.h>
+#include <lynx/physics/collider_proxy_builder_2d.h>
+#include <lynx/debug/debug_render_system_2d.h>
+#include <lynx/debug/debug_draw_2d.h>
+#include <lynx/ecs/types.h>
+#include <lynx/graphics/color.h>
+#include <lynx/graphics/meshes.h>
+#include <lynx/physics/components/specification/collider_components.h>
 
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
+#include <cstdlib>
 
-namespace ilen::ecs::systems {
-    using namespace ilen::maths::vector;
-    using namespace ilen::ecs::components;
-    using namespace ilen::ecs::components::physics;
-    using namespace ilen::render;
-    using namespace ilen::core::options;
-    using namespace ilen::debug;
+namespace lynx::ecs::systems {
+    using namespace lynx::maths::vector;
+    using namespace lynx::ecs::components;
+    using namespace lynx::ecs::components::physics;
+    using namespace lynx::render;
+    using namespace lynx::core;
+    using namespace lynx::debug;
 
     void DebugRenderSystem2D::Init(const EngineContext* context) {
         p_coordinator = context->p_coordinator.get();
+        runtimeOptions = context->runtimeConfiguration.get();
         m_renderer = context->p_gameRenderer.get();
         m_cameraSystem = p_coordinator->getSystem<CameraSystem>().get();
         m_physicsSystem = p_coordinator->getSystem<PhysicsSystem2D>().get();
@@ -45,36 +44,36 @@ namespace ilen::ecs::systems {
 
         //Reutilizar shader Unlit transparente para el Debug
         const auto& material = context->p_materialManager->getMaterial(
-            PredefinedAssetsID::DefaultUnlitTransparentMatID
+            runtimeOptions->predefinedAssets.defaultUnlitTransparentMaterial
         );
 
-        IlenRenderPipelineDescriptor descriptor(material);
+        LynxRenderPipelineDescriptor descriptor(material);
         descriptor.pipelineName = "Debug Draw 2D";
-        descriptor.renderQueue = ILEN_GPU_RENDER_QUEUE_TYPE::ILEN_GPU_RENDER_QUEUE_OVERLAY;
+        descriptor.renderQueue = LYNX_GPU_RENDER_QUEUE_TYPE::LYNX_GPU_RENDER_QUEUE_OVERLAY;
 
         // El debug se codifica dentro del render pass principal. Si ese pass
         // contiene un attachment de profundidad, Metal exige que el pipeline
         // declare el mismo pixelFormat aunque no quiera comprobar ni escribir
         // depth. CompareAlways conserva el comportamiento de overlay.
         descriptor.depthCompareFunction =
-            ILEN_GPU_COMPARE_FUNCTION::ILEN_GPU_COMPARE_ALWAYS;
+            LYNX_GPU_COMPARE_FUNCTION::LYNX_GPU_COMPARE_ALWAYS;
 
         descriptor.renderPipelineOptionFlags = 
-            ILEN_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER |
-            ILEN_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER |
-            ILEN_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED;
+            LYNX_RENDER_PIPELINES_OPTIONS_DONT_USES_STENCIL_BUFFER |
+            LYNX_RENDER_PIPELINE_OPTIONS_DONT_WRITE_DEPTH_BUFFER |
+            LYNX_RENDER_PIPELINE_OPTIONS_DONT_CULL_ENABLED;
 
         m_pipeline = m_renderer->createRenderPipeline(descriptor, context->p_shaderManager.get());
         
-        m_whiteTexture = context->p_textureManager->getTextureHandler(PredefinedAssetsID::DefaultTextureID);
+        m_whiteTexture = context->p_textureManager->getTextureHandler(runtimeOptions->predefinedAssets.defaultTexture);
 
         const uint8_t framesInFlight = m_renderer->getActualNumOfFramesInFlight();
 
         m_frameBuffers.resize(framesInFlight);
 
         for(uint8_t i = 0; i < framesInFlight; i++) {
-            IlenBufferDescriptor vertexDescriptor{};
-            vertexDescriptor.bufferType = ILEN_RENDER_GPU_BUFFER_VERTEX;
+            LynxBufferDescriptor vertexDescriptor{};
+            vertexDescriptor.bufferType = LYNX_RENDER_GPU_BUFFER_VERTEX;
             vertexDescriptor.bufferSize = MaxVertices * sizeof(render::buffers::VertexBufferData);
             vertexDescriptor.count = MaxVertices;
             vertexDescriptor.stride = sizeof(render::buffers::VertexBufferData);
@@ -82,8 +81,8 @@ namespace ilen::ecs::systems {
 
             m_frameBuffers[i].vertices = m_renderer->createBuffer(vertexDescriptor, nullptr);
 
-            IlenBufferDescriptor indexDescriptor{};
-            indexDescriptor.bufferType = ILEN_RENDER_GPU_BUFFER_INDEX;
+            LynxBufferDescriptor indexDescriptor{};
+            indexDescriptor.bufferType = LYNX_RENDER_GPU_BUFFER_INDEX;
             indexDescriptor.bufferSize = MaxIndices * sizeof(uint32_t);
             indexDescriptor.count = MaxIndices;
             indexDescriptor.stride = sizeof(uint32_t);
@@ -132,11 +131,11 @@ namespace ilen::ecs::systems {
                     continue;
                 }
 
-                std::optional<ilen::physics::ColliderProxy2D> proxy;
+                std::optional<lynx::physics::ColliderProxy2D> proxy;
                 bool isTrigger = false;
 
                 if(boxCollider) {
-                    proxy = ilen::physics::ColliderProxyBuilder2D::FromBox(
+                    proxy = lynx::physics::ColliderProxyBuilder2D::FromBox(
                         entity,
                         *transform,
                         *rigidbody,
@@ -145,7 +144,7 @@ namespace ilen::ecs::systems {
                     );
                     isTrigger = boxCollider->isTrigger;
                 } else {
-                    proxy = ilen::physics::ColliderProxyBuilder2D::FromPolygon(
+                    proxy = lynx::physics::ColliderProxyBuilder2D::FromPolygon(
                         entity,
                         *transform,
                         *rigidbody,
@@ -243,7 +242,7 @@ namespace ilen::ecs::systems {
         }
 
         if(
-            PhysicsOptions::showDebugArrows &&
+            runtimeOptions->physics.showDebugArrows &&
             setting.showImpactForces &&
             m_physicsSystem
         ) {
@@ -300,7 +299,7 @@ namespace ilen::ecs::systems {
         }
 
         if(
-            PhysicsOptions::showDebugArrows &&
+            runtimeOptions->physics.showDebugArrows &&
             setting.showActiveVectors &&
             m_physicsSystem
         ) {
@@ -368,7 +367,7 @@ namespace ilen::ecs::systems {
             }
         }
 
-        auto primitives = DebugDraw2D::Consume (ilen::time::Time::getDeltaTime());
+        auto primitives = DebugDraw2D::Consume (lynx::time::Time::getDeltaTime());
 
         for(const auto& primitive : primitives) {
             switch (primitive.type) {
@@ -419,7 +418,7 @@ namespace ilen::ecs::systems {
 
         if(!texture) {
             //Solicitando al manager de textura un nuevo puntero a la textura necesaria por el Debugger.
-            m_whiteTexture = m_textureManager->getTextureHandler(PredefinedAssetsID::DefaultTextureID);
+            m_whiteTexture = m_textureManager->getTextureHandler(runtimeOptions->predefinedAssets.defaultTexture);
 
             texture = m_whiteTexture.lock();
 
@@ -433,7 +432,7 @@ namespace ilen::ecs::systems {
             return;
         }
 
-        //ILEN_LOG_P("DEBUG_RENDER", "Paso la comprobacion");
+        //LYNX_LOG_P("DEBUG_RENDER", "Paso la comprobacion");
 
         const uint8_t frame = m_renderer->getActualFrameInFlight();
         FrameBuffers& buffers = m_frameBuffers[frame];

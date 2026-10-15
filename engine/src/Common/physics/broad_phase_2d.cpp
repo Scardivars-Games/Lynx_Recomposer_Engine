@@ -1,10 +1,10 @@
 #include <cstdint>
-#include <ilen/physics/broad_phase_2d.h>
+#include <lynx/physics/broad_phase_2d.h>
 #include <algorithm>
 #include <vector>
-#include "ilen/physics/components/specification/collider_components.h"
+#include "lynx/physics/components/specification/collider_components.h"
 
-namespace ilen::physics {
+namespace lynx::physics {
     BroadPhase2D::BroadPhase2D(float cellSize) {
         constexpr float minimumCellSize = 0.01f;
 
@@ -12,7 +12,7 @@ namespace ilen::physics {
         m_inverseCellSize = 1.0f / m_cellSize;
     }
 
-    uint64_t BroadPhase2D::MakePairKey(ilen::ecs::Entity entityA, ilen::ecs::Entity entityB) {
+    uint64_t BroadPhase2D::MakePairKey(lynx::ecs::Entity entityA, lynx::ecs::Entity entityB) {
         const uint32_t minimum = std::min(entityA, entityB);
         const uint32_t maximum = std::max(entityA, entityB);
 

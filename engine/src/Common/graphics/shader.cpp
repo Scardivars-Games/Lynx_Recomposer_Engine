@@ -1,13 +1,13 @@
-/*#include <ilen/graphics/shader.h>
+/*#include <lynx/graphics/shader.h>
 
-using namespace ilen::core;
+using namespace lynx::core;
 
 const std::string ILEN_SHADER_FILE_NAME = "shader-file-name";
 const std::string ILEN_SHADER_DIRECTORY = "shader-dir";
 const std::string ILEN_SHADER_HUMAN_REDEABLE_NAME = "shader-name";*/
 /*
-namespace ilen::graphics {
-    IlenShader IlenShaderUtils::generateIlenShaderFromAsset(const ilen::resources::ShaderAsset& asset){
+namespace lynx::graphics {
+    IlenShader IlenShaderUtils::generateIlenShaderFromAsset(const lynx::resources::ShaderAsset& asset){
         using json = nlohmann::json;
         auto shaderPath = FileManager::fileRoute(asset.assetPath, ILEN_FILE_TYPE_ENGINE_SHADER);
 

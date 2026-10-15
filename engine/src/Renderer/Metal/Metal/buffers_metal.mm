@@ -1,12 +1,12 @@
 #if defined (__APPLE__)
 
 #include <Metal/buffers_metal.h>
-#include <ilen/headers/ilen_logs.h>
+#include <lynx/headers/lynx_logs.h>
 #import <Metal/Metal.h>
 
 
-namespace ilen::render {
-    MetalBuffer::MetalBuffer(id<MTLDevice> device, const IlenBufferDescriptor& descriptor, const void* data, id<MTLCommandQueue> commandQueue) {
+namespace lynx::render {
+    MetalBuffer::MetalBuffer(id<MTLDevice> device, const LynxBufferDescriptor& descriptor, const void* data, id<MTLCommandQueue> commandQueue) {
         @autoreleasepool {
             id<MTLBuffer> buffer;
             
@@ -42,7 +42,7 @@ namespace ilen::render {
         }
     }
 
-    const IlenBufferDescriptor& MetalBuffer::getDescriptor() const {
+    const LynxBufferDescriptor& MetalBuffer::getDescriptor() const {
         return _descriptor;
     }
 
@@ -54,7 +54,7 @@ namespace ilen::render {
         
         MTLStorageMode storageMode = [_buffer storageMode];
         
-#if ILEN_MACOS
+#if LYNX_MACOS
         if (storageMode == MTLStorageModeShared || storageMode == MTLStorageModeManaged) {
             uint8_t* bufferStart;
             uint8_t* destination;
@@ -75,7 +75,7 @@ namespace ilen::render {
                 [_buffer didModifyRange:NSMakeRange(offset, copySize)];
             }
         } else {
-            ILEN_WARNING_P(DEBUG_PREFIX, "Tratando de actualizar datos en un buffer privado!!!");
+            LYNX_WARNING_P(DEBUG_PREFIX, "Tratando de actualizar datos en un buffer privado!!!");
         }
 #else
         if (storageMode == MTLStorageModeShared) {
@@ -94,7 +94,7 @@ namespace ilen::render {
                   
             memcpy(destination, data, copySize);
         } else {
-            ILEN_WARNING_P(DEBUG_PREFIX, "Tratando de actualizar datos en un buffer privado!!!");
+            LYNX_WARNING_P(DEBUG_PREFIX, "Tratando de actualizar datos en un buffer privado!!!");
         }
 #endif
     }

@@ -1,14 +1,14 @@
-#if ILEN_LINUX
+#if LYNX_LINUX
 #include <window/window_linux.h>
 #include <xcb/xcb_ewmh.h>
 #include <xcb/xcb_icccm.h>
-#include <ilen/headers/ilen_logs.h>
+#include <lynx/headers/lynx_logs.h>
 
 static xcb_ewmh_connection_t* ewmh = nullptr;
 
-using namespace ilen::window;
+using namespace lynx::window;
 //Creación de la ventana de la función fábrica
-std::unique_ptr<IWindow> IWindow::CreateWindow(const ilen::application::ApplicationMetadata& metadata) {
+std::unique_ptr<IWindow> IWindow::CreateWindow(const lynx::application::ApplicationMetadata& metadata) {
     s_width = metadata.startWidth;
     s_height = metadata.startHeight;
 
@@ -17,11 +17,11 @@ std::unique_ptr<IWindow> IWindow::CreateWindow(const ilen::application::Applicat
     return std::make_unique<IWindow>(std::move(native));
 }
 
-WindowsNativeLinuxXCB::WindowsNativeLinuxXCB(const ilen::application::ApplicationMetadata &metadata) {
+WindowsNativeLinuxXCB::WindowsNativeLinuxXCB(const lynx::application::ApplicationMetadata &metadata) {
     //Conectarse al servidor X.
     m_connection = xcb_connect(nullptr, nullptr);
     if (!m_connection || xcb_connection_has_error(m_connection)) {
-        ILEN_EXECUTE_ERROR_P(DEBUG_PREFIX, "Imposible connectarse al servidor de X11 (XCB).");
+        LYNX_EXECUTE_ERROR_P(DEBUG_PREFIX, "Imposible connectarse al servidor de X11 (XCB).");
     }
 
     //Init de los helper extendidos para Windows Manager
@@ -91,10 +91,10 @@ WindowsNativeLinuxXCB::WindowsNativeLinuxXCB(const ilen::application::Applicatio
         m_WMDeleteWindow = reply->atom;
         free(reply);
     }else {
-        ILEN_ERROR_P(DEBUG_PREFIX, "Imposible obtener el atom WM_DELETE_WINDOW");
+        LYNX_ERROR_P(DEBUG_PREFIX, "Imposible obtener el atom WM_DELETE_WINDOW");
     }
 
-    if (metadata.windowPropertiesFlags & enumerations::ILEN_WINDOW_PROPERTY_CLOSABLE) {
+    if (metadata.windowPropertiesFlags & enumerations::LYNX_WINDOW_PROPERTY_CLOSABLE) {
         xcb_change_property(m_connection, XCB_PROP_MODE_REPLACE, m_window, m_WMProtocols, XCB_ATOM_ATOM,
             32, 1, &m_WMDeleteWindow);
     }
@@ -127,14 +127,14 @@ WindowsNativeLinuxXCB::~WindowsNativeLinuxXCB() {
 
 void WindowsNativeLinuxXCB::applyWindowProperties(uint32_t properties){
     //Fullscreen
-    if (properties & enumerations::ILEN_WINDOW_PROPERTY_FULLSCREEN) {
+    if (properties & enumerations::LYNX_WINDOW_PROPERTY_FULLSCREEN) {
         setNetWMState(true, m_NetWMStateFullScreen);
     }else {
         setNetWMState(false, m_NetWMStateFullScreen);
     }
 
     //Borderless
-    if (properties & enumerations::ILEN_WINDOW_PROPERTY_BORDERLESS) {
+    if (properties & enumerations::LYNX_WINDOW_PROPERTY_BORDERLESS) {
         xcb_atom_t windowType[3] = {
             ewmh->_NET_WM_WINDOW_TYPE_UTILITY,
             ewmh->_NET_WM_WINDOW_TYPE_DOCK,
@@ -163,7 +163,7 @@ void WindowsNativeLinuxXCB::applyWindowProperties(uint32_t properties){
     xcb_size_hints_t hints{};
     uint32_t flags = 0;
 
-    if (!(properties & enumerations::ILEN_WINDOW_PROPERTY_RESIZABLE)) {
+    if (!(properties & enumerations::LYNX_WINDOW_PROPERTY_RESIZABLE)) {
         hints.min_width = hints.max_width = static_cast<int32_t>(m_width);
         hints.min_height = hints.max_height = static_cast<int32_t>(m_height);
         flags |= XCB_ICCCM_SIZE_HINT_P_MIN_SIZE | XCB_ICCCM_SIZE_HINT_P_MAX_SIZE;
