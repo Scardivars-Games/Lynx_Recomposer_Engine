@@ -1,6 +1,6 @@
-# Ilusion's Engine (ILEN)
+# Lynx Recomposer Engine (LYNX)
 
-Ilusion's Engine (ILEN) es un motor de videojuegos escrito en C++ moderno (C++23) orientado a crear juegos
+Lynx Recomposer Engine (LYNX) es un motor de videojuegos escrito en C++ moderno (C++23) orientado a crear juegos
 visualmente impactantes aprovechando eficientemente CPU y GPU. El motor prioriza APIs gráficas modernas (Metal, Vulkan,
 DirectX 12) y mantiene compatibilidad con APIs legadas (OpenGL, DirectX 11 cuando sea posible).
 
