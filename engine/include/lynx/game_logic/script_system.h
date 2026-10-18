@@ -21,8 +21,6 @@ namespace lynx::ecs::systems {
     };
 }
 
-REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::ScriptingSystem, lynx::ecs::SystemPhase::VariableUpdate, 0);
-REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::ScriptingSystem, lynx::ecs::components::ScriptingBridgeComponent);
 #else
 //Esto es por compatibilidad
 namespace lynx::ecs::systems {

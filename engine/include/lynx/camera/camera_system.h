@@ -29,7 +29,3 @@ namespace lynx::ecs::systems {
             components::CameraComponent* m_mainCamera = nullptr;
     };
 }
-
-
-REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::CameraSystem, lynx::ecs::SystemPhase::PreRender, 2)
-REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::CameraSystem, lynx::ecs::components::CameraComponent)

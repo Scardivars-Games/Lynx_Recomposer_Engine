@@ -1,6 +1,9 @@
 #include <lynx/render/render_system.h>
 #include <lynx/core/engine_context.h>
 
+REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::RenderSystem, lynx::ecs::SystemPhase::PreRender, 3)
+REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::RenderSystem, lynx::ecs::components::RenderComponent)
+
 namespace lynx::ecs::systems {
     void RenderSystem::Init(const EngineContext *engineContext) {
         p_jobSystem = engineContext->p_jobSystem.get();

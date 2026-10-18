@@ -49,8 +49,22 @@ Clonar el repositorio y generar el proyecto de Xcode con los scripts provistos.
 - iOS (device/OS64):
   ```bash
   ./compile-ios.sh
-  # Abre el proyecto generado (build-ios) en Xcode, selecciona esquema iOS y compila/ejecuta en dispositivo o simulador
+  # El script crea/reutiliza el XCFramework y genera el proyecto de la app.
   ```
+
+### Engine precompilado para iOS
+
+El engine se distribuye como un XCFramework estático con una slice `arm64` para
+iPhone/iPad y una slice universal `arm64+x86_64` para Simulator:
+
+```bash
+./build-ios-xcframework.sh Release
+```
+
+El resultado queda en
+`dist/ios/Release/LynxRecomposer.xcframework`. Para que otro proyecto CMake lo
+consuma sin recompilar el engine, configura `LRE_ENGINE_XCFRAMEWORK` con esa
+ruta. `compile-ios.sh` ya realiza esa configuración automáticamente.
 
 También puedes usar CMake manualmente:
 ```bash

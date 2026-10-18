@@ -9,6 +9,9 @@ using namespace lynx::ecs::systems;
 using namespace lynx::maths::matrix;
 
 
+REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::PostProcessSystem, lynx::ecs::SystemPhase::Render, 10);
+REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::PostProcessSystem, lynx::ecs::components::RenderComponent);
+
 void PostProcessSystem::Init(const EngineContext *engineContext) {
     p_coordinator = engineContext->p_coordinator.get();
     renderer = engineContext->p_gameRenderer.get();

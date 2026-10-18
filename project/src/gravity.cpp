@@ -10,7 +10,7 @@
 #include <lynx_public/API/rendering_api.h>
 #include <lynx_public/API/scenes_api.h>
 
-#if LYNX_DEBUG
+#if LYNX_DEBUG && LYNX_DESKTOP
 #include <lynx/debug/debug_render_system_2d.h>
 #endif
 
@@ -161,7 +161,7 @@ void Cube::Update() {
     }
 
         //Debug, activar
-#if LYNX_DEBUG
+#if LYNX_DEBUG && LYNX_DESKTOP
     using DebugSystem = lynx::ecs::systems::DebugRenderSystem2D;
     auto& debutSettings = DebugSystem::GetSettings();
 
@@ -288,8 +288,7 @@ void GravityCamera::LateUpdate() {
 void PlayerSpawner::Init() {
     LYNX_LOG_P("Player Spawner", "Spwaneando al jugador");
     EntityAPI::LoadPrefab("Player_Prefab", TransformAPI::GetEntityPosition(entity));
-
-#if LYNX_DEBUG
+#if LYNX_DEBUG && LYNX_DESKTOP
     using DebugSystem = lynx::ecs::systems::DebugRenderSystem2D;
     auto& debutSettings = DebugSystem::GetSettings();
 

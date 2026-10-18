@@ -6,6 +6,7 @@ build_macOS
 build-macOS
 build-linux-arm64
 build-linux-x86_64
+dist
 .idea
 .vs
 .cache

@@ -83,6 +83,12 @@ else()
     )
 endif()
 
+set(LRE_ASSET_TARGET_NAME "${LRE_TARGET_NAME}")
+
+if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|tvOS)$" AND PLATFORM STREQUAL "SIMULATOR")
+    string(APPEND LRE_ASSET_TARGET_NAME "-simulator")
+endif()
+
 #GAME METADATA
 
 string(JSON LRE_GAME_NAME GET "${LRE_PROJECT_JSON}" project name)
@@ -401,7 +407,7 @@ set(
 
 set(
     LRE_PROJECT_BINARY_ASSET_DIR
-    "${CMAKE_CURRENT_BINARY_DIR}/compiled_assets/${LRE_TARGET_NAME}"
+    "${CMAKE_CURRENT_BINARY_DIR}/compiled_assets/${LRE_ASSET_TARGET_NAME}"
 )
 
 set(
@@ -611,7 +617,7 @@ add_custom_command(
         --output
             "${LRE_PROJECT_BINARY_ASSET_DIR}"
         --compile-target
-            "${LRE_TARGET_NAME}"
+            "${LRE_ASSET_TARGET_NAME}"
 
     COMMAND
         "${CMAKE_COMMAND}" -E make_directory
@@ -674,22 +680,27 @@ add_dependencies(
 # Ejecutable
 # ----------------------------------------------------------------------
 
-if(APPLE)
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(LRE_GAME_ENTRY_POINT "${CMAKE_CURRENT_SOURCE_DIR}/platform/iOS/ios_entry.mm")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    set(LRE_GAME_ENTRY_POINT "${CMAKE_CURRENT_SOURCE_DIR}/platform/tvOS/tvos_entry.mm")
+else()
     set(
         LRE_GAME_ENTRY_POINT
         "${CMAKE_CURRENT_SOURCE_DIR}/platform/desktop/main.cpp"
     )
+endif()
 
-    set(
-        LRE_GAME_ICON
-        "${CMAKE_CURRENT_SOURCE_DIR}/platform/macOS/icon/AppIcon.icns"
-    )
+if(APPLE)
+    set(LRE_GAME_ICON)
 
-    set_source_files_properties(
-        "${LRE_GAME_ICON}"
-        PROPERTIES
+    if(NOT CMAKE_SYSTEM_NAME STREQUAL "iOS"
+       AND NOT CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+        set(LRE_GAME_ICON "${CMAKE_CURRENT_SOURCE_DIR}/platform/macOS/icon/AppIcon.icns")
+        set_source_files_properties("${LRE_GAME_ICON}" PROPERTIES
             MACOSX_PACKAGE_LOCATION "Resources"
-    )
+        )
+    endif()
 
     add_executable(
         lre_game_project
@@ -734,6 +745,110 @@ add_dependencies(
     lre_game_project
     lre_game_assets
 )
+
+# ----------------------------------------------------------------------
+# Bundle de iOS
+# ----------------------------------------------------------------------
+
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set(LRE_IOS_ASSET_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/platform/iOS/icon/Assets.xcassets")
+    set(LRE_IOS_ICON_COMPOSER "${CMAKE_CURRENT_SOURCE_DIR}/platform/iOS/icon/AppIcon.icon")
+
+    set_source_files_properties("${LRE_IOS_ASSET_CATALOG}" PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+        XCODE_EXPLICIT_FILE_TYPE "folder.assetcatalog"
+    )
+    set_source_files_properties("${LRE_IOS_ICON_COMPOSER}" PROPERTIES
+        MACOSX_PACKAGE_LOCATION "Resources"
+        XCODE_EXPLICIT_FILE_TYPE "folder.iconcomposer.icon"
+    )
+    target_sources(lre_game_project PRIVATE
+        "${LRE_IOS_ASSET_CATALOG}"
+        "${LRE_IOS_ICON_COMPOSER}"
+    )
+    target_link_libraries(lre_game_project PRIVATE
+        "-framework Foundation"
+        "-framework UIKit"
+        "-framework QuartzCore"
+        "-framework Metal"
+        "-framework MetalKit"
+        "-framework GameController"
+    )
+    target_link_options(lre_game_project PRIVATE
+        "LINKER:-all_load"
+    )
+    target_compile_options(lre_game_project PRIVATE "-fno-objc-arc")
+
+    set_target_properties(lre_game_project PROPERTIES
+        OUTPUT_NAME "${LRE_GAME_NAME}"
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/iOS/Info.plist"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "${LRE_GAME_IDENTIFIER}"
+        MACOSX_BUNDLE_BUNDLE_NAME "${LRE_GAME_NAME}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${LRE_GAME_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${LRE_GAME_VERSION}"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${LRE_GAME_IDENTIFIER}"
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2"
+        XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+        XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
+    )
+
+    add_custom_command(TARGET lre_game_project POST_BUILD
+        COMMAND "${CMAKE_COMMAND}"
+            "-DLRE_ASSET_SOURCE=${LRE_PROJECT_BINARY_ASSET_DIR}"
+            -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/copy_ios_assets.cmake"
+        COMMENT "Assembling iOS game assets"
+        VERBATIM
+    )
+endif()
+
+# ----------------------------------------------------------------------
+# Bundle de tvOS
+# ----------------------------------------------------------------------
+
+if(CMAKE_SYSTEM_NAME STREQUAL "tvOS")
+    set(LRE_TVOS_ASSET_CATALOG "${CMAKE_CURRENT_SOURCE_DIR}/platform/tvOS/icon/Assets.xcassets")
+
+    set_source_files_properties("${LRE_TVOS_ASSET_CATALOG}" PROPERTIES MACOSX_PACKAGE_LOCATION "Resources" XCODE_EXPLICIT_FILE_TYPE "folder.assetcatalog")
+    target_sources(lre_game_project PRIVATE "${LRE_TVOS_ASSET_CATALOG}")
+
+    target_link_libraries(lre_game_project PRIVATE
+        "-framework Foundation"
+        "-framework UIKit"
+        "-framework TVUIKit"
+        "-framework QuartzCore"
+        "-framework Metal"
+        "-framework MetalKit"
+        "-framework GameController"
+    )
+
+    target_link_options(lre_game_project PRIVATE
+        "LINKER:-all_load"
+    )    
+    target_compile_options(lre_game_project PRIVATE "-fno-objc-arc")
+    set_target_properties(lre_game_project PROPERTIES 
+        OUTPUT_NAME "${LRE_GAME_NAME}"
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/platform/tvOS/Info.plist"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "${LRE_GAME_IDENTIFIER}"
+        MACOSX_BUNDLE_BUNDLE_NAME "${LRE_GAME_NAME}"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "${LRE_GAME_VERSION}"
+        MACOSX_BUNDLE_BUNDLE_VERSION "${LRE_GAME_VERSION}"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "${LRE_GAME_IDENTIFIER}"
+        XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "3"
+        XCODE_ATTRIBUTE_SKIP_INSTALL "NO"
+        XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon"
+    )
+
+    add_custom_command(TARGET lre_game_project POST_BUILD
+        COMMAND "${CMAKE_COMMAND}" 
+        "-DLRE_ASSET_SOURCE=${LRE_PROJECT_BINARY_ASSET_DIR}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/copy_ios_assets.cmake"
+
+        COMMENT "Assembling tvOS game assets"
+        VERBATIM
+    )
+endif()
 
 # ----------------------------------------------------------------------
 # Bundle de macOS

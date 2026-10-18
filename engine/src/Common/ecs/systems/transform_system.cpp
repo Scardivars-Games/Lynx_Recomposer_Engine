@@ -1,6 +1,10 @@
 #include <lynx/transform/transform_system.h>
 #include <lynx/core/time.h>
 
+
+REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::TransformSystem, lynx::ecs::SystemPhase::PreRender, 1)
+REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::TransformSystem, lynx::ecs::components::TransformComponent)
+
 namespace lynx::ecs::systems {
     void TransformSystem::Init(const lynx::EngineContext *engineContext) {
         p_coordinator = engineContext->p_coordinator.get();

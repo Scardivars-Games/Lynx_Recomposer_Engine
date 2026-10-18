@@ -37,6 +37,16 @@ namespace lynx::render {
             }
             
             defineSupportedGPUCompression();
+
+            LYNX_LOG("GPU compression: Apple2=%d BC=%d selected=%u", [_device supportsFamily:MTLGPUFamilyApple2],
+            #if LYNX_MACOS || TARGET_OS_SIMULATOR
+                [_device supportsBCTextureCompression],
+            #else
+                0,
+            #endif
+                static_cast<uint32_t>(compressionActualFormat)
+            );
+
             
             LYNX_LOG("Device: %p", _metalLayer.device);
             LYNX_LOG("DrawableSize: %.0f x %.0f", _metalLayer.drawableSize.width, _metalLayer.drawableSize.height);
@@ -513,20 +523,18 @@ std::unique_ptr<IGPUInstanceBuffer> MetalRender::createInstanceBuffer(size_t buf
 
 
 void MetalRender::defineSupportedGPUCompression() {
-    if([_device supportsFamily:MTLGPUFamilyApple6]){
-        compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
+#if LYNX_MACOS || TARGET_OS_SIMULATOR
+    if([_device supportsBCTextureCompression]){
+        compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
+        return;
     }
-//#if LYNX_MACOS
-    else if (@available(iOS 16.4, *)) {
-        if([_device supportsBCTextureCompression]){
-            compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM;
-        }
-        //#endif
-        else {
-            compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
-        }
-    } else {
-        // Fallback on earlier versions
+#endif
+    if([_device supportsFamily:MTLGPUFamilyApple2]){
+        compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_ASTC_4X4_UNORM;
+        return;
+    }
+    else {
+        compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
     }
 }
 

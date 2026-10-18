@@ -8,6 +8,10 @@
 #include <lynx/window/window.h>
 
 
+REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::CameraSystem, lynx::ecs::SystemPhase::PreRender, 2)
+REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::CameraSystem, lynx::ecs::components::CameraComponent)
+
+
 namespace lynx::ecs::systems {
     using namespace lynx::ecs::components;
 

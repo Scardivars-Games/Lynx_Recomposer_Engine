@@ -13,8 +13,4 @@ namespace lynx::ecs::systems {
             void Update() override;
     };
 }
-
-REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::PhysicsEventSystem2D, lynx::ecs::SystemPhase::FixedUpdate, 20);
-REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::PhysicsEventSystem2D, lynx::ecs::components::ScriptingBridgeComponent);
-
 #endif

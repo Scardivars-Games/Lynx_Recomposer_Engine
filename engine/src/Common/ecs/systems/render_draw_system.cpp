@@ -7,6 +7,11 @@
 #include <lynx/render/render_component.h>
 #include <lynx/camera/camera_system.h>
 
+
+
+REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::RenderDrawSystem, lynx::ecs::SystemPhase::Render, 1)
+REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::RenderDrawSystem, lynx::ecs::components::RenderComponent)
+
 namespace lynx::ecs::systems {
 
     using namespace lynx::maths::matrix;

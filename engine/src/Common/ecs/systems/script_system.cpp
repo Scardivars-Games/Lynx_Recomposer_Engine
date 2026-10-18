@@ -9,6 +9,8 @@
 #include <lynx_public/API/camera_api.h>
 #include <lynx_public/API/rendering_api.h>
 
+REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::ScriptingSystem, lynx::ecs::SystemPhase::VariableUpdate, 0);
+REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::ScriptingSystem, lynx::ecs::components::ScriptingBridgeComponent);
 
 namespace lynx::ecs::systems {
     void ScriptingSystem::Init(const EngineContext *engineContext) {

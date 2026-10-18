@@ -1,0 +1,22 @@
+if(NOT DEFINED LRE_ASSET_SOURCE OR NOT IS_DIRECTORY "${LRE_ASSET_SOURCE}")
+    message(FATAL_ERROR "LRE asset directory does not exist: ${LRE_ASSET_SOURCE}")
+endif()
+
+if(NOT DEFINED ENV{CODESIGNING_FOLDER_PATH} OR
+   "$ENV{CODESIGNING_FOLDER_PATH}" STREQUAL "")
+    message(FATAL_ERROR "Xcode did not define CODESIGNING_FOLDER_PATH")
+endif()
+
+set(LRE_ASSET_DESTINATION "$ENV{CODESIGNING_FOLDER_PATH}/assets")
+
+execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${LRE_ASSET_DESTINATION}"
+    COMMAND_ERROR_IS_FATAL ANY
+)
+
+execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+        "${LRE_ASSET_SOURCE}"
+        "${LRE_ASSET_DESTINATION}"
+    COMMAND_ERROR_IS_FATAL ANY
+)

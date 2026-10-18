@@ -1,12 +1,13 @@
 // ENTRY POINT FOR tvOS
 
-#if ILEN_TVOS
+#if LYNX_TVOS
 #import <UIKit/UIKit.h>
-#include <ilen/core/lifetime.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/core/exceptions.h>
-#include <ilen/input/input_buffer.h>
-#include <window/window_tvos.h>
+
+#include <game/runtime_options.h>
+#include <lynx/core/lifetime.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/core/exceptions.h>
+#include <lynx/input/input_buffer.h>
 
 @class SceneDelegate;
 
@@ -22,7 +23,7 @@
 @interface SceneDelegate : UIResponder <UIWindowSceneDelegate>
 
 @property (strong, nonatomic) UIWindow *window;
-@property (nonatomic, assign) ilen::AppRuntime* app;
+@property (nonatomic, assign) lynx::AppRuntime* app;
 @property (nonatomic, strong) CADisplayLink *displayLink;
 @property (nonatomic, assign) BOOL engineFailed;
 
@@ -36,26 +37,32 @@
     }
     
     _engineFailed = NO;
-    self.app = &ilen::AppRuntime::getInstance();
+    self.app = &lynx::AppRuntime::getInstance();
     
     UIWindowScene *windowScene = (UIWindowScene *)scene;
     self.window = [[UIWindow alloc] initWithWindowScene:windowScene];
     
-    ilen::application::ApplicationMetadata metadata{};
-    metadata.applicationName = "ILEN Test";
-    metadata.applicationDeveloper = "Scardivar's Games";
-    metadata.applicationVersion = "0.0.1";
-    metadata.applicationFramerate = ilen::core::options::GraphicsOptions::actualFPS;
+    auto bootstrap = game::generated::MakeProjectBootstrap();
+    bootstrap.metadata.mobileNativeWindow = (__bridge void*)self.window;
     
-    // IMPORTANTE: Cambiamos el nombre de la propiedad si tu motor distingue entre plataformas, 
-    // o puedes seguir usando el puntero genérico de la ventana.
-    metadata.mobileNativeWindow = (__bridge void*)self.window;
+    const NSInteger desiredFPS = bootstrap.metadata.applicationFramerate;
+    
+    NSInteger maximumFPS = UIScreen.mainScreen.maximumFramesPerSecond;
+    NSInteger requestedFPS = MIN(
+         desiredFPS,
+        maximumFPS
+    );
+    
     
     try {
-        self.app->init(metadata);
-    } catch (const ilen::core::BasicException& e) {
+        self.app->init(std::move(bootstrap));
+    } catch (const lynx::core::BasicException& e) {
         _engineFailed = YES;
-        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
+        LYNX_FATAL_ERROR_P(e.prefix(), e.what());
+        [self stopApp];
+    }catch(const std::exception &exception) {
+        self.engineFailed = YES;
+        LYNX_FATAL_ERROR_P("GAME", exception.what());
         [self stopApp];
     }
     
@@ -63,12 +70,6 @@
         return;
     }
 
-    NSInteger maximumFPS = UIScreen.mainScreen.maximumFramesPerSecond;
-    NSInteger requestedFPS = MIN(
-        metadata.applicationFramerate,
-        maximumFPS
-    );
-    
     self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop:)];
     
     // AJUSTE PARA tvOS: 
@@ -99,9 +100,13 @@
         } else {
             [self stopApp];
         }
-    } catch (const ilen::core::BasicException& e) {
+    } catch (const lynx::core::BasicException& e) {
         _engineFailed = YES;
-        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
+        LYNX_FATAL_ERROR_P(e.prefix(), e.what());
+        [self stopApp];
+    }catch(const std::exception &exception) {
+        self.engineFailed = YES;
+        LYNX_FATAL_ERROR_P("GAME", exception.what());
         [self stopApp];
     }
 }
@@ -131,15 +136,13 @@
 
 -(void)sceneWillResignActive:(UIScene *)scene {
     //Acaba de entrar a foreground
-    ilen::input::InputBuffer::Get().ForceResetData();
-    auto win = static_cast<ilen::window::WindowNativeTVOS*>(self.app->getEngineContext()->p_gameWindow->getNativeWindow());
-    win->isOutOfFocus = true;
+    lynx::input::InputBuffer::Get().ForceResetData();
+    self.displayLink.paused = YES;
 }
 
 -(void)sceneDidBecomeActive:(UIScene *)scene {
     //Obtuvo el foco la app
-    auto win = static_cast<ilen::window::WindowNativeTVOS*>(self.app->getEngineContext()->p_gameWindow->getNativeWindow());
-    win->isOutOfFocus = false;
+    self.displayLink.paused = NO;
 }
 @end
 
@@ -150,4 +153,4 @@ int main(int argc, char* argv[]) {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }
 }
-#endif //ILEN_TVOS
+#endif //LYNX_TVOS

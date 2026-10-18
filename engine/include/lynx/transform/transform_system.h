@@ -23,6 +23,3 @@ namespace lynx::ecs::systems {
             void calculateLocalToWorldMatrix(Entity entity, matrix::mat4 parentMatrix, lynx::job_system::JobGroup* group, ComponentArray<TransformComponent>* componentArray);
     };
 }
-
-REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::TransformSystem, lynx::ecs::SystemPhase::PreRender, 1)
-REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::TransformSystem, lynx::ecs::components::TransformComponent)

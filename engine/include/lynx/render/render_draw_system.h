@@ -61,6 +61,3 @@ namespace lynx::ecs::systems {
             static inline const char* DEBUG_PREFIX = "RENDER_DRAW_SYSTEM";
     };
 }
-
-REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::RenderDrawSystem, lynx::ecs::SystemPhase::Render, 1)
-REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::RenderDrawSystem, lynx::ecs::components::RenderComponent)

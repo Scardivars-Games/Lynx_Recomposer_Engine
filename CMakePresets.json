@@ -24,7 +24,7 @@
             "binaryDir": "${sourceDir}/build/release-opt",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "ILEN_OPTIMIZED_BUILD_FLAGS": "ON"
+                "LYNX_OPTIMIZED_BUILD_FLAGS": "ON"
             }
         },
         {
@@ -35,8 +35,8 @@
             "binaryDir": "${sourceDir}/build/release-opt-metalhud",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "ILEN_OPTIMIZED_BUILD_FLAGS": "ON",
-                "ILEN_METAL_HUD": "ON"
+                "LYNX_OPTIMIZED_BUILD_FLAGS": "ON",
+                "LYNX_METAL_HUD": "ON"
             }
         },
         {
@@ -55,7 +55,7 @@
             "binaryDir": "${sourceDir}/build/debug-metalhud",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "ILEN_METAL_HUD": "ON"
+                "LYNX_METAL_HUD": "ON"
             }
         }
     ],

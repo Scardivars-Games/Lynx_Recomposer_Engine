@@ -55,6 +55,3 @@ namespace lynx::ecs::systems {
             const char* DEBUG_PREFIX = "RENDER_SYSTEM";
     };
 }
-
-REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::RenderSystem, lynx::ecs::SystemPhase::PreRender, 3)
-REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::RenderSystem, lynx::ecs::components::RenderComponent)

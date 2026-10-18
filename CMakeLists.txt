@@ -51,10 +51,17 @@ else()
     message(FATAL_ERROR "LRE no soporta la plataforma: ${CMAKE_SYSTEM_NAME}")
 endif()
 
-set(LRE_ENGINE_BINARY_ASSET_DIR "${LRE_GENERATED_ROOT}/engine_assets/${LRE_TARGET_NAME}" CACHE PATH "Compiled LRE assets" FORCE)
+set(LRE_ASSET_TARGET_NAME "${LRE_TARGET_NAME}")
+
+if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|tvOS)$" AND PLATFORM STREQUAL "SIMULATOR")
+    string(APPEND LRE_ASSET_TARGET_NAME "-simulator")
+endif()
+
+set(LRE_ENGINE_BINARY_ASSET_DIR "${LRE_GENERATED_ROOT}/engine_assets/${LRE_ASSET_TARGET_NAME}" CACHE PATH "Compiled LRE assets" FORCE)
 set(LRE_ENGINE_ASSET_STAMP "${LRE_ENGINE_BINARY_ASSET_DIR}/.build_complete" CACHE FILEPATH "LRE ASSET compilation stamp" FORCE)
 
 set(LRE_BUILD_ENGINE_ASSETS ON CACHE BOOL "Create the LRE engine asset target")
+option(LRE_BUILD_GAME_PROJECT "Build the game project" ON)
 
 #Herramientas nativas al OS de compilación
 if(CMAKE_HOST_WIN32)
@@ -85,6 +92,7 @@ ExternalProject_Add(
     BINARY_DIR "${LRE_TOOLS_BUILD_DIR}/build"
 
     CMAKE_CACHE_ARGS "-DLRE_ENGINE_INCLUDE_DIR:PATH=${LRE_ENGINE_INCLUDE_DIR}"
+    "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=${LRE_WORKSPACE_ROOT}/toolchains/macos.toolchain.cmake"
     "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY:PATH=${LRE_TOOLS_DIR}"
     "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG:PATH=${LRE_TOOLS_DIR}"
     "-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE:PATH=${LRE_TOOLS_DIR}"
@@ -123,13 +131,19 @@ foreach(LRE_TOOL_NAME IN LISTS LRE_NATIVE_TOOL_NAMES)
 endforeach()
 
 add_subdirectory(engine)
-add_subdirectory(project)
+if(LRE_BUILD_GAME_PROJECT)
+    add_subdirectory(project)
+endif()
 
 #General workspace
 
 add_custom_target(lre_workspace)
 
-add_dependencies(lre_workspace lre_engine lre_game_project)
+add_dependencies(lre_workspace lre_engine)
+
+if(TARGET lre_game_project)
+    add_dependencies(lre_workspace lre_game_project)
+endif()
 
 if(TARGET lre_engine_assets)
     add_dependencies(lre_workspace lre_engine_assets)

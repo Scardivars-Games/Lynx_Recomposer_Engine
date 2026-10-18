@@ -136,7 +136,9 @@ enum class CompileTargetOptions {
     macOS_x86_64,
     Android,
     iOS,
+    iOS_simulator,
     tvOS,
+    tvOS_simulator,
     Undefined,
 };
 
@@ -282,8 +284,12 @@ namespace {
             return CompileTargetOptions::macOS;
         if(target == "iOS")
             return CompileTargetOptions::iOS;
+        if(target == "iOS-simulator")
+            return CompileTargetOptions::iOS_simulator;
         if(target == "tvOS")
             return  CompileTargetOptions::tvOS;
+        if(target == "tvOS-simulator")
+            return CompileTargetOptions::tvOS_simulator;
         if(target == "windows")
             return CompileTargetOptions::Windows;
         if(target == "linux")
@@ -1702,8 +1708,27 @@ void binarizeFiles(std::filesystem::path lynxEngineFolder) {
                     std::vector<lynx::binary::headers::TexturePayloadInfo> toc; //1 payload por cada textura usada
                     std::vector<std::vector<uint8_t>> compressedBlobs;
 
-                    bool needsASTC = compressTexture && (actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_arm || actualCompileOption == CompileTargetOptions::iOS || actualCompileOption == CompileTargetOptions::tvOS || actualCompileOption == CompileTargetOptions::Android);
-                    bool needsBC7 = compressTexture && (actualCompileOption == CompileTargetOptions::Windows || actualCompileOption == CompileTargetOptions::Linux || actualCompileOption == CompileTargetOptions::macOS || actualCompileOption == CompileTargetOptions::macOS_x86_64);
+                    bool needsASTC = 
+                    compressTexture && 
+                    (
+                        actualCompileOption == CompileTargetOptions::macOS || 
+                        actualCompileOption == CompileTargetOptions::macOS_arm || 
+                        actualCompileOption == CompileTargetOptions::iOS || 
+                        actualCompileOption == CompileTargetOptions::tvOS || 
+                        actualCompileOption == CompileTargetOptions::Android ||
+                        actualCompileOption == CompileTargetOptions::iOS_simulator ||
+                        actualCompileOption == CompileTargetOptions::tvOS_simulator
+                    );
+
+                    bool needsBC7 = compressTexture && 
+                    (
+                        actualCompileOption == CompileTargetOptions::Windows || 
+                        actualCompileOption == CompileTargetOptions::Linux || 
+                        actualCompileOption == CompileTargetOptions::macOS || 
+                        actualCompileOption == CompileTargetOptions::macOS_x86_64 ||
+                        actualCompileOption == CompileTargetOptions::iOS_simulator ||
+                        actualCompileOption == CompileTargetOptions::tvOS_simulator
+                    );
                 
                     //Comprimir a ASTC
                     if(needsASTC){

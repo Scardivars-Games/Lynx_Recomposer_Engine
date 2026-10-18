@@ -54,6 +54,3 @@ namespace  lynx::ecs::systems {
         const char* DEBUG_PREFIX = "POST_PROCESSING_SYSTEM";
     };
 }
-
-REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::PostProcessSystem, lynx::ecs::SystemPhase::Render, 10);
-REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::PostProcessSystem, lynx::ecs::components::RenderComponent);

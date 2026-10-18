@@ -6,6 +6,10 @@
 #include <lynx/game_logic/ecs_bridge.h>
 #include <lynx/physics/components/specification/collision_components.h>
 
+REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::PhysicsEventSystem2D, lynx::ecs::SystemPhase::FixedUpdate, 20);
+REQUIRED_COMPONENTS_FOR_SYSTEM(lynx::ecs::systems::PhysicsEventSystem2D, lynx::ecs::components::ScriptingBridgeComponent);
+
+
 namespace lynx::ecs::systems {
     using lynx::ecs::components::ScriptingBridgeComponent;
     using namespace lynx::ecs::components::physics;

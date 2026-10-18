@@ -1,6 +1,7 @@
 #ifdef __APPLE__
 
 #include <Metal_Common/engine_to_native_converters.h>
+#include <TargetConditionals.h>
 
 using namespace lynx::enumerations;
 
@@ -99,14 +100,14 @@ MTLPixelFormat lynx::render::utils::metal::transformEngineToNativePixelFormat(LY
         // COMPRESIÓN DE BLOQUES (Assets de Juego)
         // =========================================================================
         case LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_BC7_UNORM:
-#if LYNX_MACOS
+#if LYNX_MACOS || TARGET_OS_SIMULATOR
             return MTLPixelFormatBC7_RGBAUnorm;
 #else
             return MTLPixelFormatInvalid; // iOS nunca ha soportado BC7
 #endif
 
         case LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_BC7_SRGB:
-#if LYNX_MACOS
+#if LYNX_MACOS || TARGET_OS_SIMULATOR
             return MTLPixelFormatBC7_RGBAUnorm_sRGB;
 #else
             return MTLPixelFormatInvalid;

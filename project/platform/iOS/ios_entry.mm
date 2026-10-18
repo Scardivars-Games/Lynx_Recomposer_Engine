@@ -1,182 +1,180 @@
-//ENTRY POINT FOR iOS
-#if ILEN_IOS
+#if LYNX_IOS
+
 #import <UIKit/UIKit.h>
-#include <ilen/core/lifetime.h>
-#include <ilen/headers/ilen_logs.h>
-#include <ilen/core/exceptions.h>
-#include <ilen/input/input_buffer.h>
-#include <ilen/core/runtime_options.h>
-#include <window/window_ios.h>
+
+#include <exception>
+#include <utility>
+
+#include <game/runtime_options.h>
+#include <lynx/core/exceptions.h>
+#include <lynx/core/lifetime.h>
+#include <lynx/headers/lynx_logs.h>
+#include <lynx/input/input_buffer.h>
 
 @class SceneDelegate;
 
-@interface IlenWindow : UIWindow
+@interface LynxWindow : UIWindow
 @end
 
-@implementation IlenWindow
 
--(void)setRootViewController:(UIViewController *)rootViewController{
+@implementation LynxWindow
+
+- (void)setRootViewController:(UIViewController *)rootViewController {
     [super setRootViewController:rootViewController];
-    
-    if(rootViewController){
+
+    if (rootViewController) {
         [rootViewController setNeedsUpdateOfHomeIndicatorAutoHidden];
         [rootViewController setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
     }
 }
 
--(void)layoutSubviews {
+- (void)layoutSubviews {
     [super layoutSubviews];
-    
-    UIViewController* vc = self.rootViewController;
-    if(vc) {
-        [vc setNeedsUpdateOfHomeIndicatorAutoHidden];
-        [vc setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
+
+    UIViewController *viewController = self.rootViewController;
+    if (viewController) {
+        [viewController setNeedsUpdateOfHomeIndicatorAutoHidden];
+        [viewController setNeedsUpdateOfScreenEdgesDeferringSystemGestures];
     }
 }
+
 @end
+
 
 @interface AppDelegate : UIResponder <UIApplicationDelegate>
-
 @end
 
-//AppDelegate -- Necesario para la versión de iOS
+
 @implementation AppDelegate
--(UISceneConfiguration *)application:(UIApplication *)application configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession options:(UISceneConnectionOptions *)options;{
-    return [[UISceneConfiguration alloc] initWithName:@"Default Configuration" sessionRole: connectingSceneSession.role];
+
+- (UISceneConfiguration *)application:(UIApplication *)application
+        configurationForConnectingSceneSession:(UISceneSession *)connectingSceneSession
+        options:(UISceneConnectionOptions *)options {
+    return [[UISceneConfiguration alloc] initWithName:@"Default Configuration"
+                                          sessionRole:connectingSceneSession.role];
 }
-@end
-
-@interface SceneDelegate : UIResponder<UIWindowSceneDelegate>
-
-@property (strong, nonatomic) IlenWindow *window;
-@property (nonatomic, assign) ilen::AppRuntime* app;
-@property (nonatomic, strong) CADisplayLink *displayLink;
-@property (nonatomic, assign) BOOL engineFailed;
 
 @end
+
+
+@interface SceneDelegate : UIResponder <UIWindowSceneDelegate>
+
+@property(strong, nonatomic) LynxWindow *window;
+@property(nonatomic, assign) lynx::AppRuntime *app;
+@property(nonatomic, strong) CADisplayLink *displayLink;
+@property(nonatomic, assign) BOOL engineFailed;
+
+@end
+
 
 @implementation SceneDelegate
 
-//Se llama cada vez que una escena quiera comunicarse con la app
-- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions{
-    //Confirmar que la escena sea del tipo esperado
-    if(![scene isKindOfClass:[UIWindowScene class]]){
+- (void)scene:(UIScene *)scene
+        willConnectToSession:(UISceneSession *)session
+        options:(UISceneConnectionOptions *)connectionOptions {
+    if (![scene isKindOfClass:[UIWindowScene class]]) {
         return;
     }
-    
-    _engineFailed = NO;
-    self.app = &ilen::AppRuntime::getInstance();
-    
+
+    self.engineFailed = NO;
+    self.app = &lynx::AppRuntime::getInstance();
+
     UIWindowScene *windowScene = (UIWindowScene *)scene;
-    self.window = [[IlenWindow alloc] initWithWindowScene:windowScene];
-    
-    ilen::application::ApplicationMetadata metadata{};
-    metadata.applicationName = "ILEN Test";
-    metadata.applicationDeveloper = "Scardivar's Games";
-    metadata.applicationVersion = "0.0.1";
-    metadata.applicationFramerate = ilen::core::options::GraphicsOptions::actualFPS;
-    metadata.mobileNativeWindow = (__bridge void*)self.window;
-    
+    self.window = [[LynxWindow alloc] initWithWindowScene:windowScene];
+
+    auto bootstrap = game::generated::MakeProjectBootstrap();
+    bootstrap.metadata.mobileNativeWindow = (__bridge void *)self.window;
+    const NSInteger requestedFPS = bootstrap.metadata.applicationFramerate;
+
     try {
-        self.app -> init(metadata);
-    } catch (const ilen::core::BasicException& e) {
-        _engineFailed = YES;
-        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
+        self.app->init(std::move(bootstrap));
+    } catch (const lynx::core::BasicException &exception) {
+        self.engineFailed = YES;
+        LYNX_FATAL_ERROR_P(exception.prefix(), exception.what());
+        [self stopApp];
+    } catch (const std::exception &exception) {
+        self.engineFailed = YES;
+        LYNX_FATAL_ERROR_P("GAME", exception.what());
         [self stopApp];
     }
-    
-    if(_engineFailed){
+
+    if (self.engineFailed) {
         return;
     }
-    
+
     self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(renderLoop:)];
-    
-    //Para dar soporte a 120 HZ en ProDisplay
-    if(@available(iOS 15.0, *)){
-        CAFrameRateRange countPerSecond = CAFrameRateRangeMake(10, 120, metadata.applicationFramerate);
-        self.displayLink.preferredFrameRateRange = countPerSecond;
-    }else{
-        self.displayLink.preferredFramesPerSecond = metadata.applicationFramerate;
+    const NSInteger maximumFPS = UIScreen.mainScreen.maximumFramesPerSecond;
+    const NSInteger preferredFPS = MIN(requestedFPS, maximumFPS);
+
+    if (@available(iOS 15.0, *)) {
+        self.displayLink.preferredFrameRateRange = CAFrameRateRangeMake(10, maximumFPS, preferredFPS);
+    } else {
+        self.displayLink.preferredFramesPerSecond = preferredFPS;
     }
-    
+
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+    [self.window makeKeyAndVisible];
 }
 
 - (void)renderLoop:(CADisplayLink *)displayLink {
-    if(_engineFailed || !self.app){
+    if (self.engineFailed || !self.app) {
         return;
     }
 
-    /*const double displayDelta =
-        displayLink.targetTimestamp - displayLink.timestamp;
-
-    const double scheduledFPS =
-        displayDelta > 0.0 ? 1.0 / displayDelta : 0.0;
-
-    const double availableTime =
-        displayLink.targetTimestamp - CACurrentMediaTime();
-
-    NSLog(
-        @"Display FPS: %.2f | Tiempo disponible: %.3f ms",
-        scheduledFPS,
-        availableTime * 1000.0
-    );*/
-    
-    try{
-        if(self.app->isRunning()) {
-            self.app -> update();
-        }else{
+    try {
+        if (self.app->isRunning()) {
+            self.app->update();
+        } else {
             [self stopApp];
         }
-    }catch (const ilen::core::BasicException& e) {
-        _engineFailed = YES;
-        ILEN_FATAL_ERROR_P(e.prefix(), e.what());
+    } catch (const lynx::core::BasicException &exception) {
+        self.engineFailed = YES;
+        LYNX_FATAL_ERROR_P(exception.prefix(), exception.what());
+        [self stopApp];
+    } catch (const std::exception &exception) {
+        self.engineFailed = YES;
+        LYNX_FATAL_ERROR_P("GAME", exception.what());
         [self stopApp];
     }
 }
 
-- (void)sceneDidDisconnect:(UIScene *)scene{
+- (void)sceneDidDisconnect:(UIScene *)scene {
     [self stopApp];
 }
 
+- (void)sceneWillResignActive:(UIScene *)scene {
+    lynx::input::InputBuffer::Get().ForceResetData();
+    self.displayLink.paused = YES;
+}
+
+- (void)sceneDidBecomeActive:(UIScene *)scene {
+    self.displayLink.paused = NO;
+}
+
 - (void)stopRenderLoop {
-    if(self.displayLink){
-        [self.displayLink invalidate];
-        self.displayLink = nullptr;
-    }
+    [self.displayLink invalidate];
+    self.displayLink = nil;
 }
 
 - (void)engineCleanup {
-    if(self.app){
+    if (self.app) {
         self.app->shutdown();
         self.app = nullptr;
     }
 }
 
-- (void)stopApp{
+- (void)stopApp {
     [self stopRenderLoop];
     [self engineCleanup];
 }
 
--(void)sceneWillResignActive:(UIScene *)scene {
-    //Acaba de entrar a foreground
-    ilen::input::InputBuffer::Get().ForceResetData();
-    auto win = static_cast<ilen::window::WindowNativeIOS*>(self.app->getEngineContext()->p_gameWindow->getNativeWindow());
-    win->isOutOfFocus = true;
-}
-
--(void)sceneDidBecomeActive:(UIScene *)scene {
-    //Obtuvo el foco la app
-    auto win = static_cast<ilen::window::WindowNativeIOS*>(self.app->getEngineContext()->p_gameWindow->getNativeWindow());
-    win->isOutOfFocus = false;
-}
 @end
 
-//El main de la app de iOS!!!
-int main(int argc, char* argv[]) {
+
+int main(int argc, char *argv[]) {
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }
 }
 
-#endif //ILEN_IOS
+#endif
