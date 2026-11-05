@@ -1,4 +1,3 @@
-#include "lynx/headers/lynx_logs.h"
 #if !LYNX_ONLY_ECS
 
 #include <lynx_examples/gravity.h>
