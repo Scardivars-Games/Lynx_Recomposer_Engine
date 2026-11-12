@@ -98,4 +98,4 @@ add_custom_command(TARGET LYNX_RE_SLANG_COMPILER POST_BUILD
 
 #Instalación opcional de las tools
 
-install(TARGETS ${LRE_TOOL_TARGET} RUNTIME DESTINATION bin)
+install(TARGETS ${LRE_TOOL_TARGET} RUNTIME DESTINATION bin COMPONENT LynxSDKTools)

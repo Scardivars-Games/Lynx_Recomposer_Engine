@@ -4,6 +4,7 @@
 #include <string>
 #include <json/json.hpp>
 
+#include <lynx/graphics/color.h>
 #include <lynx/headers/lynx_logs.h>
 #include <lynx/resources/scene_manager.h>
 
@@ -48,6 +49,9 @@ TypeInfo GetTypeInfo(std::string cppType, const std::string& arraySizeStr) {
     if(contains(cppType, "vec3")) return {"float3", 12, 16};
     if(contains(cppType, "vec4")) return {"float4", 16, 16};
     if(contains(cppType, "mat4")) return {"float4x4", 64, 16};
+    if(cppType == "graphics::Color" || cppType == "lynx::graphics::Color") {
+        return {"color", sizeof(lynx::graphics::Color), alignof(lynx::graphics::Color)};
+    }
 
     //Primitives
     if(cppType == "bool") return {"bool", 1, 1};

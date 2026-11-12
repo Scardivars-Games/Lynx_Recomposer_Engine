@@ -918,8 +918,8 @@ if(APPLE AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS"
 
         COMMAND
             "${CMAKE_COMMAND}" -E copy_if_different
-            "$<TARGET_FILE:lre_engine>"
-            "$<TARGET_BUNDLE_CONTENT_DIR:lre_game_project>/Frameworks/$<TARGET_FILE_NAME:lre_engine>"
+            "$<TARGET_FILE:Lynx::Engine>"
+            "$<TARGET_BUNDLE_CONTENT_DIR:lre_game_project>/Frameworks/$<TARGET_FILE_NAME:Lynx::Engine>"
 
         COMMENT
             "Assembling macOS game bundle"

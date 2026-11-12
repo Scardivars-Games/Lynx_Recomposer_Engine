@@ -13,10 +13,11 @@
 #include <algorithm>
 #include <json/json.hpp>
 
-#include <lynx/headers/LYNX_LOGs.h>
+#include <lynx/headers/lynx_logs.h>
 #include <lynx/core/time.h>
 #include <lynx/job_system/job_system.h>
 #include <lynx/ecs/types.h>
+#include <lynx/graphics/color.h>
 //#include <lynx/headers/ecs-components.h>
 #include <lynx/resources/binary_headers.h>
 #include <lynx/resources/scene_manager.h>
@@ -59,6 +60,7 @@ enum class SchemaType: uint8_t {
     Uint64 = 10,
     VectorUint64 = 11,
     VectorFloat2 = 12,
+    Color = 13,
     Unknown = 255
 };
 
@@ -86,6 +88,7 @@ class SchemaManager {
             if(typeStr == "float2") return SchemaType::Float2;
             if(typeStr == "float3") return SchemaType::Float3;
             if(typeStr == "float4") return SchemaType::Float4;
+            if(typeStr == "color") return SchemaType::Color;
             if(typeStr == "float4x4") return SchemaType::Float4x4;
             if (typeStr == "uint32_t" || typeStr == "uint32") return SchemaType::Uint32;
             if (typeStr == "int32_t" || typeStr == "int") return SchemaType::Int32;
@@ -165,6 +168,29 @@ class SchemaManager {
                     else if (field.type == SchemaType::Float3 && jVal.is_array() && jVal.size() >= 3) {
                         float val[3] = { jVal[0], jVal[1], jVal[2] };
                         std::memcpy(destPtr, val, sizeof(val));
+                    }
+                    else if (field.type == SchemaType::Color) {
+                        lynx::graphics::Color color(0.0f, 0.0f, 0.0f);
+                        try {
+                            if (jVal.is_array() && (jVal.size() == 3 || jVal.size() == 4)) {
+                                jVal.at(0).get_to(color.r);
+                                jVal.at(1).get_to(color.g);
+                                jVal.at(2).get_to(color.b);
+                                if (jVal.size() == 4) jVal.at(3).get_to(color.a);
+                            } else if (jVal.is_object()) {
+                                jVal.at("r").get_to(color.r);
+                                jVal.at("g").get_to(color.g);
+                                jVal.at("b").get_to(color.b);
+                                color.a = jVal.value("a", 1.0f);
+                            } else {
+                                LYNX_ERROR_P(DEBUG_PREFIX, "Formato de color inválido en %s.%s.", schema.name.c_str(), field.name.c_str());
+                                return false;
+                            }
+                        } catch (const json::exception& error) {
+                            LYNX_ERROR_P(DEBUG_PREFIX, "Color inválido en %s.%s: %s", schema.name.c_str(), field.name.c_str(), error.what());
+                            return false;
+                        }
+                        std::memcpy(destPtr, &color, sizeof(color));
                     }
                     else if (field.type == SchemaType::Float4x4 && jVal.is_array() && jVal.size() >= 16) {
                         float val[16];

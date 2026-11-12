@@ -8,6 +8,7 @@
 #include <lynx/render/render_constants.h>
 #include <unordered_map>
 #include <vector>
+#include <optional>
 
 
 namespace lynx::ecs::systems {
@@ -27,5 +28,6 @@ namespace lynx::ecs::systems {
             std::unordered_map<Entity, CameraFrameData> m_frameData;
             render::IRenderer* p_Renderer = nullptr;
             components::CameraComponent* m_mainCamera = nullptr;
+            std::optional<graphics::Color> m_appliedClearColor;
     };
 }

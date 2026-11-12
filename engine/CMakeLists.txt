@@ -468,13 +468,41 @@ endif()
 #INSTALACION DE LA BIBLIOTECA
 
 if(NOT LRE_ENGINE_XCFRAMEWORK)
-    install(TARGETS lre_engine lre_build_config
+    install(TARGETS lre_engine lre_build_config 
         EXPORT LynxRecomposerEngineTargets
         RUNTIME DESTINATION bin
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
     )
-
     install(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/" DESTINATION include)
-    install(EXPORT LynxRecomposerEngineTargets FILE LynxRecomposerEngineTargets.cmake NAMESPACE LYNX:: DESTINATION lib/cmake/LynxRecomposerEngine)
+    
+    include(CMakePackageConfigHelpers)
+
+    set_target_properties(lre_build_config PROPERTIES EXPORT_NAME BuildConfig)
+    set(lre_package_dir "lib/cmake/LynxRecomposerEngine")
+
+    install(EXPORT LynxRecomposerEngineTargets 
+        FILE LynxRecomposerEngineTargets.cmake
+        NAMESPACE Lynx::
+        DESTINATION "${lre_package_dir}"
+    )
+
+    configure_package_config_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/LynxRecomposerEngineConfig.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/LynxRecomposerEngineConfig.cmake"
+        INSTALL_DESTINATION "${lre_package_dir}"
+    )
+
+    install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LynxRecomposerEngineConfig.cmake"
+        DESTINATION "${lre_package_dir}"
+    )
+
+    if(LRE_BUILD_ENGINE_ASSETS)
+        install(FILES "${LRE_ENGINE_SCHEMA_FILE}" DESTINATION "share/lynx/schemas")
+        install(FILES "${LRE_ENGINE_DEFAULT_ASSET_MANIFEST}" DESTINATION "share/lynx/manifests")
+        install(DIRECTORY "${LRE_ENGINE_BINARY_ASSET_DIR}/"
+            DESTINATION "share/lynx/engine_assets/${LRE_ASSET_TARGET_NAME}"
+            PATTERN ".build_complete" EXCLUDE
+        )
+    endif()
 endif()

@@ -6,6 +6,7 @@
 #include <lynx/render/render_constants.h>
 #include <lynx/render/renderer.h>
 #include <lynx/window/window.h>
+#include <lynx/ecs/types.h>
 
 
 REGISTER_NATIVE_SYSTEM(lynx::ecs::systems::CameraSystem, lynx::ecs::SystemPhase::PreRender, 2)
@@ -29,6 +30,7 @@ namespace lynx::ecs::systems {
 
             if (cameraComponent->isPrimary == true) {
                 m_mainCamera = cameraComponent;
+                m_appliedClearColor.reset();
             }
 
             if(cameraComponent->cameraEntity == NULL_ENTITY){
@@ -65,6 +67,10 @@ namespace lynx::ecs::systems {
 
                 if (!cameraComponent || !transformComponent) {
                     continue; //Esta cámara no es válida
+                }
+
+                if(cameraComponent->cameraEntity == NULL_ENTITY){
+                    cameraComponent->cameraEntity = entity;
                 }
 
                 if (cameraComponent->isPrimary == true) {
@@ -113,6 +119,16 @@ namespace lynx::ecs::systems {
                 auto& cameraData = m_frameData[entity].data;
                 cameraData.currentViewProjectionMatrix = viewProjectionMatrix;
                 cameraData.previousViewProjectionMatrix = previousProjectionMatrix;
+            }
+
+            if(!m_mainCamera) {
+                m_appliedClearColor.reset();
+            }else if(p_Renderer) {
+                const auto& color = m_mainCamera->clearColor;
+                if(!m_appliedClearColor || !(*m_appliedClearColor == color)) {
+                    p_Renderer->setNewRendererClearColor(color);
+                    m_appliedClearColor = color;
+                }
             }
         }
     }

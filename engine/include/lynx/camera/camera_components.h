@@ -4,6 +4,7 @@
 #include <lynx/camera/camera_system.h>
 #include <lynx/headers/maths.h>
 #include <lynx/render/gpu_interfaces/buffers.h>
+#include <lynx/graphics/color.h>
 
 namespace lynx::ecs::systems {
     class CameraSystem;
@@ -27,6 +28,7 @@ namespace lynx::ecs::components {
             LYNX_PROPERTY float orthoSize = 10.0f;
             LYNX_PROPERTY float nearClip = 0.1f;
             LYNX_PROPERTY float farClip  = 1000.0f;
+            LYNX_PROPERTY graphics::Color clearColor = {0.0, 0.6588, 0.4196, 1.0}; //Jade por defecto... Ashiel eyes color.
 
             //Para que siga a un objeto, o lo mire.
             LYNX_PROPERTY Entity toFollowEntity = NULL_ENTITY;

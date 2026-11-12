@@ -1,4 +1,5 @@
 #include "lynx/core/runtime_configuration.h"
+#include "lynx/graphics/color.h"
 #if defined (__APPLE__)
 #pragma once
 
@@ -47,6 +48,7 @@ namespace lynx::render {
             void endFrame() override;
             void endEncoding(IGPUParallelCommandEncoder* encoder) override;
             void regenerateEncoderDescriptor() override;
+            void setNewRendererClearColor(graphics::Color newClearColor) override;
             inline void defineSupportedGPUCompression() override;
         
             bool acquireDrawable();

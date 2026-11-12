@@ -40,6 +40,7 @@ namespace lynx::render {
         virtual void endFrame() = 0;
         virtual void endEncoding(IGPUParallelCommandEncoder* encoder) = 0;
         virtual void regenerateEncoderDescriptor() = 0;
+        virtual void setNewRendererClearColor(graphics::Color newClearColor) = 0;
         virtual inline void defineSupportedGPUCompression() = 0;
 
         //Builder for GPU Interfaces

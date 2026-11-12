@@ -1,0 +1,12 @@
+@PACKAGE_INIT@
+
+set_and_check(LRE_TOOLS_DIR "${PACKAGE_PREFIX_DIR}/bin")
+set_and_check(LRE_ENGINE_SCHEMA_FILE "${PACKAGE_PREFIX_DIR}/share/lynx/schemas/engine_defaults.meta_lynxschema")
+set_and_check(LRE_ENGINE_DEFAULT_ASSET_MANIFEST "${PACKAGE_PREFIX_DIR}/share/lynx/manifests/assets_defaults.meta_lynxmanifest")
+set_and_check(LRE_ENGINE_BINARY_ASSET_DIR "${PACKAGE_PREFIX_DIR}/share/lynx/engine_assets/@LRE_ASSET_TARGET_NAME@")
+
+include(CMakeFindDependencyMacro)
+find_dependency(Threads)
+
+include("${CMAKE_CURRENT_LIST_DIR}/LynxRecomposerEngineTargets.cmake")
+check_required_components(LynxRecomposerEngine)

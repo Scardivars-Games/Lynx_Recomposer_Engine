@@ -56,13 +56,7 @@ namespace lynx::render {
             
             _predefinedValues.screenPixelFormat = _metalLayer.pixelFormat;
             _predefinedValues.depthStencilPixelFormat = MTLPixelFormatDepth32Float;
-            #if LYNX_MACOS
-            _predefinedValues.clearColor = MTLClearColor(0.1, 0.1, 0.2, 1.0);
-            #elif LYNX_IOS
-            _predefinedValues.clearColor = MTLClearColor(0.5, 0.2, 0.2, 1.0);
-            #elif LYNX_TVOS
-            _predefinedValues.clearColor = MTLClearColor(0.83, 0.68, 0.21, 1.0);
-            #endif //TARGET_OS_IOS
+            _predefinedValues.clearColor = MTLClearColor(0,0,0,1);
             
             #if LYNX_MACOS
             //Cargar .metallib
@@ -536,6 +530,11 @@ void MetalRender::defineSupportedGPUCompression() {
     else {
         compressionActualFormat = enumerations::LYNX_GPU_TEXTURE_PIXEL_FORMAT_TYPE::LYNX_GPU_TEXTURE_PIXEL_FORMAT_INVALID;
     }
+}
+
+void MetalRender::setNewRendererClearColor(graphics::Color newClearColor) {
+    _predefinedValues.clearColor = MTLClearColor(newClearColor.r, newClearColor.g, newClearColor.b, newClearColor.a);
+    regenerateEncoderDescriptor();
 }
 
 }
