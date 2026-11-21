@@ -1,8 +1,8 @@
 {
-    "version": 3,
+    "version": 6,
     "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 20,
+        "major": 4,
+        "minor": 0,
         "patch": 0
     },
     "configurePresets": [
@@ -57,6 +57,22 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "LYNX_METAL_HUD": "ON"
             }
+        },
+        {
+            "name": "sdk-release-macOS",
+            "displayName": "Release -- Only Dynamic Lib for macOS",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/build/sdk-release",
+            "installDir": "${sourceDir}/dist/LynxSDK-macOS-release",
+            "toolchainFile": "${sourceDir}/toolchains/macos.toolchain.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "LYNX_OPTIMIZED_BUILD_FLAGS": "ON",
+                "CMAKE_OSX_ARCHITECTURES": "arm64;x86_64",
+                "LRE_BUILD_GAME_PROJECT": "OFF",
+                "LRE_BUILD_ENGINE_ASSETS": "ON",
+                "LRE_TOOLS_USE_BUNDLED_ASSIMP": "ON"
+            }   
         }
     ],
     "buildPresets": [
@@ -81,6 +97,43 @@
             "displayName": "",
             "inherits": [
                 "Release -- Optimized Build"
+            ]
+        },
+        {
+            "name" : "sdk-release-macos-build",
+            "displayName": "Build LynxSDK",
+            "configurePreset": "sdk-release-macOS",
+            "targets": [
+                "lre_workspace"
+            ],
+            "jobs": 7
+        },
+        {
+            "name": "sdk-release-macos-install",
+            "displayName": "Install LynxSDK",
+            "configurePreset": "sdk-release-macOS",
+            "targets": [
+                "install"
+            ]
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "install-sdk-macOS",
+            "displayName": "Release -- Only Dynamic Lib for macOS",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "sdk-release-macOS"
+                },
+                {
+                    "type": "build",
+                    "name": "sdk-macos-build"
+                },
+                {
+                    "type": "build",
+                    "name": "sdk-macos-install"
+                }
             ]
         }
     ]

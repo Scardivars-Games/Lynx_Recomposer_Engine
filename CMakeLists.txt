@@ -155,3 +155,19 @@ endif()
 if(TARGET lre_game_assets)
     add_dependencies(lre_workspace lre_game_assets)
 endif()
+
+install(CODE "
+    execute_process(
+        COMMAND \"${CMAKE_COMMAND}\" --install \"${CMAKE_BINARY_DIR}/lre_tools/build\"
+                --prefix \"\${CMAKE_INSTALL_PREFIX}\"
+                --component LynxSDKTools
+        COMMAND_ERROR_IS_FATAL ANY
+    )
+
+    if(DEFINED ENV{LRE_SLANG_DIR} AND NOT \"\$ENV{LRE_SLANG_DIR}\" STREQUAL \"\")
+        if(NOT EXISTS \"\$ENV{LRE_SLANG_DIR}/bin/slangc\")
+            message(FATAL_ERROR \"LRE_SLANG_DIR debe contener un bin/slangc ejecutable.\")
+        endif()
+        file(COPY \"\$ENV{LRE_SLANG_DIR}/\" DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin/slang\")
+    endif()
+")
